@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no, email=no, address=no">
+<meta name="theme-color" content="#F5F4F0">
+<title>Study App Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap"><div class="logo-text">Study</div><div class="logo-dot"></div></div>
+  <div class="header-btns">
+    <button class="dark-toggle" id="dark-toggle-btn" onclick="toggleDark()">AUTO</button>
+    <button class="api-btn" onclick="setTabByIndex(9)">SETTINGS</button>
+  </div>
+</header>
+<div class="toast" id="toast"></div>
+
+<div class="view-container" id="view-container">
+
+<!-- DASHBOARD -->
+<div id="Dashboard" class="view active">
+  <div class="flex-between align-center mb-3">
+    <p class="page-title mb-0">Dashboard</p>
+    <button class="btn-pill btn-outline" id="toggle-widget-sort-btn" onclick="toggleWidgetSortMode()">ウィジェット並び替え</button>
+  </div>
+  
+  <div id="dashboard-widgets">
+    <!-- WOTD Widget -->
+    <div class="card wotd-card-bg hidden widget-item" id="word-of-the-day-card" data-widget-id="wotd">
+      <p class="text-xs font-bold text-muted mb-2 text-uppercase">今日の単語</p>
+      <div class="flex-between">
+        <div id="wotd-word" class="wotd-word-text"></div>
+        <button class="speak-btn-large audio-btn btn-sm" id="wotd-speak">発音</button>
+      </div>
+      <div id="wotd-meaning" class="text-sub font-bold text-base mb-2"></div>
+      <div id="wotd-example" class="text-sub text-sm mb-3 example-box"></div>
+      <div class="flex-gap-8">
+        <button class="action-btn mb-0 flex-1 btn-md" id="wotd-save-btn">カードに追加</button>
+        <button class="action-btn btn-secondary mb-0 flex-1 btn-md" id="wotd-next-btn" onclick="nextWordOfTheDay()">別の単語</button>
+      </div>
+    </div>
+
+    <!-- Hero Widget -->
+    <div class="dash-hero widget-item" id="dash-hero" data-widget-id="hero">
+      <div class="flex-between align-center mb-2">
+        <div class="dash-rank" id="dash-rank-label">RANK</div>
+        <button onclick="shareProgress()" class="btn-share">Xでシェア</button>
+      </div>
+      <div class="dash-rank-name" id="dash-rank-name">—</div>
+      <div class="dash-hours" id="dash-hours-text">総学習時間: 0時間 | XP: 0</div>
+      <div id="dash-badges" class="flex-gap-wrap mt-2"></div>
+    </div>
+
+    <!-- Yearly Summary Widget -->
+    <div class="card border-left-accent hidden widget-item" id="dash-yearly-summary" data-widget-id="yearly">
+      <p class="text-xs font-bold text-muted mb-1">今月の目標 (<span id="dash-yearly-month"></span>月)</p>
+      <p class="text-sm font-bold mb-2 line-height-15" id="dash-yearly-month-goal"></p>
+      <p class="text-xs text-muted">年間大目標: <span id="dash-yearly-main-goal" class="font-bold text-sub"></span></p>
+    </div>
+
+    <!-- Action Buttons Widget -->
+    <div class="flex-gap-8 mb-3 widget-item" data-widget-id="actions">
+      <button class="action-btn mb-0 flex-1 bg-streak" onclick="openWeeklyReport()">Weekly</button>
+      <button class="action-btn btn-danger mb-0 flex-1" onclick="openWeaknessAnalysis()">Analysis</button>
+    </div>
+
+    <!-- Streak Widget -->
+    <div class="widget-item mb-3" data-widget-id="streak">
+      <div class="dash-streak-row mb-2">
+        <div class="dash-streak-card"><div class="dash-streak-num text-streak" id="dash-streak">0</div><div class="dash-streak-label">連続日数</div></div>
+        <div class="dash-streak-card"><div class="dash-streak-num" id="dash-total-days">0</div><div class="dash-streak-label">総学習日数</div></div>
+      </div>
+      <div id="recovery-mission-area"></div>
+    </div>
+
+    <!-- Weekly Chart Widget -->
+    <div class="card mb-14 widget-item" id="dash-weekly-chart-card" data-widget-id="weekly-chart">
+      <div class="flex-between mb-2">
+        <p class="text-xs font-bold text-muted">週別学習時間</p>
+        <div class="flex align-center">
+          <button class="btn-pill btn-outline" onclick="dashWeeklyPrev()">‹</button>
+          <span id="dash-weekly-label" class="text-xs font-bold ml-2 mr-2">今週</span>
+          <button class="btn-pill btn-outline" onclick="dashWeeklyNext()">›</button>
+        </div>
+      </div>
+      <div class="chart-container-180"><canvas id="dash-weekly-chart"></canvas></div>
+    </div>
+
+    <!-- SRS Chart Widget -->
+    <div class="card mb-14 widget-item" id="dash-srs-chart-card" data-widget-id="srs-chart">
+      <p class="text-xs font-bold text-muted mb-2">忘却曲線（次回復習までの日数）</p>
+      <div class="chart-container-180"><canvas id="dash-srs-chart"></canvas></div>
+    </div>
+    
+    <!-- SRS Scatter Widget -->
+    <div class="card mb-14 widget-item" id="dash-srs-scatter-card" data-widget-id="srs-scatter">
+      <p class="text-xs font-bold text-muted mb-2">記憶の定着度分布 (Stability)</p>
+      <div class="chart-container-180"><canvas id="dash-srs-scatter"></canvas></div>
+    </div>
+
+    <!-- Subject Chart Widget -->
+    <div class="card mb-14 widget-item" id="dash-subj-chart-card" data-widget-id="subj-chart">
+      <p class="text-xs font-bold text-muted mb-2">科目別学習時間</p>
+      <div class="chart-container-180"><canvas id="dash-subj-chart"></canvas></div>
+    </div>
+
+    <!-- Heatmap Widget -->
+    <div class="card mb-14 widget-item" data-widget-id="heatmap">
+      <p class="text-xs font-bold text-muted mb-2">学習ヒートマップ (過去90日)</p>
+      <div id="dash-heatmap" class="heatmap-grid heatmap-layout"></div>
+    </div>
+
+    <!-- Calendar Widget -->
+    <div class="cal-wrap widget-item" data-widget-id="calendar">
+      <div class="cal-header"><button class="cal-nav-btn" onclick="dashCalPrev()">‹</button><div class="cal-month-label" id="cal-month-label">—</div><button class="cal-nav-btn" onclick="dashCalNext()">›</button></div>
+      <div class="cal-grid" id="cal-dow-row">
+        <div class="cal-dow">月</div><div class="cal-dow">火</div><div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div><div class="cal-dow">日</div>
+      </div>
+      <div class="cal-grid" id="cal-days"></div>
+    </div>
+
+    <!-- Today Plan Widget -->
+    <div class="dash-today-log mb-14 widget-item" data-widget-id="today-plan">
+      <div class="flex-between mb-2">
+        <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1">今日の予定・イベント</p>
+        <div>
+          <button onclick="generateAutoSchedule()" class="btn-pill bg-streak text-bg border-none mr-1">自動生成</button>
+          <button onclick="openStudyLogModal(todayDateStr())" class="btn-pill btn-outline">編集</button>
+        </div>
+      </div>
+      <div id="dash-today-event-list" class="mb-1"></div>
+      <div id="dash-today-plan-list"></div>
+    </div>
+
+    <!-- Today Log Widget -->
+    <div class="dash-today-log widget-item" data-widget-id="today-log">
+      <div class="flex-between mb-2">
+        <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1">今日の学習記録</p>
+        <button onclick="openStudyLogModal(todayDateStr())" class="btn-pill bg-accent text-bg border-none">+ 追加</button>
+      </div>
+      <div id="dash-today-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TIMER -->
+<div id="Timer" class="view">
+  <p class="page-title">Timer</p>
+  <div class="card text-center p-28-18">
+    <div id="timer-display" class="timer-display-text">25:00</div>
+    <div id="timer-status" class="text-xs font-bold text-muted timer-status-text">停止中</div>
+    <div class="flex-center gap-2 mb-3">
+      <button id="timer-start-btn" class="action-btn mb-0 btn-auto-width btn-lg-pad" onclick="timerStartStop()">スタート</button>
+      <button class="action-btn btn-secondary mb-0 btn-auto-width btn-lg-pad" onclick="timerReset()">リセット</button>
+    </div>
+    
+    <div class="flex-col align-center mb-4 gap-2">
+      <label class="flex align-center gap-2 text-sm font-bold cursor-pointer">
+        <input type="checkbox" id="timer-pomodoro-mode" style="width:18px;height:18px;accent-color:var(--accent);">
+        ポモドーロモード (25分学習 + 5分休憩)
+      </label>
+      <label class="flex align-center gap-2 text-sm font-bold cursor-pointer">
+        <input type="checkbox" id="timer-auto-start" style="width:18px;height:18px;accent-color:var(--accent);">
+        
+      </label>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <p class="text-xs font-bold text-muted mb-3">環境音ミックス</p>
+    <div class="flex-col gap-3">
+      <div class="flex align-center gap-2">
+        <button class="audio-btn flex-1" id="audio-btn-rain" onclick="toggleNoise('rain')">雨音</button>
+        <input type="range" id="audio-vol-rain" min="0" max="100" value="50" class="flex-2" oninput="updateNoiseVolume('rain', this.value)">
+      </div>
+      <div class="flex align-center gap-2">
+        <button class="audio-btn flex-1" id="audio-btn-waves" onclick="toggleNoise('waves')">波</button>
+        <input type="range" id="audio-vol-waves" min="0" max="100" value="50" class="flex-2" oninput="updateNoiseVolume('waves', this.value)">
+      </div>
+      <div class="flex align-center gap-2">
+        <button class="audio-btn flex-1" id="audio-btn-fire" onclick="toggleNoise('fire')">焚き火</button>
+        <input type="range" id="audio-vol-fire" min="0" max="100" value="50" class="flex-2" oninput="updateNoiseVolume('fire', this.value)">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="text-xs font-bold text-muted mb-3">時間を設定</p>
+    <div class="flex-between gap-2 mb-2">
+      <div class="flex align-center gap-1 flex-1"><input type="number" id="timer-input-min" min="0" max="999" value="25" class="score-input timer-input-large"><span class="text-xs text-muted font-bold">分</span></div>
+      <div class="flex align-center gap-1 flex-1"><input type="number" id="timer-input-sec" min="0" max="59" value="0" class="score-input timer-input-large"><span class="text-xs text-muted font-bold">秒</span></div>
+      <button class="add-btn btn-accent-solid" onclick="timerSetCustom()">セット</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="flex-between mb-2"><p class="text-xs font-bold text-muted">よく使うタイム</p><button onclick="timerSavePreset()" class="btn-pill btn-outline">保存</button></div>
+    <div id="timer-presets" class="flex flex-gap-wrap"></div>
+  </div>
+</div>
+
+<!-- IMPORT / SEARCH -->
+<div id="ImportSearch" class="view">
+  <p class="page-title">Import &amp; Search</p>
+  <button class="action-btn" onclick="openImportModal()">+ 単語をインポート</button>
+  <div class="search-wrap">
+    <input type="text" id="word-input" placeholder="単語を検索・入力..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchWord()}">
+    <button class="search-go" onclick="searchWord()">検索</button>
+  </div>
+  <div id="word-suggest" class="word-quick-list"></div>
+  <div id="loading" class="hidden text-center p-36 text-muted font-bold text-sm"><span class="loading-dots">解析中</span></div>
+  <div id="search-result"></div>
+</div>
+
+<!-- VOCAB -->
+<div id="Vocab" class="view">
+  <p class="page-title">Vocab List</p>
+  <div class="vocab-stats-bar" id="vocab-stats-bar"></div>
+  <button class="action-btn btn-secondary mb-3" onclick="openSimulationModal()">忘却曲線シミュレーター</button>
+  <div class="flex-gap-8 mb-3">
+    <button class="action-btn mb-0 flex-1 bg-accent" onclick="openAddWordModal()">+ Add Word</button>
+    <button class="action-btn mb-0 flex-1 bg-accent2" onclick="printWordTest()">Test</button>
+    <button class="action-btn mb-0 flex-1 bg-green" onclick="exportVocabPDF()">PDF</button>
+  </div>
+  <div class="vocab-search-wrap"><input type="text" id="vocab-search" placeholder="絞り込み検索..."></div>
+  <div id="vocab-filter-bar" class="vocab-filter-bar">
+    <div class="flex align-center gap-2 flex-wrap"><span class="text-xs font-bold text-muted">品詞</span><div id="pos-filters" class="flex gap-1 flex-wrap"><button class="filter-chip active" data-pos="all" onclick="setPosFilter('all')">すべて</button><button class="filter-chip" data-pos="noun" onclick="setPosFilter('noun')">名詞</button><button class="filter-chip" data-pos="verb" onclick="setPosFilter('verb')">動詞</button><button class="filter-chip" data-pos="adjective" onclick="setPosFilter('adjective')">形容詞</button><button class="filter-chip" data-pos="adverb" onclick="setPosFilter('adverb')">副詞</button><button class="filter-chip" data-pos="other" onclick="setPosFilter('other')">その他</button></div></div>
+    <div class="flex align-center gap-2 flex-wrap"><span class="text-xs font-bold text-muted">進捗</span><div id="prog-filters" class="flex gap-1 flex-wrap"><button class="filter-chip active" data-prog="all" onclick="setProgFilter('all')">すべて</button><button class="filter-chip" data-prog="mastered" onclick="setProgFilter('mastered')">習得済</button><button class="filter-chip" data-prog="learning" onclick="setProgFilter('learning')">学習中</button><button class="filter-chip" data-prog="new" onclick="setProgFilter('new')">未学習</button></div></div>
+    <div class="flex align-center gap-2 flex-wrap"><span class="text-xs font-bold text-muted">タグ</span><div id="tag-filters" class="flex gap-1 flex-wrap"><button class="filter-chip active" data-tag="all" onclick="setTagFilter('all')">すべて</button></div></div>
+    <div class="flex align-center gap-2 flex-wrap"><span class="text-xs font-bold text-muted">語根</span><div class="flex align-center flex-1 gap-1 search-pill"><input type="text" id="prefix-search-input" placeholder="例: pro, port" class="search-pill-input"><button onclick="clearPrefixFilter()" class="btn-clear hidden" id="prefix-clear-btn">✕</button></div></div>
+    <div class="flex-between"><button onclick="analyzeVocabMeta()" id="analyze-meta-btn" class="btn-pill btn-outline">品詞・語源解析</button><span id="meta-status" class="text-xs text-muted"></span></div>
+  </div>
+  <div id="vocab-count" class="vocab-count"></div>
+  <div id="vocab-grid" class="vocab-grid"></div>
+  <div class="text-center mt-3 mb-3">
+    <button id="vocab-load-more-btn" class="action-btn btn-secondary btn-auto-width btn-md-pad hidden" onclick="loadMoreVocab()">さらに読み込む</button>
+  </div>
+</div>
+
+<!-- CARDS -->
+<div id="Cards" class="view">
+  <div class="flex-between mb-4">
+    <p class="page-title mb-0">Flash Cards</p>
+    <div class="flex-gap-8">
+      <button class="api-btn" id="voice-cmd-btn" onclick="toggleVoiceCommand()">音声操作: OFF</button>
+      <button class="api-btn" id="autoplay-btn" onclick="toggleAutoPlay()">オート: OFF</button>
+    </div>
+  </div>
+  <div class="flip-card" onclick="flipCard()">
+    <div class="flip-inner" id="flip-inner">
+      <div class="flip-front">
+        <div class="swipe-indicator swipe-left" id="swipe-left">忘れた</div>
+        <div class="swipe-indicator swipe-right" id="swipe-right">覚えた</div>
+        <div class="flip-word" id="card-word">—</div>
+        <div class="flip-hint">タップで裏返す / スワイプで仕分け / 音声コマンド可</div>
+      </div>
+      <div class="flip-back">
+        <div class="flip-meaning" id="card-meaning">—</div>
+        <div id="card-image-container" class="mt-3" style="max-height: 120px; overflow: hidden; border-radius: 8px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-counter"><span id="card-idx">0</span> / <span id="card-total">0</span></div>
+  <div class="text-center mb-2">
+    <button onclick="speakCurrentCard()" class="btn-pill btn-outline btn-lg-pad">発音する</button>
+  </div>
+  <div class="card-nav">
+    <button onclick="changeCard(-1)">PREV</button>
+    <button onclick="shuffleCards()">SHUFFLE</button>
+    <button onclick="changeCard(1)">NEXT</button>
+  </div>
+  <div id="srs-card-buttons" class="mt-10 hidden">
+    <p class="text-xs font-bold text-center mb-2">理解度（FSRS Algorithm）</p>
+    <div class="flex-gap-8">
+      <button onclick="srsRateCurrentCard(0)" class="btn-srs bg-danger">忘れた</button>
+      <button onclick="srsRateCurrentCard(1)" class="btn-srs bg-streak">難しい</button>
+      <button onclick="srsRateCurrentCard(2)" class="btn-srs bg-green">覚えた</button>
+      <button onclick="srsRateCurrentCard(3)" class="btn-srs bg-blue">完璧</button>
+    </div>
+    <p id="srs-card-status" class="srs-status-text"></p>
+  </div>
+  <div class="mt-4">
+    <p class="section-note">カードソース</p>
+    <div class="mode-toggle">
+      <button class="ptab active" id="cards-mode-all" onclick="setCardsMode('all')">All</button>
+      <button class="ptab" id="cards-mode-saved" onclick="setCardsMode('saved')">Saved</button>
+      <button class="ptab" id="cards-mode-srs" onclick="setCardsMode('srs')">Review</button>
+      <button class="ptab hidden btn-danger-tab" id="cards-mode-weak" onclick="setCardsMode('weak')">弱点集中</button>
+    </div>
+    <div class="flex align-center gap-2 mt-2">
+      <span class="text-xs font-bold text-muted">タグ絞り込み:</span>
+      <select id="cards-tag-select" class="score-input flex-1" onchange="initCards()">
+        <option value="all">すべて</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- SKILL UP -->
+<div id="SkillUp" class="view">
+  <p class="page-title">Writing &amp; Reading &amp; Listening &amp; Quiz</p>
+  <div class="writing-tabs">
+    <button class="writing-tab active" id="wtab-input" onclick="switchWritingTab('input')">Correct</button>
+    <button class="writing-tab" id="wtab-daily" onclick="switchWritingTab('daily')">Problems</button>
+    <button class="writing-tab" id="wtab-quiz" onclick="switchWritingTab('quiz')">Quiz</button>
+    <button class="writing-tab" id="wtab-syntax" onclick="switchWritingTab('syntax')">Syntax</button>
+    <button class="writing-tab" id="wtab-history" onclick="switchWritingTab('history')">History</button>
+  </div>
+
+  <div class="writing-pane active" id="wpane-input">
+    <p class="section-note">英作文や英文写真からAIが添削・構文解析を行います。</p>
+    <div class="mode-toggle mb-3">
+      <button class="ptab active" id="wmode-text" onclick="setWritingInputMode('text')">Text</button>
+      <button class="ptab" id="wmode-file" onclick="setWritingInputMode('file')">File</button>
+      <button class="ptab" id="wmode-photo" onclick="setWritingInputMode('photo')">Photo</button>
+    </div>
+    
+    <div id="w-text-area"><textarea class="writing-textarea" id="writing-text-input" placeholder="英文や英作文を入力..."></textarea></div>
+    <div id="w-file-area" class="hidden"><label class="writing-upload-btn" for="writing-file-input"><span class="mb-1 font-bold">[ ファイルを選択 ]</span><input type="file" id="writing-file-input" accept="*/*" class="hidden" onchange="handleWritingFile(event)" onclick="this.value=null"></label><div id="writing-file-name"></div><textarea class="writing-textarea min-h-100" id="writing-file-text" placeholder="ファイル内容" readonly></textarea></div>
+    <div id="w-photo-area" class="hidden"><label class="writing-upload-btn" for="writing-photo-input"><span class="mb-1 font-bold">[ 写真を選択 ]</span><input type="file" id="writing-photo-input" accept="image/*" class="hidden" onchange="handleWritingPhoto(event)" onclick="this.value=null"></label><div id="writing-photo-preview" class="mb-2"></div></div>
+
+    <div class="flex-gap-wrap mb-4">
+      <button class="action-btn mb-0 flex-1 min-w-100" id="writing-submit-btn" onclick="submitWriting('correct')">Correct</button>
+      <button class="action-btn mb-0 flex-1 min-w-100 bg-green" id="writing-analyze-btn" onclick="submitWriting('analyze')">Parse</button>
+      <button class="action-btn mb-0 flex-1 min-w-100 bg-streak" id="writing-paraphrase-btn" onclick="submitWriting('paraphrase')">Paraphrase</button>
+    </div>
+    
+    <div id="writing-loading" class="hidden text-center p-28"><span class="loading-dots">処理中</span></div>
+    <div id="writing-result"></div>
+  </div>
+
+  <div class="writing-pane" id="wpane-daily">
+    <div class="mode-toggle mb-3">
+      <button class="ptab active" id="dtab-comp" onclick="switchDailyTab('comp')">Writing</button>
+      <button class="ptab" id="dtab-parse" onclick="switchDailyTab('parse')">Parse</button>
+      <button class="ptab" id="dtab-reading" onclick="switchDailyTab('reading')">Reading</button>
+      <button class="ptab" id="dtab-listen" onclick="switchDailyTab('listen')">Listen</button>
+      <button class="ptab" id="dtab-drill" onclick="switchDailyTab('drill')">Drill</button>
+    </div>
+    
+    <div id="daily-difficulty-wrap" class="flex-gap-8 mb-3 align-center">
+      <span class="text-xs font-bold text-muted">難易度:</span>
+      <select id="daily-difficulty" class="score-input flex-1">
+        <option value="basic">初級</option>
+        <option value="standard" selected>中級</option>
+        <option value="advanced">上級</option>
+      </select>
+    </div>
+
+    <div id="daily-area-comp" class="daily-sub-area"></div>
+    <div id="daily-area-parse" class="daily-sub-area hidden"></div>
+    <div id="daily-area-reading" class="daily-sub-area hidden"></div>
+    <div id="daily-area-listen" class="daily-sub-area hidden">
+      <div class="mode-toggle mb-3">
+        <button class="ptab active" id="listen-mode-mc" onclick="setListenMode('mc')">Multiple</button>
+        <button class="ptab" id="listen-mode-dict" onclick="setListenMode('dict')">Dictation</button>
+      </div>
+      <div id="listen-mc-area"></div>
+      <div id="listen-dict-area" class="hidden"></div>
+    </div>
+    <div id="daily-area-drill" class="daily-sub-area hidden">
+      <div class="card text-center p-36">
+        <p class="text-sm mb-3">過去の添削履歴やミスから、あなた専用の文法・語法ドリルを自動生成します。</p>
+        <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2" id="generate-weakness-drill-btn" onclick="generateWeaknessDrill()">弱点ドリルを生成</button>
+      </div>
+      <div id="drill-loading" class="hidden text-center p-28"><span class="loading-dots">分析・生成中</span></div>
+      <div id="drill-content-area"></div>
+    </div>
+  </div>
+
+  <div class="writing-pane" id="wpane-quiz">
+    <div class="card">
+      <p class="text-xs font-bold text-muted mb-3">AI 単語クイズ</p>
+      <div class="flex-gap-8 mb-3">
+        <select id="quiz-range" class="score-input flex-1">
+          <option value="all">全単語から</option>
+          <option value="saved">保存済から</option>
+          <option value="srs">要復習から</option>
+        </select>
+        <select id="quiz-count" class="score-input flex-1">
+          <option value="5">5問</option>
+          <option value="10">10問</option>
+          <option value="15">15問</option>
+        </select>
+      </div>
+      <button class="action-btn mb-0" id="generate-quiz-btn" onclick="generateWordQuiz()">クイズを生成</button>
+    </div>
+    <div id="word-quiz-loading" class="hidden text-center p-28"><span class="loading-dots">問題作成中</span></div>
+    <div id="word-quiz-area"></div>
+  </div>
+
+  <div class="writing-pane" id="wpane-syntax">
+    <div class="flex-gap-8 mb-3"><button class="action-btn mb-0 flex-1 bg-green" onclick="exportSyntaxPDF()">構文リストPDF</button></div>
+    <div class="card mb-3"><p class="text-xs font-bold mb-3">構文を手動追加</p><input type="text" id="syntax-new-text" class="score-input mb-2" placeholder="英語の構文・フレーズ"><input type="text" id="syntax-new-meaning" class="score-input mb-2" placeholder="意味・和訳"><input type="text" id="syntax-new-note" class="score-input mb-2" placeholder="メモ"><button class="action-btn mb-0" onclick="addSyntaxManual()">追加</button></div>
+    <div id="syntax-list"></div>
+  </div>
+  
+  <div class="writing-pane" id="wpane-history">
+    <div id="writing-history-list"></div>
+  </div>
+</div>
+
+<!-- CUSTOM CARDS -->
+<div id="CustomCards" class="view">
+  <p class="page-title">Custom Decks</p>
+  <div class="mode-toggle mb-3"><button class="ptab active" id="cc-mode-study" onclick="setCCMode('study')">Study</button><button class="ptab" id="cc-mode-edit" onclick="setCCMode('edit')">Edit</button><button class="ptab" id="cc-mode-decks" onclick="setCCMode('decks')">Decks</button></div>
+  <div id="cc-study-area">
+    <select id="cc-deck-select" class="score-input mb-3" onchange="ccLoadDeck()"><option value="">-- 選択 --</option></select>
+    <div class="flip-card hidden" onclick="ccFlipCard()" id="cc-flip-card"><div class="flip-inner" id="cc-flip-inner"><div class="flip-front"><div class="flip-word text-28" id="cc-card-front">—</div></div><div class="flip-back"><div class="flip-meaning" id="cc-card-back">—</div></div></div></div>
+    <div id="cc-empty-deck" class="text-center p-48-20 hidden">空です。</div><div id="cc-no-deck" class="text-center p-48-20">デッキがありません。</div>
+    <div class="card-counter hidden" id="cc-card-counter"><span id="cc-card-idx">0</span> / <span id="cc-card-total">0</span></div>
+    <div class="card-nav hidden" id="cc-card-nav"><button onclick="ccChangeCard(-1)">PREV</button><button onclick="ccShuffleCards()">SHUFFLE</button><button onclick="ccChangeCard(1)">NEXT</button></div>
+  </div>
+  <div id="cc-edit-area" class="hidden">
+    <select id="cc-edit-deck-select" class="score-input mb-3" onchange="ccRenderCards()"><option value="">-- 選択 --</option></select>
+    <div id="cc-no-edit-deck" class="text-center p-24">デッキを作成してください</div>
+    <div id="cc-card-editor" class="hidden">
+      <div class="card mb-3">
+        <p class="text-xs font-bold mb-3">AIで自動生成</p>
+        <div class="mode-toggle mb-3"><button class="ptab active" id="cc-ai-mode-text" onclick="setCCAiMode('text')">Text</button><button class="ptab" id="cc-ai-mode-file" onclick="setCCAiMode('file')">File</button><button class="ptab" id="cc-ai-mode-photo" onclick="setCCAiMode('photo')">Photo</button></div>
+        <div id="cc-ai-text-area"><input type="text" id="cc-ai-prompt" class="score-input mb-2" placeholder="例: 高校基礎レベルの英単語10個"></div>
+        <div id="cc-ai-file-area" class="hidden"><label class="writing-upload-btn" for="cc-ai-file-input"><span class="mb-1 font-bold">[ ファイルを選択 ]</span><input type="file" id="cc-ai-file-input" accept="*/*" class="hidden" onchange="handleCCAiFile(event)" onclick="this.value=null"></label><div id="cc-ai-file-name" class="mb-2 text-xs text-muted"></div><input type="text" id="cc-ai-file-prompt" class="score-input mb-2" placeholder="追加指示"></div>
+        <div id="cc-ai-photo-area" class="hidden"><label class="writing-upload-btn" for="cc-ai-photo-input"><span class="mb-1 font-bold">[ 写真を選択 ]</span><input type="file" id="cc-ai-photo-input" accept="image/*" class="hidden" onchange="handleCCAiPhoto(event)" onclick="this.value=null"></label><div id="cc-ai-photo-preview" class="mb-2"></div><input type="text" id="cc-ai-photo-prompt" class="score-input mb-2" placeholder="追加指示"></div>
+        <button class="action-btn mb-0 bg-green" onclick="ccGenerateCardsAI()" id="cc-ai-btn">AIで生成</button>
+      </div>
+      <div class="card mb-3"><p class="text-xs font-bold mb-3">手動で追加</p><input type="text" id="cc-new-front" class="score-input mb-2" placeholder="表"><input type="text" id="cc-new-back" class="score-input mb-2" placeholder="裏"><button class="action-btn mb-0" onclick="ccAddCard()">追加</button></div>
+      <div id="cc-card-list" class="flex-col gap-6"></div>
+    </div>
+  </div>
+  <div id="cc-decks-area" class="hidden"><div class="card mb-3"><p class="text-xs font-bold mb-3">新規作成</p><input type="text" id="cc-new-deck-name" class="score-input mb-2" placeholder="デッキ名"><button class="action-btn mb-0" onclick="ccCreateDeck()">作成</button></div><div id="cc-decks-list" class="flex-col gap-8"></div></div>
+</div>
+
+<!-- SUBJECT AI -->
+<div id="Subject" class="view">
+  <p class="page-title">Question</p>
+  <div class="chat-subject-tabs" id="subject-tabs">
+    <button class="stab active" onclick="setSubject('japanese')">国語</button>
+    <button class="stab" onclick="setSubject('math')">数学</button>
+    <button class="stab" onclick="setSubject('english')">英語</button>
+    <button class="stab" onclick="setSubject('science')">理科</button>
+    <button class="stab" onclick="setSubject('social')">社会</button>
+    <button class="stab" onclick="setSubject('other')">その他</button>
+  </div>
+  <div class="flex-between mb-2"><span id="subject-label" class="text-sub font-bold text-xs-plus">国語モード</span><button class="chat-clear-btn mb-0 btn-text-muted" onclick="clearSubjectChat()">クリア</button></div>
+  <div class="mode-toggle mb-2"><button class="ptab active" id="sview-chat" onclick="switchSubjectView('chat')">Chat</button><button class="ptab" id="sview-history" onclick="switchSubjectView('history')">Saved</button><button class="ptab" id="sview-quiz" onclick="switchSubjectView('quiz')">Quiz</button></div>
+  <div id="subject-chat-view">
+    <div class="chat-container" id="subject-chat"></div>
+    <div class="mode-toggle gap-2 mb-2"><button class="ptab active p-8" id="sqmode-text" onclick="setSubjectInputMode('text')">Text</button><button class="ptab p-8" id="sqmode-file" onclick="setSubjectInputMode('file')">File</button><button class="ptab p-8" id="sqmode-photo" onclick="setSubjectInputMode('photo')">Photo</button></div>
+    <div id="sq-text-area"><div class="chat-input-row"><textarea id="subject-input" placeholder="質問を入力..." rows="1" oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSubjectMessage();}"></textarea><button class="chat-send-btn" id="subject-send" onclick="sendSubjectMessage()">送信</button></div></div>
+    <div id="sq-file-area" class="hidden"><label class="writing-upload-btn" for="subject-file-input"><span class="mb-1 font-bold">[ ファイルを選択 ]</span><input type="file" id="subject-file-input" class="hidden" onchange="handleSubjectFile(event)" onclick="this.value=null"></label><div id="subject-file-name" class="mb-2 text-xs text-muted"></div><div class="chat-input-row"><textarea id="subject-file-extra" placeholder="追加コメント..." rows="1" oninput="autoResize(this)"></textarea><button class="chat-send-btn" onclick="sendSubjectFileMessage()">送信</button></div></div>
+    <div id="sq-photo-area" class="hidden"><label class="writing-upload-btn" for="subject-photo-input"><span class="mb-1 font-bold">[ 写真を選択 ]</span><input type="file" id="subject-photo-input" accept="image/*" class="hidden" onchange="handleSubjectPhoto(event)" onclick="this.value=null"></label><div id="subject-photo-preview" class="mb-2"></div><div class="chat-input-row"><textarea id="subject-photo-extra" placeholder="追加コメント..." rows="1" oninput="autoResize(this)"></textarea><button class="chat-send-btn" onclick="sendSubjectPhotoMessage()">送信</button></div></div>
+  </div>
+  <div id="subject-history-view" class="hidden"><div id="subject-saved-list"></div></div>
+  <div id="subject-quiz-view" class="hidden"><div id="subject-quiz-start"><p class="section-note">保存済みのQA履歴から復習クイズを生成</p><button class="action-btn" onclick="generateSubjectQuiz()">問題を生成</button><div id="subject-quiz-history-list" class="mt-4 pt-3 border-top"></div></div><div id="subject-quiz-area" class="hidden"></div></div>
+</div>
+
+<!-- PLAN -->
+<div id="Plan" class="view">
+  <p class="page-title">Study Schedule</p>
+  <div class="mode-toggle mb-3">
+    <button class="ptab active" id="plan-mode-calendar" onclick="setPlanMode('calendar')">Calendar</button>
+    <button class="ptab" id="plan-mode-yearly" onclick="setPlanMode('yearly')">Yearly</button>
+    <button class="ptab" id="plan-mode-score" onclick="setPlanMode('score')">Exam</button>
+    <button class="ptab" id="plan-mode-ai" onclick="setPlanMode('ai')">AI Chat</button>
+  </div>
+  
+  <div id="plan-calendar-area">
+    <div class="cal-wrap"><div class="cal-header"><button class="cal-nav-btn" onclick="planCalPrev()">‹</button><div class="cal-month-label" id="plan-cal-month-label">—</div><button class="cal-nav-btn" onclick="planCalNext()">›</button></div><div class="cal-grid"><div class="cal-dow">月</div><div class="cal-dow">火</div><div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div><div class="cal-dow">日</div></div><div class="cal-grid" id="plan-cal-days"></div></div>
+    <div class="card mb-3"><p class="text-sm font-bold mb-2"><span id="plan-selected-date-label"></span> のイベント</p><div id="plan-event-list" class="mb-2"></div><div class="plan-add-row mt-0"><input type="text" id="plan-event-input" placeholder="イベントを追加..." onkeydown="if(event.key==='Enter')addPlanEvent()"><button onclick="addPlanEvent()" class="add-btn bg-blue">追加</button></div></div>
+    <div class="card mb-3"><p class="text-sm font-bold mb-2">予定 (Plan)</p><div id="plan-content" class="mb-2"></div><div class="plan-add-row mt-0"><input type="text" id="new-plan-input" placeholder="予定を追加..." onkeydown="if(event.key==='Enter')addPlanDatePlan()"><input type="text" id="new-plan-time" placeholder="時間" class="plan-time-input w-60"><button onclick="addPlanDatePlan()" class="add-btn">追加</button></div></div>
+    <div class="card" id="textbook-card"><p class="text-sm font-bold mb-2">使用参考書</p><div id="textbook-chips" class="flex-gap-wrap mb-2"></div><div class="plan-add-row"><input type="text" id="new-textbook-input" placeholder="参考書追加" onkeydown="if(event.key==='Enter')addTextbook()"><button onclick="addTextbook()" class="add-btn">追加</button></div></div>
+  </div>
+
+  <div id="plan-yearly-area" class="hidden">
+    <div class="card mb-3">
+      <p class="text-sm font-bold mb-2">年間大目標</p>
+      <input type="text" id="yearly-main-goal" class="score-input" placeholder="例: 第一志望校合格、TOEIC 800点">
+    </div>
+    <div class="yearly-plan-grid" id="yearly-months-grid"></div>
+  </div>
+
+  <div id="plan-ai-area" class="hidden">
+    <div class="card mb-3" id="plan-profile-card"><div class="flex-between mb-3"><p class="text-xs font-bold text-muted">プロフィール</p><button onclick="toggleProfileCard()" id="profile-toggle-btn" class="btn-pill btn-outline">折りたたむ</button></div><div id="profile-fields"><div class="mb-2"><label class="text-xs font-bold text-muted mb-1 block">志望校</label><input type="text" id="profile-target-univ" class="score-input"></div><div class="mb-2"><label class="text-xs font-bold text-muted mb-1 block">学年</label><input type="text" id="profile-grade" class="score-input"></div><div class="mb-1"><label class="text-xs font-bold text-muted mb-1 block">塾・講座</label><textarea id="profile-courses" class="score-input h-72 no-resize"></textarea></div></div></div>
+    <div class="flex-gap-8 mb-3">
+      <button class="action-btn mb-0 flex-1 bg-accent2" onclick="generateRoadmapReport()">Simulator</button>
+      <button class="action-btn mb-0 flex-1 bg-purple" onclick="generatePersonalizedExam()">Custom Exam</button>
+    </div>
+    <div id="ai-weakness-report"></div><div class="flex mb-2 justify-end"><button class="chat-clear-btn mb-0 btn-text-muted" onclick="clearPlanAiChat()">クリア</button></div><div class="chat-container" id="plan-ai-chat"></div><div class="chat-input-row"><textarea id="plan-ai-input" placeholder="質問・相談..." rows="1" oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPlanAiMessage();}"></textarea><button class="chat-send-btn" id="plan-ai-send" onclick="sendPlanAiMessage()">送信</button></div>
+  </div>
+  <div id="plan-score-area" class="hidden"><div class="card mb-3"><p class="text-sm font-bold mb-3">成績を追加</p><label class="action-btn w-full text-center mb-3 block bg-accent2">成績表をAIで自動入力<input type="file" accept="image/*" class="hidden" onchange="ocrScore(event)" onclick="this.value=null"></label><div class="flex-gap-8 mb-3"><input class="score-input flex-1" id="score-exam-name" placeholder="模試名"><input class="score-input flex-1" id="score-exam-date" placeholder="実施日 (例: 2025/01)"></div><p class="text-xs font-bold text-muted mb-1">科目・点数・偏差値</p><div id="exam-subjects-container" class="flex-col gap-6 mb-2"></div><button onclick="addExamSubjectRow()" class="w-full text-sm font-bold mb-3 btn-dashed">+ 科目を追加</button><p class="text-xs font-bold text-muted mb-1">志望校判定</p><div id="exam-judges-container" class="flex-col gap-6 mb-2"></div><button onclick="addExamJudgeRow()" class="w-full text-sm font-bold mb-3 btn-dashed">+ 判定を追加</button><input class="score-input mb-3" id="score-memo" placeholder="メモ"><button class="action-btn mb-0" onclick="addExamScore()">成績を保存</button></div><div class="card mb-3" id="score-chart-card"><p class="text-xs font-bold mb-2">Graph</p><div class="chart-container-220"><canvas id="scoreLineChart"></canvas></div><div id="score-chart-legend" class="flex-gap-wrap mt-2 text-xs"></div></div><div id="score-list"></div></div>
+</div>
+
+<!-- MANAGE -->
+<div id="Manage" class="view">
+  <p class="page-title">Manage</p>
+  
+  <div class="card mb-4">
+    <p class="text-xs font-bold text-muted mb-2">Gemini API Key</p>
+    <div class="flex-gap-8 align-center">
+      <input type="password" id="manage-api-key" class="score-input flex-1" placeholder="AI機能を利用するためのキー">
+      <button class="action-btn mb-0 btn-auto-width" id="save-api-key-btn" onclick="saveApiKeyFromManage()">保存</button>
+    </div>
+    <p class="text-xs text-muted mt-2">※キーはブラウザ内にのみ保存されます。</p>
+  </div>
+
+  <div class="card mb-4">
+    <p class="text-xs font-bold text-muted mb-2">学習データの管理</p>
+    <button class="manage-btn mb-0" onclick="openLogListModal()">学習記録（ログ）の一覧・編集</button>
+  </div>
+
+  <div class="card">
+    <p class="text-xs font-bold text-muted mb-2">テーマカラー</p>
+    <div class="flex-gap-8 mb-4 flex-wrap">
+      <button class="filter-chip theme-btn-default" onclick="setThemeColor('default')">Default</button>
+      <button class="filter-chip theme-btn-red" onclick="setThemeColor('red')">Red</button>
+      <button class="filter-chip theme-btn-blue" onclick="setThemeColor('blue')">Blue</button>
+      <button class="filter-chip theme-btn-green" onclick="setThemeColor('green')">Green</button>
+      <button class="filter-chip theme-btn-orange" onclick="setThemeColor('orange')">Orange</button>
+      <button class="filter-chip theme-btn-purple" onclick="setThemeColor('purple')">Purple</button>
+      <button class="filter-chip theme-btn-teal" onclick="setThemeColor('teal')">Teal</button>
+      <button class="filter-chip theme-btn-indigo" onclick="setThemeColor('indigo')">Indigo</button>
+      <button class="filter-chip theme-btn-gray" onclick="setThemeColor('gray')">Gray</button>
+    </div>
+
+    <p class="text-xs font-bold text-muted mb-2">FSRS（間隔反復）設定</p>
+    <div class="card mb-4">
+      <div class="flex-between mb-2">
+        <span class="text-sm font-bold">目標定着率 (Retention Rate)</span>
+        <span id="fsrs-retention-label" class="text-sm font-bold text-accent">90%</span>
+      </div>
+      <input type="range" id="fsrs-retention-slider" min="70" max="99" value="90" class="w-full mb-2" oninput="updateFsrsRetention(this.value)">
+      <p class="text-xs text-muted">高くすると復習頻度が増え、低くすると減ります。</p>
+    </div>
+
+    <p class="text-xs font-bold text-muted mb-2">Gemini モデル選択</p>
+    <select id="gemini-model-select" class="score-input mb-4" onchange="saveGeminiModel()">
+      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+      <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+      <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+      <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite</option>
+      <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro Exp</option>
+      <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+    </select>
+    
+    <p class="text-xs font-bold text-muted mb-2">リマインダー設定 (Push通知)</p>
+    <div class="flex-gap-8 align-center mb-2">
+      <input type="time" id="reminder-time" class="score-input flex-1" value="20:00">
+      <button class="action-btn mb-0 flex-1 btn-auto-width" onclick="saveReminderSettings()">設定・許可</button>
+    </div>
+    <div class="text-sm text-sub mb-4" id="reminder-status-text">未設定</div>
+
+    <p class="text-xs font-bold text-muted mb-2">アイテム</p>
+    <div class="flex-between mb-4">
+      <span class="text-sm font-bold">Freezeアイテム (所持: <span id="freeze-count">0</span>)</span>
+      <button class="manage-btn mb-0 btn-auto-width btn-sm-pad" onclick="buyFreezeItem()">1000 XPで購入</button>
+    </div>
+
+    <p class="text-xs font-bold text-muted mb-2">クラウド同期 (Firebase Auth)</p>
+    <div class="flex-between mb-3">
+      <span id="firebase-login-status" class="text-sub font-bold text-xs">確認中...</span>
+      <button id="firebase-auth-btn" class="action-btn mb-0 btn-auto-width btn-sm-pad"></button>
+    </div>
+    <div class="flex-gap-8 mb-4">
+      <button class="manage-btn mb-0" onclick="cloudSync('push')">Push(保存)</button>
+      <button class="manage-btn mb-0" onclick="cloudSync('pull')">Pull(読込)</button>
+    </div>
+    <p class="text-xs font-bold text-muted mb-2">設定</p>
+    <button class="manage-btn" id="auto-sync-btn" onclick="toggleAutoSync()">自動同期(リアルタイム): OFF</button>
+    <p class="text-xs font-bold text-muted mb-2 mt-2">エクスポート</p>
+    <div class="flex-gap-8 mb-4">
+      <button class="manage-btn mb-0" onclick="exportData()">JSON</button>
+      <button class="manage-btn mb-0" onclick="exportCSV()">CSV (単語帳)</button>
+    </div>
+    <p class="text-xs font-bold text-muted mb-2">データリセット</p>
+    <button class="manage-btn danger" onclick="showDangerBox('box-all')">全リセット</button>
+    <div class="danger-confirm-box mb-2 hidden p-14 radius-sm" id="box-all">
+      <p class="text-sm mb-2">全消去します。"reset all" と入力してください。</p>
+      <input type="text" id="confirm-all-input" class="score-input mb-2" oninput="checkConfirm('confirm-all-input','btn-all','reset all')">
+      <div class="flex-gap-8"><button class="action-btn btn-secondary mb-0" onclick="hideDangerBox('box-all')">Cancel</button><button class="action-btn btn-danger mb-0" id="btn-all" disabled onclick="clearData()">実行</button></div>
+    </div>
+  </div>
+  <p id="manage-footer" class="text-center text-xs text-muted mt-4">Study</p>
+</div>
+
+</div><!-- view-container end -->
+
+<!-- MODALS -->
+
+<div class="modal-overlay" id="add-word-modal" onclick="if(event.target===this) closeModal('add-word-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('add-word-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg" id="add-word-modal-title">単語を手動追加</p>
+    <input type="hidden" id="manual-word-old">
+    <input type="text" id="manual-word-input" class="score-input mb-2" placeholder="英単語 (必須)">
+    <input type="text" id="manual-meaning-input" class="score-input mb-2" placeholder="意味 (必須)">
+    <select id="manual-pos-input" class="score-input mb-2">
+      <option value="other">品詞を選択...</option>
+      <option value="noun">名詞</option>
+      <option value="verb">動詞</option>
+      <option value="adjective">形容詞</option>
+      <option value="adverb">副詞</option>
+    </select>
+    <textarea id="manual-example-input" class="score-input mb-2 h-72" placeholder="例文 (任意)"></textarea>
+    <textarea id="manual-note-input" class="score-input mb-2 h-72" placeholder="メモ・語源など (任意)"></textarea>
+    <input type="text" id="manual-tags-input" class="score-input mb-1" placeholder="タグ (カンマ区切り, 例: TOEIC, 復習)">
+    <div id="tag-suggest-area" class="flex gap-1 flex-wrap mb-3"></div>
+    <button class="action-btn mb-0" id="manual-word-save-btn" onclick="addWordManual()">保存</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detail-modal" onclick="if(event.target===this) closeModal('detail-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+    <div id="modal-body"></div>
+    <div id="modal-image-container" class="mb-3 text-center"></div>
+    <button class="action-btn btn-secondary mb-3" onclick="openWordMapModal()">単語マップを見る</button>
+    <div id="word-retention-chart-container" class="card mt-3 hidden">
+      <p class="text-xs font-bold text-muted mb-2">記憶の減衰グラフ (忘却曲線)</p>
+      <div class="chart-container-180"><canvas id="word-retention-chart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="timer-log-modal" onclick="if(event.target===this) closeModal('timer-log-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('timer-log-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg text-center">お疲れ様でした！</p>
+    <p class="text-sm mb-3 text-center">今何を勉強しましたか？記録を残しましょう。</p>
+    <div class="flex-gap-8 align-center mb-3">
+      <select id="timer-log-subj" class="score-input flex-1">
+        <option value="english">英語</option><option value="japanese">国語</option>
+        <option value="math">数学</option><option value="science">理科</option>
+        <option value="social">社会</option><option value="other">その他</option>
+      </select>
+      <input type="number" id="timer-log-min" class="score-input w-70" readonly>
+      <span class="text-sm font-bold">分</span>
+    </div>
+    <button class="action-btn mb-0 bg-accent" id="timer-log-save-btn" onclick="saveTimerLog()">記録して閉じる</button>
+    <button class="action-btn btn-secondary mt-2 mb-0" onclick="closeModal('timer-log-modal')">記録しない</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="log-list-modal" onclick="if(event.target===this) closeModal('log-list-modal')">
+  <div class="modal-sheet max-h-92vh">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('log-list-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg">学習記録一覧</p>
+    <div id="log-list-container" class="flex-col gap-6">
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="writing-history-modal" onclick="if(event.target===this) closeModal('writing-history-modal')">
+  <div class="modal-sheet max-h-92vh">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('writing-history-modal')">✕</button>
+    <div id="writing-history-modal-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="weekly-report-modal" onclick="if(event.target===this) closeModal('weekly-report-modal')">
+  <div class="modal-sheet max-h-92vh bg-main">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('weekly-report-modal')">✕</button>
+    <p class="text-center font-bold mb-3 text-lg">Weekly</p>
+    <div id="weekly-report-content" class="text-base line-height-16 text-main">
+      <div class="text-center p-40"><span class="loading-dots">AIが分析中</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="weakness-modal" onclick="if(event.target===this) closeModal('weakness-modal')">
+  <div class="modal-sheet max-h-92vh bg-main">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('weakness-modal')">✕</button>
+    <p class="text-center font-bold mb-3 text-lg">弱点分析</p>
+    <div id="weakness-content" class="text-base line-height-16 text-main">
+      <div class="text-center p-40"><span class="loading-dots">AIが分析中</span></div>
+    </div>
+    <button class="action-btn btn-danger mt-4 hidden" id="weakness-focus-btn" onclick="startWeaknessFocusMode()">弱点集中モード開始</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="import-modal" onclick="if(event.target===this) closeModal('import-modal')">
+  <div class="modal-sheet max-h-92vh">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('import-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg">インポート</p>
+    <div class="import-tab-bar">
+      <button class="itab active" id="itab-file" onclick="switchImportTab('file')">File</button>
+      <button class="itab" id="itab-text" onclick="switchImportTab('text')">Text</button>
+      <button class="itab" id="itab-url" onclick="switchImportTab('url')">URL</button>
+      <button class="itab" id="itab-photo" onclick="switchImportTab('photo')">Photo</button>
+    </div>
+    <div id="itab-content-file">
+      <label class="import-drop-zone" for="import-file-input"><span class="mb-1 font-bold">[ ファイルを選択 ]</span><input type="file" id="import-file-input" accept=".pdf,text/*,image/*,.json,.csv,.tsv" class="hidden" onclick="this.value=null"></label>
+      <div id="file-preview"></div>
+    </div>
+    <div id="itab-content-text" class="hidden">
+      <textarea id="import-textarea" class="writing-textarea" placeholder="apple, りんご&#10;book&#9;本 (タブ区切りも可)"></textarea>
+      <div id="text-preview"></div>
+    </div>
+    <div id="itab-content-url" class="hidden">
+      <p class="text-xs text-muted mb-2">YouTubeのURLを入力すると、字幕から要約と重要表現を抽出します。</p>
+      <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-3">
+        <input type="checkbox" id="import-extract-context-url" style="width:16px;height:16px;accent-color:var(--accent);" checked>
+        元の文章から文脈（例文）も抽出する
+      </label>
+      <div class="flex-gap-8 mb-2">
+        <input id="import-url-input" type="url" class="score-input" placeholder="URL または YouTubeリンク">
+        <button onclick="fetchAndParseUrl()" class="btn-accent-solid whitespace-nowrap">AI抽出</button>
+      </div>
+      <p class="text-xs text-muted mb-2 mt-3">※字幕が取得できない場合は、手動で字幕テキストを貼り付けてください。</p>
+      <textarea id="import-youtube-transcript" class="writing-textarea mb-2" placeholder="字幕テキストをここに貼り付け..."></textarea>
+      <button onclick="parseManualTranscript()" class="action-btn btn-secondary mb-2">テキストから抽出</button>
+      <div id="url-preview"></div>
+    </div>
+    <div id="itab-content-photo" class="hidden">
+      <p class="text-xs text-muted mb-2">教科書や長文の写真を撮ると、AIが単語を抽出します。</p>
+      <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-2">
+        <input type="checkbox" id="import-unknown-only" style="width:16px;height:16px;accent-color:var(--accent);" checked>
+        あなたが知らない未知語だけを抽出する
+      </label>
+      <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-3">
+        <input type="checkbox" id="import-extract-context-photo" style="width:16px;height:16px;accent-color:var(--accent);" checked>
+        元の文章から文脈（例文）も抽出する
+      </label>
+      <label class="photo-import-drop" for="import-photo-input"><span class="mb-1 font-bold">[ 写真を選択 ]</span><input type="file" id="import-photo-input" accept="image/*" class="hidden" onchange="handleImportPhoto(event)" onclick="this.value=null"></label>
+      <div id="import-photo-preview"></div>
+      <div id="photo-preview"></div>
+    </div>
+    <div id="import-loading" class="hidden text-center p-20"><span class="loading-dots">処理中</span></div>
+    <div id="import-action-bar" class="hidden">
+      <p id="import-summary" class="text-xs text-muted mb-2"></p>
+      <div class="import-action-btns"><button onclick="applyImport('add')">追加</button><button class="primary" onclick="applyImport('replace')">上書き</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="log-modal" onclick="if(event.target===this) closeModal('log-modal')">
+  <div class="modal-sheet max-h-92vh">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('log-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg" id="log-modal-title">学習記録</p>
+    <div class="card mb-3">
+      <p class="text-sm font-bold mb-2">イベント</p>
+      <div id="log-modal-event-list" class="mb-2"></div>
+      <div class="plan-add-row mt-0">
+        <input type="text" id="log-modal-event-input" placeholder="イベント追加..." onkeydown="if(event.key==='Enter')addDailyEventFromModal()">
+        <button onclick="addDailyEventFromModal()" class="add-btn bg-blue">追加</button>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <p class="text-sm font-bold mb-2">予定</p>
+      <div id="log-modal-plan-list" class="mb-2"></div>
+      <div class="plan-add-row mt-0">
+        <input type="text" id="log-modal-plan-input" placeholder="予定追加..." onkeydown="if(event.key==='Enter')addDailyPlanFromModal()">
+        <button onclick="addDailyPlanFromModal()" class="add-btn">追加</button>
+      </div>
+    </div>
+    <div class="card">
+      <p class="text-sm font-bold mb-2">学習記録追加</p>
+      <div class="flex-gap-8 align-center mb-2">
+        <select id="log-modal-subj" class="score-input flex-1">
+          <option value="english">英語</option><option value="japanese">国語</option>
+          <option value="math">数学</option><option value="science">理科</option>
+          <option value="social">社会</option><option value="other">その他</option>
+        </select>
+        <input type="number" id="log-modal-min" class="score-input w-70" placeholder="分">
+        <button class="action-btn mb-0 btn-auto-width" onclick="addStudyLogManual()">追加</button>
+      </div>
+      <div id="log-modal-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 忘却曲線シミュレーターモーダル -->
+<div class="modal-overlay" id="simulation-modal" onclick="if(event.target===this) closeModal('simulation-modal')">
+  <div class="modal-sheet max-h-92vh">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('simulation-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg">忘却曲線シミュレーター</p>
+    <p class="text-sm mb-3">現在のあなたの学習データに基づき、もし今日復習しなかった場合の記憶の減衰を予測します。</p>
+    <div class="chart-container-220 mb-3"><canvas id="simulation-chart"></canvas></div>
+    <p class="text-xs text-muted text-center">※FSRSアルゴリズムに基づく予測値です。</p>
+  </div>
+</div>
+
+<!-- 単語マップモーダル -->
+<div class="modal-overlay" id="word-map-modal" onclick="if(event.target===this) closeModal('word-map-modal')">
+  <div class="modal-sheet max-h-92vh">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('word-map-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg">単語マップ (類義語・派生語)</p>
+    <div id="word-map-container" style="width: 100%; height: 300px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg);"></div>
+    <p class="text-xs text-muted text-center mt-2">※AIが関連語を分析してネットワーク図を生成します。</p>
+  </div>
+</div>
+
+<nav class="nav-bar" id="bottom-nav-bar">
+  <div class="nav-item active" data-tab="Dashboard" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">home</span>Home</div>
+  <div class="nav-item" data-tab="Timer" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">timer</span>Timer</div>
+  <div class="nav-item" data-tab="ImportSearch" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">download</span>Import</div>
+  <div class="nav-item" data-tab="Vocab" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">menu_book</span>Vocab</div>
+  <div class="nav-item" data-tab="Cards" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">style</span>Cards</div>
+  <div class="nav-item" data-tab="SkillUp" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">edit_square</span>Skill Up</div>
+  <div class="nav-item" data-tab="CustomCards" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">folder_copy</span>Decks</div>
+  <div class="nav-item" data-tab="Subject" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">forum</span>QA</div>
+  <div class="nav-item" data-tab="Plan" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">calendar_month</span>Plan</div>
+  <div class="nav-item" data-tab="Manage" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">settings</span>Manage</div>
+</nav>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed: ', err));
+    });
+  }
+</script>
+
+<script src="app.js"></script>
+</body>
+</html>
