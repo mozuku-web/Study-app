@@ -5,6 +5,7 @@
 // ============================================================
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/`/g, '&#x60;');
+const escJS = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n').replace(/\r/g, '');
 const clean = html => {
   if (window.DOMPurify) return DOMPurify.sanitize(html);
   return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/on\w+="[^"]*"/g, '').replace(/on\w+='[^']*'/g, '').replace(/on\w+=\w+/g, '');
@@ -20,12 +21,10 @@ const debounce = (fn, ms) => {
 
 const extractJSON = t => {
   try {
-    let cleanStr = t.replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, '$1').trim();
-    const startIdx = Math.min(cleanStr.indexOf('{') !== -1 ? cleanStr.indexOf('{') : Infinity, cleanStr.indexOf('[') !== -1 ? cleanStr.indexOf('[') : Infinity);
-    const endIdx = Math.max(cleanStr.lastIndexOf('}'), cleanStr.lastIndexOf(']'));
-    if (startIdx !== Infinity && endIdx !== -1 && startIdx <= endIdx) {
-      cleanStr = cleanStr.substring(startIdx, endIdx + 1);
-    }
+    let cleanStr = t.trim();
+    // JSONの開始と終了を正規表現で抽出 (より堅牢に)
+    const match = cleanStr.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (match) cleanStr = match[0];
     return JSON.parse(cleanStr);
   } catch (err) {
     console.error('JSON解析エラー', err);
@@ -71,7 +70,7 @@ const getTotalStudySeconds = () => studyLogs.reduce((a, l) => a + l.seconds, 0);
 
 const openModal = id => { 
   $(id).classList.add('open'); 
-  document.body.style.overflow = 'hidden'; // 背景スクロール防止
+  document.body.style.overflow = 'hidden'; 
   history.pushState({ modal: id }, ''); 
 };
 const closeModal = id => { 
@@ -157,7 +156,7 @@ let swipeStartX = 0, swipeStartY = 0;
 let _audioUnlocked = false;
 let mBtn = null, rec = null, aInp = null;
 let wotdIndex = -1;
-let dashSubjChart = null, dashSrsChart = null, dashSrsScatter = null, wordRetentionChart = null, dashWeeklyChart = null, simulationChart = null;
+let dashSubjChart = null, dashSrsChart = null, dashSrsScatter = null, wordRetentionChart = null, dashWeeklyChart = null, simulationChart = null, dashRadarChart = null;
 let weaknessWords = [];
 let vocabPosFilter = 'all', vocabProgFilter = 'all', vocabTagFilter = 'all', vocabPrefixFilter = '';
 let vocabPage = 1;
@@ -166,10 +165,9 @@ let isPomodoroMode = false, isPomodoroBreak = false, isTimerAutoStart = false;
 
 // Audio Mixer State
 let audioCtx = null;
-let activeNoises = { rain: false, waves: false, fire: false };
-let noiseNodes = { rain: null, waves: null, fire: null };
-let noiseGains = { rain: null, waves: null, fire: null };
-let noiseVolumes = { rain: 0.5, waves: 0.5, fire: 0.5 };
+let activeNoises = { rain: false, waves: false, fire: false, cafe: false, library: false, clock: false, lofi: false };
+let noiseNodes = { rain: null, waves: null, fire: null, cafe: null, library: null, clock: null, lofi: null };
+let noiseVolumes = { rain: 0.5, waves: 0.5, fire: 0.5, cafe: 0.5, library: 0.5, clock: 0.5, lofi: 0.5 };
 
 let planMode = 'calendar', currentPlanMonth = new Date().getMonth() + 1, currentWeekDay = 0;
 let pCalYear = new Date().getFullYear(), pCalMonth = new Date().getMonth(), selectedPlanDate = todayDateStr();
@@ -261,9 +259,18 @@ const cloudSync = async (m, isAuto = false) => {
       if (!isAuto) showToast('Push中...');
       const batch = window._db.batch();
       
-      // Chunking ALL_WORDS to avoid 1MB limit (approx 300 words per chunk with HTML)
       const wordChunks = chunkArray(ALL_WORDS, 300);
       batch.set(c.doc('words_meta'), { chunks: wordChunks.length, savedWords: JSON.stringify(savedWords), srsData: JSON.stringify(srsData), wordProgress: JSON.stringify(wordProgress), vocabMeta: JSON.stringify(vocabMeta) });
+      
+      // 不要な古いチャンクの削除処理
+      const oldMetaSn = await c.doc('words_meta').get();
+      if (oldMetaSn.exists) {
+        const oldChunksCount = oldMetaSn.data().chunks || 0;
+        for (let i = wordChunks.length; i < oldChunksCount; i++) {
+          batch.delete(c.doc(`words_chunk_${i}`));
+        }
+      }
+
       wordChunks.forEach((chunk, i) => { batch.set(c.doc(`words_chunk_${i}`), { data: JSON.stringify(chunk) }); });
       
       batch.set(c.doc('history'), { writingHistory: JSON.stringify(writingHistory.slice(0, 50)), listenHistory: JSON.stringify(listenHistory.slice(0, 50)), dailyChallenges: JSON.stringify(dailyChallenges.slice(0, 50)) });
@@ -277,7 +284,6 @@ const cloudSync = async (m, isAuto = false) => {
     } else {
       if (!isAuto) showToast('Pull中...'); let found = false;
       
-      // Pull words meta and chunks
       const metaSn = await c.doc('words_meta').get();
       if (metaSn.exists) {
         found = true; const r = metaSn.data(), ps = (data, fb) => { if (typeof data === 'string') { try { return JSON.parse(data); } catch (e) { return fb; } } return data || fb; };
@@ -327,7 +333,19 @@ const applyTheme = () => {
   const b = $('dark-toggle-btn'); if (b) b.textContent = darkThemeMode === 'auto' ? 'AUTO' : isD ? 'LIGHT' : 'DARK';
   Chart.defaults.color = isD ? '#A8A49E' : '#5C5952';
   Chart.defaults.borderColor = isD ? '#3E3C37' : '#E2DFD8';
-  if (dashSubjChart) dashSubjChart.update(); if (dashSrsChart) dashSrsChart.update(); if (dashSrsScatter) dashSrsScatter.update(); if (scoreLineChart) scoreLineChart.update(); if (wordRetentionChart) wordRetentionChart.update(); if (dashWeeklyChart) dashWeeklyChart.update(); if (simulationChart) simulationChart.update();
+  
+  // Re-render charts for theme application
+  if (dashSubjChart) { dashSubjChart.destroy(); dashSubjChart = null; }
+  if (dashSrsChart) { dashSrsChart.destroy(); dashSrsChart = null; }
+  if (dashSrsScatter) { dashSrsScatter.destroy(); dashSrsScatter = null; }
+  if (scoreLineChart) { scoreLineChart.destroy(); scoreLineChart = null; }
+  if (wordRetentionChart) { wordRetentionChart.destroy(); wordRetentionChart = null; }
+  if (dashWeeklyChart) { dashWeeklyChart.destroy(); dashWeeklyChart = null; }
+  if (simulationChart) { simulationChart.destroy(); simulationChart = null; }
+  if (dashRadarChart) { dashRadarChart.destroy(); dashRadarChart = null; }
+  
+  if (currentTabIndex === 0) renderDashboard();
+  if (currentTabIndex === 8 && planMode === 'score') renderScoreChart();
 };
 const toggleDark = () => { darkThemeMode = darkThemeMode === 'auto' ? 'dark' : darkThemeMode === 'dark' ? 'light' : 'auto'; safeSet('study_dark_mode', darkThemeMode); applyTheme(); };
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (darkThemeMode === 'auto') applyTheme(); });
@@ -344,6 +362,12 @@ const applyThemeColor = () => {
     document.documentElement.style.setProperty('--accent', t.accent); 
     document.documentElement.style.setProperty('--streak', t.streak); 
   } 
+};
+
+window.changeUiFontSize = () => {
+  const s = $('ui-font-size-select').value;
+  document.documentElement.setAttribute('data-font-size', s);
+  localStorage.setItem('study_ui_font_size', s);
 };
 
 const updateFsrsRetention = (val) => { fsrsRetention = Math.min(99, parseInt(val)); const lbl = $('fsrs-retention-label'); if (lbl) lbl.textContent = fsrsRetention + '%'; safeSet('study_fsrs_retention', fsrsRetention); };
@@ -525,7 +549,6 @@ const speakWithAccent = (text, accent, rate = 1.0) => {
   u.rate = rate; speechSynthesis.speak(u); 
 };
 
-// Audio Mixer Logic
 const initAudioCtx = () => {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -536,19 +559,22 @@ const createNoiseNode = (type) => {
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const output = buffer.getChannelData(0);
   
-  if (type === 'rain' || type === 'waves') {
+  if (type === 'rain' || type === 'waves' || type === 'cafe' || type === 'lofi') {
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
     for (let i = 0; i < bufferSize; i++) {
       let white = Math.random() * 2 - 1;
       b0 = 0.99886 * b0 + white * 0.0555179; b1 = 0.99332 * b1 + white * 0.0750759; b2 = 0.96900 * b2 + white * 0.1538520; b3 = 0.86650 * b3 + white * 0.3104856; b4 = 0.55000 * b4 + white * 0.5329522; b5 = -0.7616 * b5 - white * 0.0168980;
       output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362; output[i] *= 0.11; b6 = white * 0.115926;
     }
-  } else if (type === 'fire') {
+  } else if (type === 'fire' || type === 'clock') {
     let lastOut = 0.0;
     for (let i = 0; i < bufferSize; i++) {
       let white = Math.random() * 2 - 1;
-      output[i] = (lastOut + (0.02 * white)) / 1.02; lastOut = output[i]; output[i] *= 3.5;
+      output[i] = (lastOut + (0.02 * white)) / 1.02; lastOut = output[i]; output[i] *= (type === 'clock' ? 1.5 : 3.5);
+      if (type === 'clock' && i % Math.floor(audioCtx.sampleRate) < 500) output[i] += 1.0; // Tick sound simulation
     }
+  } else if (type === 'library') {
+    for (let i = 0; i < bufferSize; i++) { output[i] = (Math.random() * 2 - 1) * 0.2; }
   }
   
   const noise = audioCtx.createBufferSource(); noise.buffer = buffer; noise.loop = true;
@@ -558,6 +584,10 @@ const createNoiseNode = (type) => {
   if (type === 'rain') { filter.type = 'lowpass'; filter.frequency.value = 1000; }
   else if (type === 'waves') { filter.type = 'lowpass'; filter.frequency.value = 400; }
   else if (type === 'fire') { filter.type = 'highpass'; filter.frequency.value = 800; }
+  else if (type === 'cafe') { filter.type = 'bandpass'; filter.frequency.value = 500; filter.Q.value = 0.5; }
+  else if (type === 'library') { filter.type = 'lowpass'; filter.frequency.value = 300; }
+  else if (type === 'clock') { filter.type = 'highpass'; filter.frequency.value = 2000; }
+  else if (type === 'lofi') { filter.type = 'lowpass'; filter.frequency.value = 800; }
   
   gain.gain.value = noiseVolumes[type];
   noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
@@ -570,7 +600,6 @@ window.toggleNoise = (type) => {
   const btn = $(`audio-btn-${type}`);
   
   if (activeNoises[type]) {
-    // Stop
     if (noiseNodes[type]) {
       noiseNodes[type].source.stop();
       noiseNodes[type].source.disconnect();
@@ -579,7 +608,6 @@ window.toggleNoise = (type) => {
     activeNoises[type] = false;
     if (btn) btn.classList.remove('active');
   } else {
-    // Start
     noiseNodes[type] = createNoiseNode(type);
     noiseNodes[type].source.start();
     activeNoises[type] = true;
@@ -596,7 +624,91 @@ window.updateNoiseVolume = (type, val) => {
 };
 
 // ============================================================
-// [8] DASHBOARD & WIDGETS
+// [8] TIMER
+// ============================================================
+const timerStartStop = () => {
+  const pm = $('timer-pomodoro-mode');
+  const autoStart = $('timer-auto-start') && $('timer-auto-start').checked;
+  
+  if (timerRunning) {
+    clearInterval(timerInt); timerRunning = false;
+    timerTime = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+    const s = $('timer-status'); if (s) s.textContent = isPomodoroBreak ? '休憩停止中' : '停止中';
+    const b = $('timer-start-btn'); if (b) b.textContent = 'スタート';
+  } else {
+    timerRunning = true; timerEndTime = Date.now() + (timerTime * 1000);
+    localStorage.setItem('study_timer_end', timerEndTime.toString());
+    const s = $('timer-status'); if (s) s.textContent = isPomodoroBreak ? '休憩中' : '実行中';
+    const b = $('timer-start-btn'); if (b) b.textContent = 'ストップ';
+    
+    timerInt = setInterval(() => {
+      const remain = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+      timerTime = remain; updateTimerDisplay();
+      if (remain <= 0) {
+        timerStartStop(); // Stop interval
+        if (navigator.vibrate) navigator.vibrate(1000);
+        
+        if (pm && pm.checked) {
+          if (!isPomodoroBreak) {
+            showToast('学習終了！5分休憩です'); gainXP(25);
+            
+            // Auto log without modal
+            studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: 25 * 60, ts: Date.now() });
+            save.logs();
+            
+            isPomodoroBreak = true; timerInitial = 5 * 60; timerTime = timerInitial; updateTimerDisplay();
+            if (autoStart) setTimeout(timerStartStop, 1500);
+          } else {
+            showToast('休憩終了！学習再開です');
+            isPomodoroBreak = false; timerInitial = 25 * 60; timerTime = timerInitial; updateTimerDisplay();
+            if (autoStart) setTimeout(timerStartStop, 1500);
+          }
+        } else {
+          showToast('終了'); gainXP(Math.floor(timerInitial / 60));
+          studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: timerInitial, ts: Date.now() });
+          save.logs();
+          if (autoStart) setTimeout(timerStartStop, 1500);
+        }
+      }
+    }, 200);
+  }
+};
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && timerRunning) {
+    const hc = $('timer-hardcore-mode');
+    if (hc && hc.checked && !isPomodoroBreak) {
+      showToast('集中が切れました！ペナルティとしてXPが減少しました。');
+      userProfile.xp = Math.max(0, (userProfile.xp || 0) - 10);
+      save.profile();
+      if ($('Dashboard').classList.contains('active')) renderDashboard();
+      timerStartStop(); // Stop timer
+      return;
+    }
+  } else if (document.visibilityState === 'visible' && timerRunning) {
+    const savedEnd = parseInt(localStorage.getItem('study_timer_end'));
+    if (savedEnd) {
+      const remain = Math.max(0, Math.ceil((savedEnd - Date.now()) / 1000));
+      timerTime = remain; timerEndTime = savedEnd; updateTimerDisplay();
+    }
+  }
+});
+
+const timerReset = () => { if (timerRunning) timerStartStop(); timerTime = timerInitial; updateTimerDisplay(); };
+const timerSetCustom = () => { const m = parseInt($('timer-input-min').value) || 0, s = parseInt($('timer-input-sec').value) || 0; timerInitial = m * 60 + s; timerTime = timerInitial; updateTimerDisplay(); };
+const timerSavePreset = () => { if (!timerPresets.includes(timerInitial)) { timerPresets.push(timerInitial); safeSet('study_timer_presets', timerPresets); renderTimerPresets(); } };
+const renderTimerPresets = () => {
+  const p = $('timer-presets'); if (!p) return;
+  p.innerHTML = timerPresets.map(t => {
+    const min = Math.floor(t / 60), sec = t % 60;
+    return `<div style="display:inline-flex;align-items:center;border:1.5px solid var(--border2);border-radius:50px;background:var(--bg);"><button onclick="timerInitial=${t};timerTime=${t};updateTimerDisplay()" style="padding:6px 12px;border:none;background:transparent;color:var(--text-sub);cursor:pointer;font-size:calc(12px * var(--text-scale));font-weight:700">${min}:${String(sec).padStart(2, '0')}</button><button onclick="timerDeletePreset(${t})" style="padding:6px 10px;border:none;border-left:1.5px solid var(--border2);background:transparent;color:var(--danger);cursor:pointer;font-weight:bold;font-size:calc(10px * var(--text-scale));">✕</button></div>`;
+  }).join('');
+};
+const timerDeletePreset = t => { timerPresets = timerPresets.filter(x => x !== t); safeSet('study_timer_presets', timerPresets); renderTimerPresets(); };
+const updateTimerDisplay = () => { const min = Math.floor(timerTime / 60), sec = timerTime % 60; const d = $('timer-display'); if (d) d.textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`; };
+
+// ============================================================
+// [9] DASHBOARD & WIDGETS
 // ============================================================
 let sortableWidgets = null;
 
@@ -800,6 +912,41 @@ const renderDashboard = () => {
     }
   }
 
+  // Radar Chart
+  const rCv = $('dash-radar-chart');
+  if (rCv) {
+    if (Object.keys(subjTotals).length === 0) $('dash-radar-chart-card').classList.add('hidden');
+    else {
+      $('dash-radar-chart-card').classList.remove('hidden');
+      const labels = ['英語', '数学', '国語', '理科', '社会', 'その他'];
+      const keys = ['english', 'math', 'japanese', 'science', 'social', 'other'];
+      const data = keys.map(k => Math.floor((subjTotals[k] || 0) / 60));
+      if (dashRadarChart) dashRadarChart.destroy();
+      dashRadarChart = new Chart(rCv, {
+        type: 'radar',
+        data: {
+          labels,
+          datasets: [{
+            label: '学習時間(分)',
+            data,
+            backgroundColor: 'rgba(45, 43, 39, 0.2)',
+            borderColor: '#2D2B27',
+            pointBackgroundColor: '#E67E22',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: '#E67E22'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { r: { angleLines: { display: true }, suggestedMin: 0 } }
+        }
+      });
+    }
+  }
+
   const srsCv = $('dash-srs-chart'), srsScatterCv = $('dash-srs-scatter');
   if (srsCv && Object.keys(srsData).length > 0) {
     $('dash-srs-chart-card').classList.remove('hidden'); $('dash-srs-scatter-card').classList.remove('hidden');
@@ -855,86 +1002,6 @@ const renderDashboardCalendar = () => {
   }
   const cd = $('cal-days'); if (cd) cd.innerHTML = html;
 };
-
-// ============================================================
-// [9] TIMER
-// ============================================================
-const timerStartStop = () => {
-  if (timerRunning) {
-    clearInterval(timerInt); timerRunning = false;
-    timerTime = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
-    const s = $('timer-status'); if (s) s.textContent = isPomodoroBreak ? '休憩停止中' : '停止中';
-    const b = $('timer-start-btn'); if (b) b.textContent = 'スタート';
-  } else {
-    timerRunning = true; timerEndTime = Date.now() + (timerTime * 1000);
-    localStorage.setItem('study_timer_end', timerEndTime);
-    const s = $('timer-status'); if (s) s.textContent = isPomodoroBreak ? '休憩中' : '実行中';
-    const b = $('timer-start-btn'); if (b) b.textContent = 'ストップ';
-    
-    timerInt = setInterval(() => {
-      const remain = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
-      timerTime = remain; updateTimerDisplay();
-      if (remain <= 0) {
-        timerStartStop();
-        if (navigator.vibrate) navigator.vibrate(1000);
-        
-        const pm = $('timer-pomodoro-mode');
-        const autoStart = $('timer-auto-start') && $('timer-auto-start').checked;
-        
-        if (pm && pm.checked) {
-          if (!isPomodoroBreak) {
-            showToast('学習終了！5分休憩です'); gainXP(25);
-            isPomodoroBreak = true; timerInitial = 5 * 60; timerTime = timerInitial; updateTimerDisplay();
-            $('timer-log-min').value = 25; openModal('timer-log-modal');
-            if (autoStart) setTimeout(timerStartStop, 1500);
-          } else {
-            showToast('休憩終了！学習再開です');
-            isPomodoroBreak = false; timerInitial = 25 * 60; timerTime = timerInitial; updateTimerDisplay();
-            if (autoStart) setTimeout(timerStartStop, 1500);
-          }
-        } else {
-          showToast('終了'); gainXP(Math.floor(timerInitial / 60));
-          $('timer-log-min').value = Math.floor(timerInitial / 60); openModal('timer-log-modal');
-        }
-      }
-    }, 200);
-  }
-};
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && timerRunning) {
-    const savedEnd = parseInt(localStorage.getItem('study_timer_end'));
-    if (savedEnd) {
-      const remain = Math.max(0, Math.ceil((savedEnd - Date.now()) / 1000));
-      timerTime = remain; timerEndTime = savedEnd; updateTimerDisplay();
-    }
-  }
-});
-
-const timerReset = () => { if (timerRunning) timerStartStop(); timerTime = timerInitial; updateTimerDisplay(); };
-const timerSetCustom = () => { const m = parseInt($('timer-input-min').value) || 0, s = parseInt($('timer-input-sec').value) || 0; timerInitial = m * 60 + s; timerTime = timerInitial; updateTimerDisplay(); };
-const timerSavePreset = () => { if (!timerPresets.includes(timerInitial)) { timerPresets.push(timerInitial); safeSet('study_timer_presets', timerPresets); renderTimerPresets(); } };
-const renderTimerPresets = () => {
-  const p = $('timer-presets'); if (!p) return;
-  p.innerHTML = timerPresets.map(t => {
-    const min = Math.floor(t / 60), sec = t % 60;
-    return `<div style="display:inline-flex;align-items:center;border:1.5px solid var(--border2);border-radius:50px;background:var(--bg);"><button onclick="timerInitial=${t};timerTime=${t};updateTimerDisplay()" style="padding:6px 12px;border:none;background:transparent;color:var(--text-sub);cursor:pointer;font-size:12px;font-weight:700">${min}:${String(sec).padStart(2, '0')}</button><button onclick="timerDeletePreset(${t})" style="padding:6px 10px;border:none;border-left:1.5px solid var(--border2);background:transparent;color:var(--danger);cursor:pointer;font-weight:bold;font-size:10px;">✕</button></div>`;
-  }).join('');
-};
-const timerDeletePreset = t => { timerPresets = timerPresets.filter(x => x !== t); safeSet('study_timer_presets', timerPresets); renderTimerPresets(); };
-const updateTimerDisplay = () => { const min = Math.floor(timerTime / 60), sec = timerTime % 60; const d = $('timer-display'); if (d) d.textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`; };
-
-const saveTimerLog = () => {
-  const subj = $('timer-log-subj').value;
-  const min = parseInt($('timer-log-min').value) || 0;
-  if (min > 0) {
-    studyLogs.push({ date: todayDateStr(), subj: subj, seconds: min * 60, ts: Date.now() });
-    save.logs(); showToast('学習記録を保存しました');
-    if ($('Dashboard').classList.contains('active')) renderDashboard();
-  }
-  closeModal('timer-log-modal');
-};
-
 // ============================================================
 // [10] VOCAB & CARDS
 // ============================================================
@@ -971,8 +1038,9 @@ const setWordProgress = (w, p) => { wordProgress[w.toLowerCase()] = p; save.prog
 const cycleWordProgress = (w, e) => { if (e) e.stopPropagation(); const o = ['new', 'learning', 'mastered']; setWordProgress(w, o[(o.indexOf(getWordProgress(w)) + 1) % o.length]); renderVocab(true); renderVocabStats(); };
 const deleteWord = w => {
   if (!confirm(`「${w}」を削除しますか？`)) return;
-  ALL_WORDS = ALL_WORDS.filter(x => x.word.toLowerCase() !== w.toLowerCase());
-  savedWords = savedWords.filter(x => x.toLowerCase() !== w.toLowerCase());
+  // Use exact match to avoid deleting words with similar spellings but different cases if strictly managed (though lowercasing is used for index).
+  ALL_WORDS = ALL_WORDS.filter(x => x.word !== w);
+  savedWords = savedWords.filter(x => x !== w);
   delete srsData[w.toLowerCase()]; delete wordProgress[w.toLowerCase()]; delete vocabMeta[w.toLowerCase()];
   save.words(); save.saved(); save.srs(); save.prog(); save.meta();
   showToast(`削除: ${w}`); const sr = $('search-result'); if (sr) sr.innerHTML = '';
@@ -996,7 +1064,7 @@ const openAddWordModal = (editWord = null) => {
   const tags = new Set(); ALL_WORDS.forEach(word => { if (word.tags) word.tags.forEach(tag => tags.add(tag)); });
   const suggestArea = $('tag-suggest-area');
   if (suggestArea) {
-    suggestArea.innerHTML = Array.from(tags).map(tag => `<button class="filter-chip" onclick="addTagToInput('${esc(tag)}')">+ ${esc(tag)}</button>`).join('');
+    suggestArea.innerHTML = Array.from(tags).map(tag => `<button class="filter-chip" onclick="addTagToInput('${escJS(tag)}')">+ ${esc(tag)}</button>`).join('');
   }
   
   openModal('add-word-modal');
@@ -1013,19 +1081,22 @@ const addWordManual = () => {
   const w = $('manual-word-input').value.trim(), m = $('manual-meaning-input').value.trim(), p = $('manual-pos-input').value, ex = $('manual-example-input').value.trim(), nt = $('manual-note-input').value.trim(), tg = $('manual-tags-input').value.split(',').map(x=>x.trim()).filter(Boolean), old = $('manual-word-old').value;
   if (!w) return showToast('単語を入力してください');
   
+  const newObj = { word: w, meaning: m, example: ex, note: nt, tags: tg };
+  let existingIdx = old ? ALL_WORDS.findIndex(x => x.word === old) : ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.toLowerCase());
+  
   if (old && old !== w) {
-    ALL_WORDS = ALL_WORDS.filter(x => x.word !== old);
     if (savedWords.includes(old)) { savedWords = savedWords.filter(x => x !== old); savedWords.push(w); }
     if (srsData[old.toLowerCase()]) { srsData[w.toLowerCase()] = srsData[old.toLowerCase()]; delete srsData[old.toLowerCase()]; }
     if (wordProgress[old.toLowerCase()]) { wordProgress[w.toLowerCase()] = wordProgress[old.toLowerCase()]; delete wordProgress[old.toLowerCase()]; }
-  } else if (!old && ALL_WORDS.find(x => x.word.toLowerCase() === w.toLowerCase())) {
+  } else if (!old && existingIdx >= 0) {
     return showToast('既に登録されています');
   }
   
-  const existingIdx = ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.toLowerCase());
-  const newObj = { word: w, meaning: m, example: ex, note: nt, tags: tg };
-  if (existingIdx >= 0) ALL_WORDS[existingIdx] = { ...ALL_WORDS[existingIdx], ...newObj };
-  else ALL_WORDS.unshift(newObj);
+  if (existingIdx >= 0) {
+    ALL_WORDS[existingIdx] = { ...ALL_WORDS[existingIdx], ...newObj };
+  } else {
+    ALL_WORDS.unshift(newObj);
+  }
   
   vocabMeta[w.toLowerCase()] = { pos: p, etym: '', affixes: '' };
   
@@ -1042,7 +1113,7 @@ const searchWord = async (isSuggest = false) => {
   if (isSuggest) {
     if (!w) { if (s) s.innerHTML = ''; return; }
     const hits = ALL_WORDS.filter(x => x.word.toLowerCase().startsWith(w.toLowerCase()) || (x.meaning || '').toLowerCase().includes(w.toLowerCase())).slice(0, 8);
-    if (s) s.innerHTML = hits.map(x => `<div class="word-chip" onclick="selectWord('${esc(x.word)}')"><span class="wc-word">${esc(x.word)}</span><div class="wc-right"><span class="wc-mean">${esc(x.meaning || '')}</span><button class="vocab-speak audio-btn" onclick="speakWord('${esc(x.word)}',event)">音声</button></div></div>`).join('');
+    if (s) s.innerHTML = hits.map(x => `<div class="word-chip" onclick="selectWord('${escJS(x.word)}')"><span class="wc-word">${esc(x.word)}</span><div class="wc-right"><span class="wc-mean">${esc(x.meaning || '')}</span><button class="vocab-speak audio-btn" onclick="speakWord('${escJS(x.word)}',event)">音声</button></div></div>`).join('');
     return;
   }
 
@@ -1063,7 +1134,7 @@ const searchWord = async (isSuggest = false) => {
     else { fd.detailHtml = html; save.words(); }
     
     const isSaved = savedWords.includes(w), pt = `${w}\n${meaningText}\n${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`;
-    if (sr) sr.innerHTML = `<div class="card result-box"><div class="flex-between mb-1"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${esc(w)}',event)">発音</button></div><div class="flex-gap-8"><button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${esc(w)}')">${isSaved ? '保存済' : '保存'}</button><button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">コピー</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${esc(w)}')">削除</button></div></div><div class="result-meaning-badge">${esc(meaningText)}</div>${html}</div>`;
+    if (sr) sr.innerHTML = `<div class="card result-box"><div class="flex-between mb-1"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">発音</button></div><div class="flex-gap-8"><button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? '保存済' : '保存'}</button><button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">コピー</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">削除</button></div></div><div class="result-meaning-badge">${esc(meaningText)}</div>${html}</div>`;
   } catch (e) { if (ld) ld.classList.add('hidden'); handleApiError(e, 'search-result'); }
 };
 const selectWord = w => { const i = $('word-input'); if (i) { i.value = w; const s = $('word-suggest'); if (s) s.innerHTML = ''; searchWord(); } };
@@ -1092,10 +1163,10 @@ window.showWordModal = async (w, m) => {
   
   let tagsHtml = '';
   if (fd && fd.tags && fd.tags.length) {
-    tagsHtml = `<div class="flex gap-1 mb-2 flex-wrap">${fd.tags.map(t => `<span class="filter-chip" style="font-size:9px;padding:2px 6px;">${esc(t)}</span>`).join('')}</div>`;
+    tagsHtml = `<div class="flex gap-1 mb-2 flex-wrap">${fd.tags.map(t => `<span class="filter-chip" style="font-size:calc(9px * var(--text-scale));padding:2px 6px;">${esc(t)}</span>`).join('')}</div>`;
   }
   
-  mb.innerHTML = `<div class="flex-between mb-2"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><div class="flex-gap-8"><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${esc(w)}',event)">発音</button></div></div><div class="flex-gap-8"><span class="prog-badge ${p}" onclick="cycleWordProgress('${esc(w)}',event)" style="cursor:pointer;padding:5px 10px">${p}</span><button data-word="${esc(w)}" class="save-btn ${isS ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${esc(w)}')">${isS ? '保存済' : '保存'}</button><button class="copy-btn" onclick="openAddWordModal('${esc(w)}')">編集</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${esc(w)}')">削除</button></div></div>${tagsHtml}<div class="result-meaning-badge">${esc(m || '')}</div><div id="modal-detail-content" class="result-box"><span class="loading-dots"></span></div>`;
+  mb.innerHTML = `<div class="flex-between mb-2"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><div class="flex-gap-8"><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">発音</button></div></div><div class="flex-gap-8"><span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w)}',event)" style="cursor:pointer;padding:5px 10px">${p}</span><button data-word="${esc(w)}" class="save-btn ${isS ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isS ? '保存済' : '保存'}</button><button class="copy-btn" onclick="openAddWordModal('${escJS(w)}')">編集</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">削除</button></div></div>${tagsHtml}<div class="result-meaning-badge">${esc(m || '')}</div><div id="modal-detail-content" class="result-box"><span class="loading-dots"></span></div>`;
   openModal('detail-modal');
   
   const chartContainer = $('word-retention-chart-container');
@@ -1126,7 +1197,7 @@ window.showWordModal = async (w, m) => {
   let customHtml = '';
   if (fd && (fd.example || fd.note)) {
     customHtml = `<div class="mb-3 p-14 bg-main radius-sm border">`;
-    if (fd.example) customHtml += `<p class="text-xs font-bold text-muted mb-1">例文</p><p class="text-sm mb-2">${esc(fd.example)} <button class="btn-clear text-accent" onclick="speakWord('${esc(fd.example)}',event)">発音</button></p>`;
+    if (fd.example) customHtml += `<p class="text-xs font-bold text-muted mb-1">例文</p><p class="text-sm mb-2">${esc(fd.example)} <button class="btn-clear text-accent" onclick="speakWord('${escJS(fd.example)}',event)">発音</button></p>`;
     if (fd.note) customHtml += `<p class="text-xs font-bold text-muted mb-1">メモ</p><p class="text-sm">${esc(fd.note)}</p>`;
     customHtml += `</div>`;
   }
@@ -1161,7 +1232,7 @@ const updateTagFilters = () => {
   const c = $('tag-filters'), cs = $('cards-tag-select');
   if (c) {
     c.innerHTML = `<button class="filter-chip ${vocabTagFilter==='all'?'active':''}" data-tag="all" onclick="setTagFilter('all')">すべて</button>` + 
-      Array.from(tags).map(t => `<button class="filter-chip ${vocabTagFilter===t?'active':''}" data-tag="${esc(t)}" onclick="setTagFilter('${esc(t)}')">${esc(t)}</button>`).join('');
+      Array.from(tags).map(t => `<button class="filter-chip ${vocabTagFilter===t?'active':''}" data-tag="${esc(t)}" onclick="setTagFilter('${escJS(t)}')">${esc(t)}</button>`).join('');
   }
   if (cs) {
     cs.innerHTML = `<option value="all">すべて</option>` + Array.from(tags).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
@@ -1217,7 +1288,7 @@ const renderVocab = (reset = false) => {
     const pb = m ? `<span class="pos-badge" style="background:var(--bg2);color:var(--text-muted);font-size:10px;padding:2px 4px;border-radius:4px;">${posL[m.pos] || '他'}</span>` : '';
     const p = getWordProgress(w.word);
     const div = document.createElement('div'); div.className = 'vocab-item'; div.setAttribute('role', 'button'); div.tabIndex = 0; div.onclick = () => showWordModal(w.word, w.meaning || '');
-    div.innerHTML = `<div class="vi-left"><button class="vocab-speak audio-btn p-8" onclick="speakWord('${esc(w.word)}',event)">発音</button>${pb}<span class="vi-word">${esc(w.word)}</span></div><div class="vi-right"><span class="prog-badge ${p}" onclick="cycleWordProgress('${esc(w.word)}',event)">${p}</span><span class="vi-mean">${esc(w.meaning || '')}</span></div>`;
+    div.innerHTML = `<div class="vi-left"><button class="vocab-speak audio-btn p-8" onclick="speakWord('${escJS(w.word)}',event)">発音</button>${pb}<span class="vi-word">${esc(w.word)}</span></div><div class="vi-right"><span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w.word)}',event)">${p}</span><span class="vi-mean">${esc(w.meaning || '')}</span></div>`;
     fragment.appendChild(div);
   });
   vg.appendChild(fragment);
@@ -1247,7 +1318,7 @@ const toggleVoiceCommand = () => {
      cardVoiceActive = true; btn.textContent = '音声操作: ON'; btn.style.background = 'var(--green)'; btn.style.color = '#fff';
      cardVoiceRec = new SR(); cardVoiceRec.lang = 'ja-JP'; cardVoiceRec.continuous = true; cardVoiceRec.interimResults = false;
      cardVoiceRec.onresult = (e) => {
-        const transcript = e.results[e.results.length - 1][0].transcript.trim();
+        const transcript = e.results[e.resultIndex][0].transcript.trim();
         if (transcript.includes('次') || transcript.includes('右')) { changeCard(1); showToast('次へ'); }
         else if (transcript.includes('前') || transcript.includes('左')) { changeCard(-1); showToast('前へ'); }
         else if (transcript.includes('覚え') || transcript.includes('正解')) { srsRateCurrentCard(2); showToast('覚えた'); }
@@ -1428,7 +1499,7 @@ const renderDaily = () => {
   } else if (currentDailyTab === 'listen') {
     renderListenArea();
   } else if (currentDailyTab === 'drill') {
-    // 弱点ドリルはボタン押下で生成するため、初期描画はHTML側で定義済み
+    // handled via HTML directly generating on click
   }
 };
 
@@ -1668,12 +1739,14 @@ const exportSyntaxPDF = () => {
 // [12] PLANNER & LOGS
 // ============================================================
 const setPlanMode = m => {
-  planMode = m; ['calendar', 'yearly', 'score', 'ai'].forEach(x => { const el = $('plan-mode-' + x); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } });
-  const pa = $('plan-calendar-area'), py = $('plan-yearly-area'), pai = $('plan-ai-area'), ps = $('plan-score-area');
+  planMode = m; ['calendar', 'yearly', 'gantt', 'score', 'ai'].forEach(x => { const el = $('plan-mode-' + x); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } });
+  const pa = $('plan-calendar-area'), py = $('plan-yearly-area'), pg = $('plan-gantt-area'), pai = $('plan-ai-area'), ps = $('plan-score-area');
   if (pa) { if (m === 'calendar') pa.classList.remove('hidden'); else pa.classList.add('hidden'); }
   if (py) { if (m === 'yearly') py.classList.remove('hidden'); else py.classList.add('hidden'); }
+  if (pg) { if (m === 'gantt') pg.classList.remove('hidden'); else pg.classList.add('hidden'); }
   if (pai) { if (m === 'ai') pai.classList.remove('hidden'); else pai.classList.add('hidden'); }
   if (ps) { if (m === 'score') ps.classList.remove('hidden'); else ps.classList.add('hidden'); }
+  
   if (m === 'score') { renderScoreList(); renderScoreChart(); }
   if (m === 'calendar') { renderPlanCalendar(); renderPlanDateList(); }
   if (m === 'yearly') { renderYearlyPlan(); }
@@ -1729,6 +1802,59 @@ const renderYearlyPlan = () => {
 const updateYearlyMonth = (m, val) => { if (!yearlyPlan.months) yearlyPlan.months = {}; yearlyPlan.months[m] = val; saveYearlyPlanDebounced(); };
 const saveYearlyPlan = () => { const mg = $('yearly-main-goal'); if (mg) yearlyPlan.goal = mg.value.trim(); save.yearly(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 const saveYearlyPlanDebounced = debounce(saveYearlyPlan, 500);
+
+// ガントチャート(自動スケジュール)
+const generateGanttSchedule = async () => {
+  const targetName = $('gantt-target-name')?.value.trim();
+  const targetDate = $('gantt-target-date')?.value;
+  const materials = $('gantt-materials')?.value.trim();
+  
+  if (!targetName || !targetDate || !materials) return showToast('すべての項目を入力してください');
+  
+  const ld = $('gantt-loading');
+  const btn = $('gantt-generate-btn');
+  if (ld) ld.classList.remove('hidden');
+  if (btn) btn.disabled = true;
+  
+  const today = todayDateStr();
+  const prompt = `今日(${today})から目標日(${targetDate})までの学習スケジュール（逆算プラン）を構築し、JSON配列で出力してください。
+目標: ${targetName}
+使用参考書・タスク量:\n${materials}
+出力形式: [{"date": "YYYY-MM-DD", "tasks": ["やること1", "やること2"]}]`;
+
+  try {
+    const rep = await callGemini([{ role: 'user', content: prompt }], 2000, '', true);
+    const planArr = extractJSON(rep);
+    if (!planArr || !Array.isArray(planArr)) throw new Error('Invalid JSON');
+    
+    let addedCount = 0;
+    planArr.forEach(dayPlan => {
+      const d = dayPlan.date;
+      if (!plans[d]) plans[d] = [];
+      dayPlan.tasks.forEach(t => {
+        plans[d].push({ text: `[${targetName}] ${t}`, done: false, time: null });
+        addedCount++;
+      });
+    });
+    save.plans();
+    
+    $('gantt-result-card')?.classList.remove('hidden');
+    const resultText = $('gantt-result-text');
+    if (resultText) resultText.textContent = `${addedCount}件のタスクをカレンダーに自動配置しました。`;
+    showToast('スケジュール作成完了');
+    
+    // イベントにも目標日を登録
+    if (!events[targetDate]) events[targetDate] = [];
+    events[targetDate].push({ text: `★ ${targetName} 当日 ★` });
+    save.events();
+    
+  } catch(e) {
+    showToast('通信エラー: スケジュール作成に失敗しました');
+  } finally {
+    if (ld) ld.classList.add('hidden');
+    if (btn) btn.disabled = false;
+  }
+};
 
 const generateAutoSchedule = () => {
   const { dueWords, dueSyntax, dueDaily } = srsGetDueItems(); const ts = todayDateStr(); if (!plans[ts]) plans[ts] = []; let added = 0;
@@ -1876,16 +2002,20 @@ const ifi = $('import-file-input'); if (ifi) ifi.addEventListener('change', e =>
     };
     r.readAsDataURL(f);
   } else {
+    // Process text, csv, tsv
     const r = new FileReader(); r.onload = ev => { 
       let w = []; 
+      const txt = ev.target.result;
       if (f.name.endsWith('.json')) { 
-        try { const d = JSON.parse(ev.target.result); w = d.map(x => ({ word: (x.word || x.term || '').trim(), meaning: (x.meaning || x.translation || '').trim(), example: (x.example || '').trim() })); } catch (err) {} 
+        try { const d = JSON.parse(txt); w = d.map(x => ({ word: (x.word || x.term || '').trim(), meaning: (x.meaning || x.translation || '').trim(), example: (x.example || '').trim() })); } catch (err) {} 
       } else {
-        w = ev.target.result.split('\n').map(l => {
-          const sep = l.includes('\t') ? '\t' : ',';
-          const idx = l.indexOf(sep);
-          if (idx === -1) return { word: l.trim(), meaning: '', example: '' };
-          return { word: l.substring(0, idx).trim(), meaning: l.substring(idx + 1).trim(), example: '' };
+        // Robust splitting for CSV/TSV
+        w = txt.split('\n').map(l => {
+          let sep = ',';
+          if (f.name.endsWith('.tsv') || l.includes('\t')) sep = '\t';
+          const parts = l.split(sep);
+          if (parts.length < 2) return { word: l.trim(), meaning: '', example: '' };
+          return { word: parts[0].trim().replace(/^"|"$/g, ''), meaning: parts.slice(1).join(sep).trim().replace(/^"|"$/g, ''), example: '' };
         }).filter(p => p.word);
       }
       renderPreview(w, 'file-preview'); 
@@ -2217,6 +2347,9 @@ const triggerTabEffects = (id) => {
     if (userProfile.reminderTime) $('reminder-time').value = userProfile.reminderTime;
     if ($('freeze-count')) $('freeze-count').textContent = userProfile.freezeItems || 0;
     if (fsrsRetention) { $('fsrs-retention-slider').value = fsrsRetention; $('fsrs-retention-label').textContent = fsrsRetention + '%'; }
+    const uiFontSize = localStorage.getItem('study_ui_font_size') || 'medium';
+    const uiFontSelect = $('ui-font-size-select');
+    if (uiFontSelect) uiFontSelect.value = uiFontSize;
   }
   if (id === 'SkillUp') switchWritingTab('input');
   if (id === 'Subject') { renderSubjectChat(); renderSubjectSaved(); renderSubjectQuiz(); }
@@ -2233,7 +2366,8 @@ document.addEventListener('touchend', e => {
   if (!e.changedTouches.length) return;
   const dx = e.changedTouches[0].clientX - swipeStartX, dy = e.changedTouches[0].clientY - swipeStartY;
   if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2 && !window.getSelection().toString()) {
-    if (e.target.closest('.flip-inner, .nav-bar, .heatmap-grid, [style*="overflow-x"], textarea, .cal-wrap, .chat-container, .quiz-sortable')) return;
+    // Add all horizontal scrollable elements to the ignore list to prevent swipe conflicts
+    if (e.target.closest('.flip-inner, .nav-bar, .heatmap-grid, [style*="overflow-x"], textarea, .cal-wrap, .chat-container, .quiz-sortable, .writing-tabs, .chat-subject-tabs, .import-tab-bar, .month-tabs, .week-day-tabs')) return;
     if (dx < 0 && currentTabIndex < TABS.length - 1) setTabByIndex(currentTabIndex + 1);
     else if (dx > 0 && currentTabIndex > 0) setTabByIndex(currentTabIndex - 1);
   }
@@ -2275,6 +2409,9 @@ async function initAppData() {
   
   if (userProfile.reminderTime) { $('reminder-time').value = userProfile.reminderTime; startReminderCheck(); }
   if ($('freeze-count')) $('freeze-count').textContent = userProfile.freezeItems || 0;
+  
+  const uiFontSize = localStorage.getItem('study_ui_font_size') || 'medium';
+  document.documentElement.setAttribute('data-font-size', uiFontSize);
   
   applyThemeColor();
   loadWidgetOrder();
