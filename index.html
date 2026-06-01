@@ -104,6 +104,12 @@
       <div class="chart-container-180"><canvas id="dash-weekly-chart"></canvas></div>
     </div>
 
+    <!-- Radar Chart Widget -->
+    <div class="card mb-14 widget-item" id="dash-radar-chart-card" data-widget-id="radar-chart">
+      <p class="text-xs font-bold text-muted mb-2">学習バランス (レーダーチャート)</p>
+      <div class="chart-container-220"><canvas id="dash-radar-chart"></canvas></div>
+    </div>
+
     <!-- SRS Chart Widget -->
     <div class="card mb-14 widget-item" id="dash-srs-chart-card" data-widget-id="srs-chart">
       <p class="text-xs font-bold text-muted mb-2">忘却曲線（次回復習までの日数）</p>
@@ -179,25 +185,52 @@
       </label>
       <label class="flex align-center gap-2 text-sm font-bold cursor-pointer">
         <input type="checkbox" id="timer-auto-start" style="width:18px;height:18px;accent-color:var(--accent);">
-        
+        自動スタート
+      </label>
+      <label class="flex align-center gap-2 text-sm font-bold cursor-pointer">
+        <input type="checkbox" id="timer-hardcore-mode" style="width:18px;height:18px;accent-color:var(--accent);">
+        ハードコア集中モード (別タブを開くとペナルティ)
       </label>
     </div>
   </div>
 
   <div class="card mb-3">
     <p class="text-xs font-bold text-muted mb-3">環境音ミックス</p>
-    <div class="flex-col gap-3">
-      <div class="flex align-center gap-2">
-        <button class="audio-btn flex-1" id="audio-btn-rain" onclick="toggleNoise('rain')">雨音</button>
-        <input type="range" id="audio-vol-rain" min="0" max="100" value="50" class="flex-2" oninput="updateNoiseVolume('rain', this.value)">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <!-- 雨音 -->
+      <div class="flex-col gap-1">
+        <button class="audio-btn w-full" id="audio-btn-rain" onclick="toggleNoise('rain')">雨音</button>
+        <input type="range" id="audio-vol-rain" min="0" max="100" value="50" class="w-full" oninput="updateNoiseVolume('rain', this.value)">
       </div>
-      <div class="flex align-center gap-2">
-        <button class="audio-btn flex-1" id="audio-btn-waves" onclick="toggleNoise('waves')">波</button>
-        <input type="range" id="audio-vol-waves" min="0" max="100" value="50" class="flex-2" oninput="updateNoiseVolume('waves', this.value)">
+      <!-- 波 -->
+      <div class="flex-col gap-1">
+        <button class="audio-btn w-full" id="audio-btn-waves" onclick="toggleNoise('waves')">波</button>
+        <input type="range" id="audio-vol-waves" min="0" max="100" value="50" class="w-full" oninput="updateNoiseVolume('waves', this.value)">
       </div>
-      <div class="flex align-center gap-2">
-        <button class="audio-btn flex-1" id="audio-btn-fire" onclick="toggleNoise('fire')">焚き火</button>
-        <input type="range" id="audio-vol-fire" min="0" max="100" value="50" class="flex-2" oninput="updateNoiseVolume('fire', this.value)">
+      <!-- 焚き火 -->
+      <div class="flex-col gap-1">
+        <button class="audio-btn w-full" id="audio-btn-fire" onclick="toggleNoise('fire')">焚き火</button>
+        <input type="range" id="audio-vol-fire" min="0" max="100" value="50" class="w-full" oninput="updateNoiseVolume('fire', this.value)">
+      </div>
+      <!-- カフェ -->
+      <div class="flex-col gap-1">
+        <button class="audio-btn w-full" id="audio-btn-cafe" onclick="toggleNoise('cafe')">カフェ</button>
+        <input type="range" id="audio-vol-cafe" min="0" max="100" value="50" class="w-full" oninput="updateNoiseVolume('cafe', this.value)">
+      </div>
+      <!-- 図書館 -->
+      <div class="flex-col gap-1">
+        <button class="audio-btn w-full" id="audio-btn-library" onclick="toggleNoise('library')">図書館</button>
+        <input type="range" id="audio-vol-library" min="0" max="100" value="50" class="w-full" oninput="updateNoiseVolume('library', this.value)">
+      </div>
+      <!-- 時計 -->
+      <div class="flex-col gap-1">
+        <button class="audio-btn w-full" id="audio-btn-clock" onclick="toggleNoise('clock')">時計の秒針</button>
+        <input type="range" id="audio-vol-clock" min="0" max="100" value="50" class="w-full" oninput="updateNoiseVolume('clock', this.value)">
+      </div>
+      <!-- Lo-Fi -->
+      <div class="flex-col gap-1" style="grid-column: span 2;">
+        <button class="audio-btn w-full" id="audio-btn-lofi" onclick="toggleNoise('lofi')">Lo-Fi Hip Hop</button>
+        <input type="range" id="audio-vol-lofi" min="0" max="100" value="50" class="w-full" oninput="updateNoiseVolume('lofi', this.value)">
       </div>
     </div>
   </div>
@@ -477,6 +510,7 @@
   <div class="mode-toggle mb-3">
     <button class="ptab active" id="plan-mode-calendar" onclick="setPlanMode('calendar')">Calendar</button>
     <button class="ptab" id="plan-mode-yearly" onclick="setPlanMode('yearly')">Yearly</button>
+    <button class="ptab" id="plan-mode-gantt" onclick="setPlanMode('gantt')">Gantt</button>
     <button class="ptab" id="plan-mode-score" onclick="setPlanMode('score')">Exam</button>
     <button class="ptab" id="plan-mode-ai" onclick="setPlanMode('ai')">AI Chat</button>
   </div>
@@ -494,6 +528,30 @@
       <input type="text" id="yearly-main-goal" class="score-input" placeholder="例: 第一志望校合格、TOEIC 800点">
     </div>
     <div class="yearly-plan-grid" id="yearly-months-grid"></div>
+  </div>
+
+  <div id="plan-gantt-area" class="hidden">
+    <div class="card mb-3">
+      <p class="text-sm font-bold mb-2">逆算スケジュール自動作成 (AI)</p>
+      <p class="text-xs text-muted mb-3 line-height-15">目標日と使用する参考書・タスク量を入力すると、AIが試験日までの日数を計算し、今日やるべき日割りスケジュールをカレンダーに登録します。</p>
+      
+      <p class="text-xs font-bold text-muted mb-1">目標・テスト名</p>
+      <input type="text" id="gantt-target-name" class="score-input mb-3" placeholder="例: 期末テスト、TOEIC試験">
+      
+      <p class="text-xs font-bold text-muted mb-1">目標日 (締切)</p>
+      <input type="date" id="gantt-target-date" class="score-input mb-3">
+      
+      <p class="text-xs font-bold text-muted mb-1">使用参考書とページ範囲</p>
+      <textarea id="gantt-materials" class="score-input mb-3 h-72" placeholder="例: ターゲット1900 1〜800語&#10;青チャート p10〜p50"></textarea>
+      
+      <button class="action-btn mb-0 bg-accent2" id="gantt-generate-btn" onclick="generateGanttSchedule()">逆算スケジュールを作成</button>
+      <div id="gantt-loading" class="hidden text-center mt-3"><span class="loading-dots">AIが日割り計画を構築中</span></div>
+    </div>
+    <div class="card hidden" id="gantt-result-card">
+      <p class="text-xs font-bold text-green mb-2">スケジュール作成完了</p>
+      <p class="text-sm line-height-16 mb-2" id="gantt-result-text"></p>
+      <button class="action-btn btn-secondary mb-0" onclick="document.getElementById('plan-mode-calendar').click()">カレンダーを確認する</button>
+    </div>
   </div>
 
   <div id="plan-ai-area" class="hidden">
@@ -538,6 +596,13 @@
       <button class="filter-chip theme-btn-indigo" onclick="setThemeColor('indigo')">Indigo</button>
       <button class="filter-chip theme-btn-gray" onclick="setThemeColor('gray')">Gray</button>
     </div>
+
+    <p class="text-xs font-bold text-muted mb-2">文字サイズ設定</p>
+    <select id="ui-font-size-select" class="score-input mb-4" onchange="changeUiFontSize()">
+      <option value="small">小 (Small)</option>
+      <option value="medium" selected>中 (Default)</option>
+      <option value="large">大 (Large)</option>
+    </select>
 
     <p class="text-xs font-bold text-muted mb-2">FSRS（間隔反復）設定</p>
     <div class="card mb-4">
@@ -639,25 +704,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="timer-log-modal" onclick="if(event.target===this) closeModal('timer-log-modal')">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('timer-log-modal')">✕</button>
-    <p class="font-bold mb-3 text-lg text-center">お疲れ様でした！</p>
-    <p class="text-sm mb-3 text-center">今何を勉強しましたか？記録を残しましょう。</p>
-    <div class="flex-gap-8 align-center mb-3">
-      <select id="timer-log-subj" class="score-input flex-1">
-        <option value="english">英語</option><option value="japanese">国語</option>
-        <option value="math">数学</option><option value="science">理科</option>
-        <option value="social">社会</option><option value="other">その他</option>
-      </select>
-      <input type="number" id="timer-log-min" class="score-input w-70" readonly>
-      <span class="text-sm font-bold">分</span>
-    </div>
-    <button class="action-btn mb-0 bg-accent" id="timer-log-save-btn" onclick="saveTimerLog()">記録して閉じる</button>
-    <button class="action-btn btn-secondary mt-2 mb-0" onclick="closeModal('timer-log-modal')">記録しない</button>
-  </div>
-</div>
-
 <div class="modal-overlay" id="log-list-modal" onclick="if(event.target===this) closeModal('log-list-modal')">
   <div class="modal-sheet max-h-92vh">
     <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('log-list-modal')">✕</button>
@@ -706,7 +752,7 @@
       <button class="itab" id="itab-photo" onclick="switchImportTab('photo')">Photo</button>
     </div>
     <div id="itab-content-file">
-      <label class="import-drop-zone" for="import-file-input"><span class="mb-1 font-bold">[ ファイルを選択 ]</span><input type="file" id="import-file-input" accept=".pdf,text/*,image/*,.json,.csv,.tsv" class="hidden" onclick="this.value=null"></label>
+      <label class="import-drop-zone" for="import-file-input"><span class="mb-1 font-bold">[ ファイルを選択 ]</span><input type="file" id="import-file-input" accept=".pdf,text/plain,text/csv,.csv,.tsv,.json,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden" onclick="this.value=null"></label>
       <div id="file-preview"></div>
     </div>
     <div id="itab-content-text" class="hidden">
