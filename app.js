@@ -6,13 +6,21 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/`/g, '&#x60;');
 const escJS = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n').replace(/\r/g, '');
+
 const clean = html => {
   if (window.DOMPurify) return DOMPurify.sanitize(html);
-  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/on\w+="[^"]*"/g, '').replace(/on\w+='[^']*'/g, '').replace(/on\w+=\w+/g, '');
+  const temp = document.createElement('div');
+  temp.textContent = html;
+  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div)(.*?)&gt;/gi, '<$1$2$3>');
 };
+
 const safeSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 const safeGet = (k, fb) => { try { const s = localStorage.getItem(k); return s !== null ? JSON.parse(s) : fb; } catch (e) { return fb; } };
-const generateId = () => Date.now() + '-' + Math.floor(Math.random() * 100000);
+
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
 
 const debounce = (fn, ms) => {
   let t;
@@ -21,10 +29,23 @@ const debounce = (fn, ms) => {
 
 const extractJSON = t => {
   try {
-    let cleanStr = t.trim();
-    // JSONの開始と終了を正規表現で抽出 (より堅牢に)
-    const match = cleanStr.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    if (match) cleanStr = match[0];
+    const match = t.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    let cleanStr = match ? match[1] : t;
+    const firstBrace = cleanStr.indexOf('{');
+    const firstBracket = cleanStr.indexOf('[');
+    let startIdx = -1;
+    if (firstBrace !== -1 && firstBracket !== -1) startIdx = Math.min(firstBrace, firstBracket);
+    else if (firstBrace !== -1) startIdx = firstBrace;
+    else if (firstBracket !== -1) startIdx = firstBracket;
+    
+    if (startIdx !== -1) {
+      cleanStr = cleanStr.substring(startIdx);
+      const lastBrace = cleanStr.lastIndexOf('}');
+      const lastBracket = cleanStr.lastIndexOf(']');
+      let endIdx = Math.max(lastBrace, lastBracket);
+      if (endIdx !== -1) cleanStr = cleanStr.substring(0, endIdx + 1);
+    }
+    cleanStr = cleanStr.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
     return JSON.parse(cleanStr);
   } catch (err) {
     console.error('JSON解析エラー', err);
@@ -50,7 +71,13 @@ const processToastQueue = () => {
   }, 2200);
 };
 
-const autoResize = el => { if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; };
+const autoResize = el => { 
+  if (!el) return; 
+  const scrollY = window.scrollY;
+  el.style.height = 'auto'; 
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'; 
+  window.scrollTo(0, scrollY);
+};
 
 const printHtml = (html) => {
   let iframe = $('print-iframe');
@@ -60,11 +87,16 @@ const printHtml = (html) => {
 };
 
 const getTodayWeekIdx = () => (new Date().getDay() + 6) % 7;
+
 const todayDateStr = () => {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
-const copyText = (txt, btn) => { navigator.clipboard.writeText(txt).then(() => { if (btn) { btn.classList.add('copied'); const old = btn.textContent; btn.textContent = 'コピー済'; setTimeout(() => btn.textContent = old, 1800); } showToast('コピー済'); }).catch(() => showToast('失敗')); };
+
+const copyText = (txt, btn) => { navigator.clipboard.writeText(txt).then(() => { if (btn) { btn.classList.add('copied'); const old = btn.textContent; btn.textContent = customTexts['copied'] || 'コピー済'; setTimeout(() => btn.textContent = old, 1800); } showToast(customTexts['copied'] || 'コピー済'); }).catch(() => showToast('失敗')); };
 
 const getTotalStudySeconds = () => studyLogs.reduce((a, l) => a + l.seconds, 0);
 
@@ -85,10 +117,14 @@ window.addEventListener('popstate', () => {
   document.body.style.overflow = '';
 });
 
-const resizeImage = (file, maxWidth = 1024, maxHeight = 1024) => {
+const resizeImage = (file, maxWidth = 1024, maxHeight = 1024, skipResize = false) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
+      if (skipResize) {
+        resolve(e.target.result);
+        return;
+      }
       const img = new Image();
       img.onload = () => {
         let w = img.width, h = img.height;
@@ -111,13 +147,80 @@ const handleApiError = (e, containerId) => {
   else if (e.message.includes('API Key') || e.message.includes('401')) msg = 'API Keyが設定されていないか、無効です。Settingsタブから設定してください。';
   else if (e.message.includes('429')) msg = 'APIの利用制限に達しました。しばらく待ってからお試しください。';
   else if (e.message.includes('400')) msg = 'リクエストが不正です。画像サイズが大きすぎるか、プロンプトが長すぎます。';
-  c.innerHTML = `<div class="card text-danger font-bold">${msg}</div>`;
+  c.innerHTML = `<div class="card text-danger font-bold">${esc(msg)}</div>`;
 };
 
-const gainXP = (amount) => {
-  userProfile.xp = (userProfile.xp || 0) + amount;
-  save.profile();
-  if ($('Dashboard').classList.contains('active')) renderDashboard();
+let customTexts = safeGet('study_custom_texts', {});
+
+const applyCustomTexts = () => {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (customTexts[key]) {
+      if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') {
+        el.textContent = customTexts[key];
+      }
+    }
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (customTexts[key]) {
+      el.setAttribute('placeholder', customTexts[key]);
+    }
+  });
+};
+
+const loadCustomTexts = () => {
+  customTexts = safeGet('study_custom_texts', {});
+  applyCustomTexts();
+};
+
+window.openTextCustomizerModal = () => {
+  const list = $('text-customizer-list');
+  if (!list) return;
+  
+  const keys = new Set();
+  const map = {};
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    keys.add(k);
+    if (!map[k]) map[k] = el.textContent.trim();
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const k = el.getAttribute('data-i18n-placeholder');
+    keys.add(k);
+    if (!map[k]) map[k] = el.getAttribute('placeholder');
+  });
+
+  let html = '';
+  keys.forEach(k => {
+    const currentVal = customTexts[k] || map[k] || '';
+    html += `<div class="mb-2">
+      <label class="text-xs font-bold text-muted mb-1 block">${k}</label>
+      <input type="text" class="score-input custom-text-input" data-key="${k}" value="${esc(currentVal)}">
+    </div>`;
+  });
+  list.innerHTML = html;
+  openModal('text-customizer-modal');
+};
+
+window.saveCustomTexts = () => {
+  document.querySelectorAll('.custom-text-input').forEach(input => {
+    const k = input.getAttribute('data-key');
+    const v = input.value.trim();
+    if (v) customTexts[k] = v;
+    else delete customTexts[k];
+  });
+  safeSet('study_custom_texts', customTexts);
+  applyCustomTexts();
+  closeModal('text-customizer-modal');
+  showToast('テキストを保存しました');
+};
+
+window.resetCustomTexts = () => {
+  if(!confirm('すべてのテキストを初期値に戻しますか？')) return;
+  customTexts = {};
+  localStorage.removeItem('study_custom_texts');
+  location.reload();
 };
 
 // ============================================================
@@ -143,38 +246,42 @@ const THEMES = {
   gray: { accent: '#7F8C8D', streak: '#95A5A6' }
 };
 
-let ALL_WORDS = [], savedWords = [], plans = {}, events = {}, writingHistory = [], subjectSaved = [], subjectQuizzes = [], examScores = [], textbooks = [], srsData = {}, userProfile = { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', freezeItems: 0, badges: [], themeColor: 'default' }, customDecks = [], wordProgress = {}, vocabMeta = {}, dailyChallenges = [], syntaxList = [], listenHistory = [], studyLogs = [], freezeLogs = [];
+let ALL_WORDS = [], savedWords = [], plans = {}, events = {}, writingHistory = [], subjectSaved = [], subjectQuizzes = [], examScores = [], textbooks = [], srsData = {}, userProfile = { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', aiNotificationTiming: false, freezeItems: 0, themeColor: 'default', customThemeColor: '' }, customDecks = [], wordProgress = {}, vocabMeta = {}, dailyChallenges = [], syntaxList = [], listenHistory = [], studyLogs = [], freezeLogs = [];
 let yearlyPlan = { year: new Date().getFullYear(), goal: '', months: {} };
+let countdownData = safeGet('study_countdown', { name: '', date: '' });
 let currentTabIndex = 0;
 let timerPresets = safeGet('study_timer_presets', [1500, 3000]);
 let darkThemeMode = safeGet('study_dark_mode', 'auto');
 let fsrsRetention = safeGet('study_fsrs_retention', 90);
 let cachedWotd = safeGet('study_wotd_cache', { date: '', word: null, exampleHtml: '' });
+let cachedQuote = safeGet('study_quote_cache', { date: '', text: '', author: '', explanation: '' });
+let activeWidgets = safeGet('study_active_widgets', ['wotd', 'hero', 'quote', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'subj-chart', 'heatmap', 'calendar', 'today-plan', 'today-log']);
+let shuffleSettings = safeGet('study_shuffle_settings', { mode: 'random' });
 
 let reminderCheckInt = null;
 let swipeStartX = 0, swipeStartY = 0;
 let _audioUnlocked = false;
 let mBtn = null, rec = null, aInp = null;
 let wotdIndex = -1;
-let dashSubjChart = null, dashSrsChart = null, dashSrsScatter = null, wordRetentionChart = null, dashWeeklyChart = null, simulationChart = null, dashRadarChart = null;
+let dashSubjChart = null, dashSrsChart = null, dashSrsScatter = null, wordRetentionChart = null, dashWeeklyChart = null, simulationChart = null, dashRadarChart = null, dashStabilityChart = null;
 let weaknessWords = [];
 let vocabPosFilter = 'all', vocabProgFilter = 'all', vocabTagFilter = 'all', vocabPrefixFilter = '';
 let vocabPage = 1;
 let timerInt = null, timerTime = 25 * 60, timerInitial = 25 * 60, timerRunning = false, timerEndTime = 0; 
-let isPomodoroMode = false, isPomodoroBreak = false, isTimerAutoStart = false;
+let isPomodoroMode = false, isPomodoroBreak = false;
 
-// Audio Mixer State
 let audioCtx = null;
-let activeNoises = { rain: false, waves: false, fire: false, cafe: false, library: false, clock: false, lofi: false };
-let noiseNodes = { rain: null, waves: null, fire: null, cafe: null, library: null, clock: null, lofi: null };
-let noiseVolumes = { rain: 0.5, waves: 0.5, fire: 0.5, cafe: 0.5, library: 0.5, clock: 0.5, lofi: 0.5 };
+let masterCompressor = null;
+let activeNoises = { rain: false, forest: false, ocean: false };
+let noiseNodes = { rain: null, forest: null, ocean: null };
+let noiseVolumes = { rain: 0.5, forest: 0.5, ocean: 0.5 };
 
 let planMode = 'calendar', currentPlanMonth = new Date().getMonth() + 1, currentWeekDay = 0;
 let pCalYear = new Date().getFullYear(), pCalMonth = new Date().getMonth(), selectedPlanDate = todayDateStr();
 let dashCalYear = new Date().getFullYear(), dashCalMonth = new Date().getMonth();
 let dashWeeklyOffset = 0;
 let planAiHistory = [];
-let scoreLineChart = null;
+let scoreLineChart = null, scoreChartMode = 'dev';
 let wInputMode = 'text', wPhotoData = null, currentDailyTab = 'comp';
 let currentListenMode = 'mc';
 let activeQuizList = [], activeQuizIndex = 0, quizScore = 0;
@@ -187,19 +294,41 @@ let cardList = [], currentCardIdx = 0, cardsMode = 'all';
 let cardVoiceRec = null, cardVoiceActive = false;
 let autoPlayInt = null, apState = 0;
 let availableVoices = [];
+let searchMicRec = null;
+
+let autoListenInt = null;
+let autoListenWords = [];
+let autoListenIdx = 0;
+let autoListenState = 0;
+let shadowingAudioCtx = null;
+let shadowingAnalyser = null;
+let shadowingDataArray = null;
+let shadowingReqAnimFrame = null;
 
 // ============================================================
-// [3] STORAGE & SYNC (Chunking for 1MB limit)
+// [3] STORAGE & SYNC
 // ============================================================
 let _saveQueue = Promise.resolve();
 const safeSave = (key, data) => { _saveQueue = _saveQueue.then(() => localforage.setItem(key, data)).catch(e => console.error(e)); return _saveQueue; };
+
+const imageStore = localforage.createInstance({ name: 'StudyApp', storeName: 'images' });
+const saveImageToDB = async (base64Data) => {
+  if (!base64Data) return null;
+  const id = 'img_' + generateId();
+  await imageStore.setItem(id, base64Data);
+  return id;
+};
+const getImageFromDB = async (id) => {
+  if (!id || !id.startsWith('img_')) return id;
+  return await imageStore.getItem(id);
+};
 
 const save = {
   words: () => safeSave('study_words', ALL_WORDS),
   saved: () => safeSave('study_saved', savedWords),
   plans: () => safeSave('study_plans', plans),
   events: () => safeSave('study_events', events),
-  writing: () => safeSave('study_writing', writingHistory),
+  writing: () => safeSave('study_writing', writingHistory.slice(0, 100)),
   subSaved: () => safeSave('study_subject_saved', subjectSaved),
   subQuiz: () => safeSave('study_subject_quizzes', subjectQuizzes),
   exams: () => safeSave('study_exam_scores', examScores),
@@ -209,12 +338,55 @@ const save = {
   decks: () => safeSave('study_custom_decks', customDecks),
   prog: () => safeSave('study_word_progress', wordProgress),
   meta: () => safeSave('study_vocab_meta', vocabMeta),
-  daily: () => safeSave('study_daily', dailyChallenges),
+  daily: () => safeSave('study_daily', dailyChallenges.slice(0, 100)),
   syntax: () => safeSave('study_syntax', syntaxList),
-  listen: () => safeSave('study_listen', listenHistory),
+  listen: () => safeSave('study_listen', listenHistory.slice(0, 100)),
   logs: () => safeSave('study_logs', studyLogs),
   yearly: () => safeSave('study_yearly_plan', yearlyPlan),
   freezeLogs: () => safeSave('study_freeze_logs', freezeLogs)
+};
+
+const createAutoBackup = async () => {
+  const today = todayDateStr();
+  const lastBackup = localStorage.getItem('study_last_backup_date');
+  if (lastBackup !== today) {
+    const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan };
+    await localforage.setItem('backup_' + today, data);
+    localStorage.setItem('study_last_backup_date', today);
+    
+    const keys = await localforage.keys();
+    const backupKeys = keys.filter(k => k.startsWith('backup_')).sort((a, b) => {
+      return a.localeCompare(b);
+    });
+    
+    if (backupKeys.length > 7) {
+      for (let i = 0; i < backupKeys.length - 7; i++) {
+        await localforage.removeItem(backupKeys[i]);
+      }
+    }
+  }
+};
+
+window.createManualBackup = async () => {
+  await createAutoBackup();
+  showToast('バックアップを作成しました');
+  renderBackupList();
+};
+
+window.restoreBackup = async () => {
+  const sel = $('backup-restore-select');
+  if (!sel || !sel.value) return showToast('復元ポイントを選択してください');
+  if (!confirm('現在のデータは上書きされます。復元しますか？')) return;
+  
+  const data = await localforage.getItem(sel.value);
+  if (data) {
+    ALL_WORDS = data.ALL_WORDS || []; savedWords = data.savedWords || []; plans = data.plans || {}; events = data.events || {}; writingHistory = data.writingHistory || []; subjectSaved = data.subjectSaved || []; subjectQuizzes = data.subjectQuizzes || []; examScores = data.examScores || []; textbooks = data.textbooks || []; srsData = data.srsData || {}; userProfile = data.userProfile || userProfile; customDecks = data.customDecks || []; wordProgress = data.wordProgress || {}; vocabMeta = data.vocabMeta || {}; dailyChallenges = data.dailyChallenges || []; syntaxList = data.syntaxList || []; listenHistory = data.listenHistory || []; studyLogs = data.studyLogs || []; yearlyPlan = data.yearlyPlan || yearlyPlan;
+    Object.values(save).forEach(f => f());
+    showToast('復元しました。再読み込みします。');
+    setTimeout(() => location.reload(), 1500);
+  } else {
+    showToast('バックアップデータの読み込みに失敗しました');
+  }
 };
 
 const initFirebaseSafe = () => {
@@ -251,6 +423,31 @@ initFirebaseSafe();
 
 const chunkArray = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
 
+const mergeWords = (local, remote) => {
+  const map = new Map();
+  local.forEach(w => map.set(w.word.toLowerCase(), w));
+  remote.forEach(w => {
+    const key = w.word.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, w);
+    } else {
+      const existing = map.get(key);
+      existing.meaning = w.meaning || existing.meaning;
+      existing.example = w.example || existing.example;
+      existing.tags = [...new Set([...(existing.tags||[]), ...(w.tags||[])])];
+      if(w.detailHtml) existing.detailHtml = w.detailHtml;
+    }
+  });
+  return Array.from(map.values());
+};
+
+const mergeHistory = (local, remote) => {
+  const map = new Map();
+  local.forEach(h => map.set(h.id, h));
+  remote.forEach(h => map.set(h.id, h));
+  return Array.from(map.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+};
+
 const cloudSync = async (m, isAuto = false) => {
   if (!window._auth) return !isAuto && showToast('無効'); const u = window._auth.currentUser; if (!u) return !isAuto && showToast('ログイン必須');
   const c = window._db.collection('users').doc(u.uid).collection('data');
@@ -262,7 +459,6 @@ const cloudSync = async (m, isAuto = false) => {
       const wordChunks = chunkArray(ALL_WORDS, 300);
       batch.set(c.doc('words_meta'), { chunks: wordChunks.length, savedWords: JSON.stringify(savedWords), srsData: JSON.stringify(srsData), wordProgress: JSON.stringify(wordProgress), vocabMeta: JSON.stringify(vocabMeta) });
       
-      // 不要な古いチャンクの削除処理
       const oldMetaSn = await c.doc('words_meta').get();
       if (oldMetaSn.exists) {
         const oldChunksCount = oldMetaSn.data().chunks || 0;
@@ -287,26 +483,45 @@ const cloudSync = async (m, isAuto = false) => {
       const metaSn = await c.doc('words_meta').get();
       if (metaSn.exists) {
         found = true; const r = metaSn.data(), ps = (data, fb) => { if (typeof data === 'string') { try { return JSON.parse(data); } catch (e) { return fb; } } return data || fb; };
-        if (r.savedWords) savedWords = ps(r.savedWords, savedWords); if (r.srsData) srsData = ps(r.srsData, srsData); if (r.wordProgress) wordProgress = ps(r.wordProgress, wordProgress); if (r.vocabMeta) vocabMeta = ps(r.vocabMeta, vocabMeta);
+        if (r.savedWords) savedWords = [...new Set([...savedWords, ...ps(r.savedWords, [])])]; 
+        if (r.srsData) srsData = { ...srsData, ...ps(r.srsData, {}) }; 
+        if (r.wordProgress) wordProgress = { ...wordProgress, ...ps(r.wordProgress, {}) }; 
+        if (r.vocabMeta) vocabMeta = { ...vocabMeta, ...ps(r.vocabMeta, {}) };
         
         let pulledWords = [];
         for (let i = 0; i < (r.chunks || 0); i++) {
           const chunkSn = await c.doc(`words_chunk_${i}`).get();
           if (chunkSn.exists) pulledWords = pulledWords.concat(ps(chunkSn.data().data, []));
         }
-        if (pulledWords.length > 0) ALL_WORDS = pulledWords;
+        if (pulledWords.length > 0) ALL_WORDS = mergeWords(ALL_WORDS, pulledWords);
       }
 
       for (const d of ['history', 'qa', 'plans', 'misc']) {
         const sn = await c.doc(d).get();
         if (sn.exists) {
           found = true; const r = sn.data(), ps = (data, fb) => { if (typeof data === 'string') { try { return JSON.parse(data); } catch (e) { return fb; } } return data || fb; };
-          if (r.writingHistory) { const rem = ps(r.writingHistory, []); const merged = [...writingHistory, ...rem].filter((v,i,a)=>a.findIndex(t=>(t.id===v.id))===i); writingHistory = merged.sort((a,b)=>new Date(b.date)-new Date(a.date)); }
-          if (r.listenHistory) { const rem = ps(r.listenHistory, []); const merged = [...listenHistory, ...rem].filter((v,i,a)=>a.findIndex(t=>(t.id===v.id))===i); listenHistory = merged.sort((a,b)=>new Date(b.date)-new Date(a.date)); }
-          if (r.dailyChallenges) { const rem = ps(r.dailyChallenges, []); const merged = [...dailyChallenges, ...rem].filter((v,i,a)=>a.findIndex(t=>(t.id===v.id))===i); dailyChallenges = merged.sort((a,b)=>new Date(b.date)-new Date(a.date)); }
-          if (r.subjectSaved) subjectSaved = ps(r.subjectSaved, subjectSaved); if (r.subjectQuizzes) subjectQuizzes = ps(r.subjectQuizzes, subjectQuizzes);
-          if (r.plans) plans = ps(r.plans, plans); if (r.events) events = ps(r.events, events); if (r.studyLogs) studyLogs = ps(r.studyLogs, studyLogs); if (r.textbooks) textbooks = ps(r.textbooks, textbooks); if (r.yearlyPlan) yearlyPlan = ps(r.yearlyPlan, yearlyPlan);
-          if (r.examScores) examScores = ps(r.examScores, examScores); if (r.customDecks) customDecks = ps(r.customDecks, customDecks); if (r.syntaxList) syntaxList = ps(r.syntaxList, syntaxList); if (r.userProfile) userProfile = ps(r.userProfile, userProfile); if (r.freezeLogs) freezeLogs = ps(r.freezeLogs, freezeLogs);
+          if (r.writingHistory) writingHistory = mergeHistory(writingHistory, ps(r.writingHistory, []));
+          if (r.listenHistory) listenHistory = mergeHistory(listenHistory, ps(r.listenHistory, []));
+          if (r.dailyChallenges) dailyChallenges = mergeHistory(dailyChallenges, ps(r.dailyChallenges, []));
+          if (r.subjectSaved) subjectSaved = mergeHistory(subjectSaved, ps(r.subjectSaved, [])); 
+          if (r.subjectQuizzes) subjectQuizzes = mergeHistory(subjectQuizzes, ps(r.subjectQuizzes, []));
+          
+          if (r.plans) plans = { ...plans, ...ps(r.plans, {}) }; 
+          if (r.events) events = { ...events, ...ps(r.events, {}) }; 
+          if (r.studyLogs) {
+            const remLogs = ps(r.studyLogs, []);
+            const map = new Map();
+            studyLogs.forEach(l => map.set(l.ts, l));
+            remLogs.forEach(l => map.set(l.ts, l));
+            studyLogs = Array.from(map.values());
+          }
+          if (r.textbooks) textbooks = [...new Set([...textbooks, ...ps(r.textbooks, [])])]; 
+          if (r.yearlyPlan) yearlyPlan = ps(r.yearlyPlan, yearlyPlan);
+          if (r.examScores) examScores = mergeHistory(examScores, ps(r.examScores, [])); 
+          if (r.customDecks) customDecks = mergeHistory(customDecks, ps(r.customDecks, [])); 
+          if (r.syntaxList) syntaxList = mergeHistory(syntaxList, ps(r.syntaxList, [])); 
+          if (r.userProfile) userProfile = { ...userProfile, ...ps(r.userProfile, {}) }; 
+          if (r.freezeLogs) freezeLogs = [...new Set([...freezeLogs, ...ps(r.freezeLogs, [])])];
         }
       }
       if (found) { 
@@ -319,8 +534,14 @@ const cloudSync = async (m, isAuto = false) => {
   } catch (e) { if (!isAuto) showToast('通信エラー'); console.error(e); }
 };
 const toggleAutoSync = () => { userProfile.autoSync = !userProfile.autoSync; save.profile(); updateAutoSyncBtn(); };
-const updateAutoSyncBtn = () => { const b = $('auto-sync-btn'); if (b) b.textContent = `自動同期(リアルタイム): ${userProfile.autoSync ? 'ON' : 'OFF'}`; };
-window.addEventListener('online', () => { if (userProfile.autoSync && window._auth && window._auth.currentUser) { cloudSync('push', true); } });
+const updateAutoSyncBtn = () => { const b = $('auto-sync-btn'); if (b) b.textContent = (customTexts['manage_sync_btn'] || '自動同期(リアルタイム):') + ` ${userProfile.autoSync ? 'ON' : 'OFF'}`; };
+
+window.addEventListener('online', async () => { 
+  if (userProfile.autoSync && window._auth && window._auth.currentUser) { 
+    await cloudSync('pull', true);
+    cloudSync('push', true); 
+  } 
+});
 
 // ============================================================
 // [4] THEME & SETTINGS
@@ -329,20 +550,25 @@ const applyTheme = () => {
   let isD = false;
   if (darkThemeMode === 'auto') isD = window.matchMedia('(prefers-color-scheme: dark)').matches;
   else isD = darkThemeMode === 'dark';
+  
+  const scheduleEnabled = safeGet('study_dark_schedule_enabled', false);
+  if (scheduleEnabled && darkThemeMode === 'auto') {
+    const start = safeGet('study_dark_schedule_start', '20:00');
+    const end = safeGet('study_dark_schedule_end', '06:00');
+    const now = new Date();
+    const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    if (start < end) {
+      isD = currentHM >= start && currentHM <= end;
+    } else {
+      isD = currentHM >= start || currentHM <= end;
+    }
+  }
+
   document.documentElement.setAttribute('data-theme', isD ? 'dark' : '');
   const b = $('dark-toggle-btn'); if (b) b.textContent = darkThemeMode === 'auto' ? 'AUTO' : isD ? 'LIGHT' : 'DARK';
   Chart.defaults.color = isD ? '#A8A49E' : '#5C5952';
   Chart.defaults.borderColor = isD ? '#3E3C37' : '#E2DFD8';
-  
-  // Re-render charts for theme application
-  if (dashSubjChart) { dashSubjChart.destroy(); dashSubjChart = null; }
-  if (dashSrsChart) { dashSrsChart.destroy(); dashSrsChart = null; }
-  if (dashSrsScatter) { dashSrsScatter.destroy(); dashSrsScatter = null; }
-  if (scoreLineChart) { scoreLineChart.destroy(); scoreLineChart = null; }
-  if (wordRetentionChart) { wordRetentionChart.destroy(); wordRetentionChart = null; }
-  if (dashWeeklyChart) { dashWeeklyChart.destroy(); dashWeeklyChart = null; }
-  if (simulationChart) { simulationChart.destroy(); simulationChart = null; }
-  if (dashRadarChart) { dashRadarChart.destroy(); dashRadarChart = null; }
   
   if (currentTabIndex === 0) renderDashboard();
   if (currentTabIndex === 8 && planMode === 'score') renderScoreChart();
@@ -356,12 +582,25 @@ window.setThemeColor = (colorKey) => {
   applyThemeColor(); 
 };
 
+window.applyCustomThemeColor = () => {
+  const color = $('custom-theme-bg').value;
+  userProfile.customThemeColor = color;
+  userProfile.themeColor = 'custom';
+  save.profile();
+  applyThemeColor();
+};
+
 const applyThemeColor = () => { 
-  const t = THEMES[userProfile.themeColor || 'default']; 
-  if (t) { 
-    document.documentElement.style.setProperty('--accent', t.accent); 
-    document.documentElement.style.setProperty('--streak', t.streak); 
-  } 
+  if (userProfile.themeColor === 'custom' && userProfile.customThemeColor) {
+    document.documentElement.style.setProperty('--accent', userProfile.customThemeColor);
+    document.documentElement.style.setProperty('--streak', userProfile.customThemeColor);
+  } else {
+    const t = THEMES[userProfile.themeColor || 'default']; 
+    if (t) { 
+      document.documentElement.style.setProperty('--accent', t.accent); 
+      document.documentElement.style.setProperty('--streak', t.streak); 
+    } 
+  }
 };
 
 window.changeUiFontSize = () => {
@@ -370,16 +609,33 @@ window.changeUiFontSize = () => {
   localStorage.setItem('study_ui_font_size', s);
 };
 
-const updateFsrsRetention = (val) => { fsrsRetention = Math.min(99, parseInt(val)); const lbl = $('fsrs-retention-label'); if (lbl) lbl.textContent = fsrsRetention + '%'; safeSet('study_fsrs_retention', fsrsRetention); };
-
-window.saveApiKeyFromManage = () => {
-  const k = $('manage-api-key').value.trim();
-  if (k === '') { localStorage.removeItem('study_gemini_api_key'); showToast('API Keyを削除しました'); }
-  else { localStorage.setItem('study_gemini_api_key', k); showToast('API Keyを保存しました'); }
+window.toggleDarkModeSchedule = () => {
+  const toggle = $('dark-mode-schedule-toggle');
+  const times = $('dark-mode-schedule-times');
+  if (!toggle || !times) return;
+  
+  const enabled = toggle.checked;
+  safeSet('study_dark_schedule_enabled', enabled);
+  if (enabled) {
+    times.classList.remove('hidden');
+  } else {
+    times.classList.add('hidden');
+  }
+  applyTheme();
 };
 
+window.saveDarkModeSchedule = () => {
+  const start = $('dark-mode-start').value;
+  const end = $('dark-mode-end').value;
+  safeSet('study_dark_schedule_start', start);
+  safeSet('study_dark_schedule_end', end);
+  applyTheme();
+};
+
+const updateFsrsRetention = (val) => { fsrsRetention = Math.min(99, parseInt(val)); const lbl = $('fsrs-retention-label'); if (lbl) lbl.textContent = fsrsRetention + '%'; safeSet('study_fsrs_retention', fsrsRetention); };
+
 const saveGeminiModel = () => { localStorage.setItem('study_gemini_model', $('gemini-model-select').value); showToast('変更済'); };
-const initModelSelect = () => { const s = $('gemini-model-select'); if (s) s.value = localStorage.getItem('study_gemini_model') || 'gemini-2.5-flash'; const k = $('manage-api-key'); if (k) k.value = localStorage.getItem('study_gemini_api_key') || ''; };
+const initModelSelect = () => { const s = $('gemini-model-select'); if (s) s.value = localStorage.getItem('study_gemini_model') || 'gemini-2.5-flash'; };
 
 // ============================================================
 // [5] FSRS ALGORITHM
@@ -418,7 +674,7 @@ const srsReview = (w, rt) => {
   r.interval = Math.max(1, Math.round(r.stability * 9 * (1 / retentionFactor)));
   
   srsData[k] = { lastReview: now.toISOString(), interval: r.interval, stability: r.stability, difficulty: r.difficulty, reviews: r.reviews, repetition: r.repetition, rating: rt };
-  save.srs(); gainXP(1);
+  save.srs();
 };
 
 const srsRateCurrentCard = r => {
@@ -467,14 +723,21 @@ window.callGemini = async (msgs, maxT = 1000, sys = '', expectJson = false) => {
   const mod = localStorage.getItem('study_gemini_model') || 'gemini-2.5-flash';
   const contents = [];
   
+  const sanitizePrompt = (text) => {
+    if (typeof text !== 'string') return text;
+    return text.replace(/ignore previous instructions/gi, '')
+               .replace(/system prompt/gi, '')
+               .replace(/you are a/gi, '');
+  };
+
   const finalSys = sys || 'プロの予備校トップ講師として、非常に丁寧で論理的な解説を行ってください。';
   if (finalSys) contents.push({ role: 'user', parts: [{ text: finalSys }] }, { role: 'model', parts: [{ text: 'OK' }] });
   
   msgs.slice(-15).forEach(m => {
     const parts = [];
-    if (typeof m.content === 'string') parts.push({ text: m.content });
+    if (typeof m.content === 'string') parts.push({ text: sanitizePrompt(m.content) });
     else m.content.forEach(p => {
-      if (p.type === 'text') parts.push({ text: p.text });
+      if (p.type === 'text') parts.push({ text: sanitizePrompt(p.text) });
       else if (p.type === 'image' || p.type === 'inline_data') parts.push({ inlineData: { mimeType: p.source.media_type, data: p.source.data } });
     });
     contents.push({ role: m.role === 'assistant' ? 'model' : 'user', parts });
@@ -525,32 +788,66 @@ if (SR) {
     document.addEventListener('focusin', e => { if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) && e.target.type !== 'checkbox') { aInp = e.target; mBtn.style.display = 'flex'; } });
     document.addEventListener('focusout', () => { setTimeout(() => { if (!['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) { mBtn.style.display = 'none'; aInp = null; } }, 100); });
   });
+} else {
+  window.addEventListener('DOMContentLoaded', () => {
+    const searchMicBtn = $('search-mic-btn');
+    if (searchMicBtn) searchMicBtn.style.display = 'none';
+  });
 }
+
+window.toggleSearchMic = () => {
+  const btn = $('search-mic-btn');
+  const input = $('word-input');
+  if (!btn || !input) return;
+  
+  if (btn.classList.contains('listening')) {
+    if (searchMicRec) searchMicRec.stop();
+    btn.classList.remove('listening');
+  } else {
+    if (!SR) return showToast('ブラウザ非対応');
+    searchMicRec = new SR();
+    searchMicRec.lang = 'en-US';
+    searchMicRec.continuous = false;
+    searchMicRec.interimResults = false;
+    
+    searchMicRec.onstart = () => { btn.classList.add('listening'); showToast('音声入力中...'); };
+    searchMicRec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript.trim();
+      input.value = transcript;
+      searchWord();
+    };
+    searchMicRec.onerror = () => { showToast('音声認識エラー'); btn.classList.remove('listening'); };
+    searchMicRec.onend = () => { btn.classList.remove('listening'); };
+    
+    searchMicRec.start();
+  }
+};
 
 const speakWord = (w, e) => { 
   if (e) e.stopPropagation(); 
   if (!window.speechSynthesis) return; 
   speechSynthesis.cancel(); 
-  const u = new SpeechSynthesisUtterance(w); u.lang = 'en-US'; speechSynthesis.speak(u); 
+  
+  const sentences = w.match(/[^.!?]+[.!?]+/g) || [w];
+  sentences.forEach(sentence => {
+    const u = new SpeechSynthesisUtterance(sentence.trim()); 
+    u.lang = 'en-US'; 
+    speechSynthesis.speak(u); 
+  });
 };
 const speakCurrentCard = () => { if (cardList.length) speakWord(cardList[currentCardIdx].word, null); };
-const speakWithAccent = (text, accent, rate = 1.0) => { 
-  if (!window.speechSynthesis) return; 
-  speechSynthesis.cancel(); 
-  const u = new SpeechSynthesisUtterance(text); 
-  const langMap = { en_US: 'en-US', en_GB: 'en-GB', en_AU: 'en-AU' }; 
-  u.lang = langMap[accent] || 'en-US'; 
-  
-  if (availableVoices.length > 0) {
-    const voice = availableVoices.find(v => v.lang === u.lang) || availableVoices.find(v => v.lang.startsWith(u.lang.split('-')[0]));
-    if (voice) u.voice = voice;
-  }
-  
-  u.rate = rate; speechSynthesis.speak(u); 
-};
 
 const initAudioCtx = () => {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterCompressor = audioCtx.createDynamicsCompressor();
+    masterCompressor.threshold.value = -24;
+    masterCompressor.knee.value = 30;
+    masterCompressor.ratio.value = 12;
+    masterCompressor.attack.value = 0.003;
+    masterCompressor.release.value = 0.25;
+    masterCompressor.connect(audioCtx.destination);
+  }
   if (audioCtx.state === 'suspended') audioCtx.resume();
 };
 
@@ -559,22 +856,11 @@ const createNoiseNode = (type) => {
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const output = buffer.getChannelData(0);
   
-  if (type === 'rain' || type === 'waves' || type === 'cafe' || type === 'lofi') {
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-    for (let i = 0; i < bufferSize; i++) {
-      let white = Math.random() * 2 - 1;
-      b0 = 0.99886 * b0 + white * 0.0555179; b1 = 0.99332 * b1 + white * 0.0750759; b2 = 0.96900 * b2 + white * 0.1538520; b3 = 0.86650 * b3 + white * 0.3104856; b4 = 0.55000 * b4 + white * 0.5329522; b5 = -0.7616 * b5 - white * 0.0168980;
-      output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362; output[i] *= 0.11; b6 = white * 0.115926;
-    }
-  } else if (type === 'fire' || type === 'clock') {
-    let lastOut = 0.0;
-    for (let i = 0; i < bufferSize; i++) {
-      let white = Math.random() * 2 - 1;
-      output[i] = (lastOut + (0.02 * white)) / 1.02; lastOut = output[i]; output[i] *= (type === 'clock' ? 1.5 : 3.5);
-      if (type === 'clock' && i % Math.floor(audioCtx.sampleRate) < 500) output[i] += 1.0; // Tick sound simulation
-    }
-  } else if (type === 'library') {
-    for (let i = 0; i < bufferSize; i++) { output[i] = (Math.random() * 2 - 1) * 0.2; }
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < bufferSize; i++) {
+    let white = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + white * 0.0555179; b1 = 0.99332 * b1 + white * 0.0750759; b2 = 0.96900 * b2 + white * 0.1538520; b3 = 0.86650 * b3 + white * 0.3104856; b4 = 0.55000 * b4 + white * 0.5329522; b5 = -0.7616 * b5 - white * 0.0168980;
+    output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362; output[i] *= 0.11; b6 = white * 0.115926;
   }
   
   const noise = audioCtx.createBufferSource(); noise.buffer = buffer; noise.loop = true;
@@ -582,15 +868,11 @@ const createNoiseNode = (type) => {
   const gain = audioCtx.createGain();
   
   if (type === 'rain') { filter.type = 'lowpass'; filter.frequency.value = 1000; }
-  else if (type === 'waves') { filter.type = 'lowpass'; filter.frequency.value = 400; }
-  else if (type === 'fire') { filter.type = 'highpass'; filter.frequency.value = 800; }
-  else if (type === 'cafe') { filter.type = 'bandpass'; filter.frequency.value = 500; filter.Q.value = 0.5; }
-  else if (type === 'library') { filter.type = 'lowpass'; filter.frequency.value = 300; }
-  else if (type === 'clock') { filter.type = 'highpass'; filter.frequency.value = 2000; }
-  else if (type === 'lofi') { filter.type = 'lowpass'; filter.frequency.value = 800; }
+  else if (type === 'forest') { filter.type = 'lowpass'; filter.frequency.value = 400; }
+  else if (type === 'ocean') { filter.type = 'lowpass'; filter.frequency.value = 200; }
   
   gain.gain.value = noiseVolumes[type];
-  noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  noise.connect(filter); filter.connect(gain); gain.connect(masterCompressor);
   
   return { source: noise, gainNode: gain };
 };
@@ -628,73 +910,83 @@ window.updateNoiseVolume = (type, val) => {
 // ============================================================
 const timerStartStop = () => {
   const pm = $('timer-pomodoro-mode');
-  const autoStart = $('timer-auto-start') && $('timer-auto-start').checked;
   
   if (timerRunning) {
     clearInterval(timerInt); timerRunning = false;
     timerTime = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
-    const s = $('timer-status'); if (s) s.textContent = isPomodoroBreak ? '休憩停止中' : '停止中';
-    const b = $('timer-start-btn'); if (b) b.textContent = 'スタート';
+    const s = $('timer-status'); if (s) s.textContent = isPomodoroBreak ? (customTexts['timer_status_break_stop'] || '休憩停止中') : (customTexts['timer_status_stopped'] || '停止中');
+    const b = $('timer-start-btn'); if (b) b.textContent = customTexts['timer_btn_start'] || 'スタート';
   } else {
     timerRunning = true; timerEndTime = Date.now() + (timerTime * 1000);
     localStorage.setItem('study_timer_end', timerEndTime.toString());
-    const s = $('timer-status'); if (s) s.textContent = isPomodoroBreak ? '休憩中' : '実行中';
-    const b = $('timer-start-btn'); if (b) b.textContent = 'ストップ';
+    const s = $('timer-status'); if (s) s.textContent = isPomodoroBreak ? (customTexts['timer_status_break'] || '休憩中') : (customTexts['timer_status_running'] || '実行中');
+    const b = $('timer-start-btn'); if (b) b.textContent = customTexts['timer_btn_stop'] || 'ストップ';
     
     timerInt = setInterval(() => {
       const remain = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
       timerTime = remain; updateTimerDisplay();
       if (remain <= 0) {
-        timerStartStop(); // Stop interval
+        timerStartStop(); 
         if (navigator.vibrate) navigator.vibrate(1000);
+        if (Notification.permission === 'granted') {
+          new Notification('Study App', { body: isPomodoroBreak ? '休憩終了！学習を再開しましょう。' : '学習終了！お疲れ様でした。' });
+        }
         
         if (pm && pm.checked) {
           if (!isPomodoroBreak) {
-            showToast('学習終了！5分休憩です'); gainXP(25);
-            
-            // Auto log without modal
+            showToast('学習終了！5分休憩です');
             studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: 25 * 60, ts: Date.now() });
             save.logs();
-            
             isPomodoroBreak = true; timerInitial = 5 * 60; timerTime = timerInitial; updateTimerDisplay();
-            if (autoStart) setTimeout(timerStartStop, 1500);
+            if ($('timer-pomodoro-auto') && $('timer-pomodoro-auto').checked) {
+              setTimeout(timerStartStop, 1500);
+            }
           } else {
             showToast('休憩終了！学習再開です');
             isPomodoroBreak = false; timerInitial = 25 * 60; timerTime = timerInitial; updateTimerDisplay();
-            if (autoStart) setTimeout(timerStartStop, 1500);
+            if ($('timer-pomodoro-auto') && $('timer-pomodoro-auto').checked) {
+              setTimeout(timerStartStop, 1500);
+            }
           }
         } else {
-          showToast('終了'); gainXP(Math.floor(timerInitial / 60));
+          showToast('終了');
           studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: timerInitial, ts: Date.now() });
           save.logs();
-          if (autoStart) setTimeout(timerStartStop, 1500);
         }
       }
     }, 200);
   }
 };
 
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && timerRunning) {
-    const hc = $('timer-hardcore-mode');
-    if (hc && hc.checked && !isPomodoroBreak) {
-      showToast('集中が切れました！ペナルティとしてXPが減少しました。');
-      userProfile.xp = Math.max(0, (userProfile.xp || 0) - 10);
-      save.profile();
-      if ($('Dashboard').classList.contains('active')) renderDashboard();
-      timerStartStop(); // Stop timer
-      return;
-    }
-  } else if (document.visibilityState === 'visible' && timerRunning) {
-    const savedEnd = parseInt(localStorage.getItem('study_timer_end'));
-    if (savedEnd) {
-      const remain = Math.max(0, Math.ceil((savedEnd - Date.now()) / 1000));
-      timerTime = remain; timerEndTime = savedEnd; updateTimerDisplay();
+window.addEventListener('storage', (e) => {
+  if (e.key === 'study_timer_end') {
+    const newEnd = parseInt(e.newValue);
+    if (newEnd && newEnd > Date.now()) {
+      timerEndTime = newEnd;
+      if (!timerRunning) {
+        timerTime = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+        updateTimerDisplay();
+      }
     }
   }
 });
 
-const timerReset = () => { if (timerRunning) timerStartStop(); timerTime = timerInitial; updateTimerDisplay(); };
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && timerRunning) {
+    const remain = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+    timerTime = remain; updateTimerDisplay();
+  }
+});
+
+const timerReset = () => { 
+  if (timerRunning) timerStartStop(); 
+  if (isPomodoroMode) {
+    isPomodoroBreak = false;
+    timerInitial = 25 * 60;
+  }
+  timerTime = timerInitial; 
+  updateTimerDisplay(); 
+};
 const timerSetCustom = () => { const m = parseInt($('timer-input-min').value) || 0, s = parseInt($('timer-input-sec').value) || 0; timerInitial = m * 60 + s; timerTime = timerInitial; updateTimerDisplay(); };
 const timerSavePreset = () => { if (!timerPresets.includes(timerInitial)) { timerPresets.push(timerInitial); safeSet('study_timer_presets', timerPresets); renderTimerPresets(); } };
 const renderTimerPresets = () => {
@@ -704,7 +996,11 @@ const renderTimerPresets = () => {
     return `<div style="display:inline-flex;align-items:center;border:1.5px solid var(--border2);border-radius:50px;background:var(--bg);"><button onclick="timerInitial=${t};timerTime=${t};updateTimerDisplay()" style="padding:6px 12px;border:none;background:transparent;color:var(--text-sub);cursor:pointer;font-size:calc(12px * var(--text-scale));font-weight:700">${min}:${String(sec).padStart(2, '0')}</button><button onclick="timerDeletePreset(${t})" style="padding:6px 10px;border:none;border-left:1.5px solid var(--border2);background:transparent;color:var(--danger);cursor:pointer;font-weight:bold;font-size:calc(10px * var(--text-scale));">✕</button></div>`;
   }).join('');
 };
-const timerDeletePreset = t => { timerPresets = timerPresets.filter(x => x !== t); safeSet('study_timer_presets', timerPresets); renderTimerPresets(); };
+const timerDeletePreset = t => { 
+  timerPresets = timerPresets.filter(x => x !== t); 
+  safeSet('study_timer_presets', timerPresets); 
+  renderTimerPresets(); 
+};
 const updateTimerDisplay = () => { const min = Math.floor(timerTime / 60), sec = timerTime % 60; const d = $('timer-display'); if (d) d.textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`; };
 
 // ============================================================
@@ -719,13 +1015,13 @@ window.toggleWidgetSortMode = () => {
   
   if (container.classList.contains('widget-sort-mode')) {
     container.classList.remove('widget-sort-mode');
-    btn.textContent = 'ウィジェット並び替え';
+    btn.textContent = customTexts['dash_sort_btn'] || '並び替え';
     btn.classList.remove('bg-accent', 'text-bg');
     if (sortableWidgets) sortableWidgets.option("disabled", true);
     saveWidgetOrder();
   } else {
     container.classList.add('widget-sort-mode');
-    btn.textContent = '並び替え完了';
+    btn.textContent = customTexts['dash_sort_done'] || '完了';
     btn.classList.add('bg-accent', 'text-bg');
     
     if (!sortableWidgets) {
@@ -761,82 +1057,156 @@ const loadWidgetOrder = () => {
   });
 };
 
-const renderBadges = () => {
-  const c = $('dash-badges'); if (!c) return;
-  const badges = []; const xp = userProfile.xp || 0, tt = getTotalStudySeconds();
-  const masteredCount = ALL_WORDS.filter(w => getWordProgress(w.word) === 'mastered').length;
-  if (xp >= 100) badges.push('Novice'); if (xp >= 500) badges.push('Explorer'); if (xp >= 2000) badges.push('Scholar');
-  if (tt >= 36000) badges.push('10Hours'); if (tt >= 360000) badges.push('100Hours');
-  if (masteredCount >= 100) badges.push('100Words'); if (masteredCount >= 500) badges.push('500Words');
-  c.innerHTML = badges.map(b => `<span style="background:var(--bg);color:var(--text);border:1.5px solid var(--border2);padding:4px 10px;border-radius:20px;font-size:10px;font-weight:bold;">${b}</span>`).join('');
+window.openWidgetSettingsModal = () => {
+  const list = $('widget-settings-list');
+  if (!list) return;
+  
+  const allWidgets = [
+    { id: 'wotd', name: '今日の単語' },
+    { id: 'hero', name: '総学習時間・ランク' },
+    { id: 'quote', name: '今日の名言' },
+    { id: 'countdown', name: '目標カウントダウン' },
+    { id: 'yearly', name: '今月の目標' },
+    { id: 'actions', name: 'アクションボタン (Weekly/Analysis)' },
+    { id: 'streak', name: '連続学習日数' },
+    { id: 'weekly-chart', name: '週別学習時間グラフ' },
+    { id: 'radar-chart', name: '学習バランスレーダーチャート' },
+    { id: 'srs-chart', name: '忘却曲線グラフ' },
+    { id: 'srs-scatter', name: '記憶の定着度分布' },
+    { id: 'stability-chart', name: '平均定着度推移' },
+    { id: 'subj-chart', name: '科目別学習時間' },
+    { id: 'heatmap', name: '学習ヒートマップ' },
+    { id: 'calendar', name: 'カレンダー' },
+    { id: 'today-plan', name: '今日の予定' },
+    { id: 'today-log', name: '今日の学習記録' }
+  ];
+  
+  list.innerHTML = allWidgets.map(w => `
+    <label class="flex align-center gap-2 text-sm font-bold cursor-pointer p-10 border radius-sm bg-bg">
+      <input type="checkbox" class="widget-toggle-cb" value="${w.id}" ${activeWidgets.includes(w.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--accent);">
+      <span>${w.name}</span>
+    </label>
+  `).join('');
+  
+  openModal('widget-settings-modal');
 };
 
-const shareProgress = () => {
-  const tH = Math.floor(getTotalStudySeconds() / 3600), streak = $('dash-streak').textContent;
-  const text = `Study Appで学習中！\n連続学習: ${streak}日\n総学習時間: ${tH}時間\n#StudyAppPro`;
-  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+window.saveWidgetSettings = () => {
+  const cbs = document.querySelectorAll('.widget-toggle-cb');
+  activeWidgets = Array.from(cbs).filter(cb => cb.checked).map(cb => cb.value);
+  safeSet('study_active_widgets', activeWidgets);
+  closeModal('widget-settings-modal');
+  renderDashboard();
+  showToast('表示設定を保存しました');
 };
 
-const consumeFreezeIfNeeded = () => {
-  const studiedDays = new Set(studyLogs.map(l => l.date));
-  let currentD = new Date(); currentD.setDate(currentD.getDate() - 1);
-  let lookback = 0;
-  while (lookback < 365) {
-    const dStr = `${currentD.getFullYear()}-${String(currentD.getMonth() + 1).padStart(2, '0')}-${String(currentD.getDate()).padStart(2, '0')}`;
-    if (studiedDays.has(dStr) || freezeLogs.includes(dStr)) { currentD.setDate(currentD.getDate() - 1); } 
-    else {
-      if ((userProfile.freezeItems || 0) > 0) {
-        userProfile.freezeItems--; freezeLogs.push(dStr); save.freezeLogs(); save.profile();
-        showToast(`Freezeアイテムを自動使用しました: ${dStr}`);
-        if ($('freeze-count')) $('freeze-count').textContent = userProfile.freezeItems;
-        currentD.setDate(currentD.getDate() - 1);
-      } else break;
+const applyWidgetVisibility = () => {
+  const container = $('dashboard-widgets');
+  if (!container) return;
+  Array.from(container.children).forEach(el => {
+    const id = el.getAttribute('data-widget-id');
+    if (id) {
+      if (activeWidgets.includes(id)) el.style.display = '';
+      else el.style.display = 'none';
     }
-    lookback++;
+  });
+};
+
+const renderQuote = async () => {
+  const content = $('dash-quote-content');
+  if (!content || !activeWidgets.includes('quote')) return;
+  
+  const today = todayDateStr();
+  if (cachedQuote.date === today && cachedQuote.text) {
+    content.innerHTML = `<p class="text-base font-bold italic mb-1">"${esc(cachedQuote.text)}"</p><p class="text-xs text-muted mb-2">- ${esc(cachedQuote.author)}</p><p class="text-xs text-sub line-height-15">${esc(cachedQuote.explanation)}</p>`;
+    return;
+  }
+  
+  try {
+    const prompt = `英語の著名な名言やことわざを1つ選び、JSONで出力してください。形式: {"text":"英語の名言", "author":"発言者", "explanation":"文法構造や使われている単語の簡潔な解説と和訳"}`;
+    const rep = await callGemini([{ role: 'user', content: prompt }], 500, '', true);
+    const json = extractJSON(rep);
+    if (json && json.text) {
+      cachedQuote = { date: today, text: json.text, author: json.author || 'Unknown', explanation: json.explanation || '' };
+      safeSet('study_quote_cache', cachedQuote);
+      content.innerHTML = `<p class="text-base font-bold italic mb-1">"${esc(cachedQuote.text)}"</p><p class="text-xs text-muted mb-2">- ${esc(cachedQuote.author)}</p><p class="text-xs text-sub line-height-15">${esc(cachedQuote.explanation)}</p>`;
+    }
+  } catch (e) {
+    content.innerHTML = '<p class="text-xs text-muted">名言の取得に失敗しました。</p>';
   }
 };
 
-const checkRecoveryMission = () => {
-  const area = $('recovery-mission-area');
-  if (!area) return;
+const renderCountdown = () => {
+  const display = $('dash-countdown-display');
+  if (!display) return;
   
-  const studiedDays = new Set(studyLogs.map(l => l.date));
+  if (!countdownData.name || !countdownData.date) {
+    display.innerHTML = '<p class="text-sm text-muted" data-i18n="dash_countdown_empty">目標日が設定されていません</p>';
+    return;
+  }
+  
+  const targetDate = new Date(countdownData.date);
+  targetDate.setHours(0,0,0,0);
   const today = new Date();
-  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-  const tStr = todayDateStr();
+  today.setHours(0,0,0,0);
   
-  if (!studiedDays.has(yStr) && !freezeLogs.includes(yStr)) {
-    if (today.getDay() === 0 || today.getDay() === 6) {
-      const todayLogs = studyLogs.filter(l => l.date === tStr);
-      const todaySec = todayLogs.reduce((sum, l) => sum + l.seconds, 0);
-      const targetSec = 60 * 60;
-      
-      if (todaySec >= targetSec) {
-        if (!freezeLogs.includes(yStr)) {
-          freezeLogs.push(yStr); save.freezeLogs();
-          area.innerHTML = `<div class="recovery-mission-card" style="border-color:var(--green);"><p class="text-sm font-bold text-green mb-1">リカバリー成功！</p><p class="text-xs text-sub">週末の集中学習により、途切れたストリークが復活しました！</p></div>`;
-          renderDashboard();
-        }
-      } else {
-        const remainMin = Math.ceil((targetSec - todaySec) / 60);
-        area.innerHTML = `<div class="recovery-mission-card"><p class="text-sm font-bold text-danger mb-1">週末リカバリーミッション</p><p class="text-xs text-sub">昨日途切れたストリークを復活させるチャンス！今日あと <b>${remainMin}分</b> 学習するとストリークが繋がります。</p></div>`;
-      }
-      return;
-    }
+  const diffTime = targetDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays > 0) {
+    display.innerHTML = `
+      <div class="countdown-label mb-1">${esc(countdownData.name)}まで あと</div>
+      <div class="countdown-number">${diffDays}<span style="font-size:16px; color:var(--text-sub); margin-left:4px;">日</span></div>
+    `;
+  } else if (diffDays === 0) {
+    display.innerHTML = `
+      <div class="countdown-label mb-1">${esc(countdownData.name)}</div>
+      <div class="countdown-number text-danger" style="font-size:32px;">本日当日！</div>
+    `;
+  } else {
+    display.innerHTML = `
+      <div class="countdown-label mb-1">${esc(countdownData.name)}から</div>
+      <div class="countdown-number text-muted">${Math.abs(diffDays)}<span style="font-size:16px; margin-left:4px;">日経過</span></div>
+    `;
   }
-  area.innerHTML = '';
+};
+
+window.openCountdownSettings = () => {
+  $('countdown-name').value = countdownData.name || '';
+  $('countdown-date').value = countdownData.date || '';
+  openModal('countdown-modal');
+};
+
+window.saveCountdown = () => {
+  const name = $('countdown-name').value.trim();
+  const date = $('countdown-date').value;
+  if (!name || !date) return showToast('入力してください');
+  countdownData = { name, date };
+  safeSet('study_countdown', countdownData);
+  renderCountdown();
+  closeModal('countdown-modal');
+  showToast('保存しました');
 };
 
 const dashWeeklyPrev = () => { dashWeeklyOffset++; renderDashboard(); };
 const dashWeeklyNext = () => { if (dashWeeklyOffset > 0) dashWeeklyOffset--; renderDashboard(); };
 
 const renderDashboard = () => {
+  applyWidgetVisibility();
+  
   const tH = Math.floor(getTotalStudySeconds() / 3600);
-  const h = $('dash-hours-text'); if (h) h.textContent = `総学習時間: ${tH}時間 | XP: ${userProfile.xp || 0}`;
+  const h = $('dash-hours-text'); if (h) h.textContent = (customTexts['dash_hero_hours'] || '総学習時間: 0時間 | XP: 0').replace('0時間', `${tH}時間`).replace('0', userProfile.xp || 0);
   const curLv = Math.floor(Math.sqrt((userProfile.xp || 0) / 100)) + 1;
   const rN = $('dash-rank-name'); if (rN) rN.textContent = `Lv.${curLv} ${tH >= 100 ? 'Master' : tH >= 50 ? 'Advanced' : tH >= 10 ? 'Intermediate' : 'Beginner'}`;
-  renderBadges(); renderWordOfTheDay();
+  
+  const avatarEl = $('dash-avatar');
+  if (avatarEl) {
+    avatarEl.textContent = curLv < 5 ? 'Lv.1' : curLv < 10 ? 'Lv.2' : curLv < 20 ? 'Lv.3' : curLv < 30 ? 'Lv.4' : curLv < 50 ? 'Lv.5' : 'MAX';
+    avatarEl.style.fontSize = '18px';
+    avatarEl.style.fontWeight = 'bold';
+  }
+
+  renderWordOfTheDay(); renderCountdown(); renderQuote();
 
   const studiedDays = new Set(studyLogs.map(l => l.date));
   const tD = $('dash-total-days'); if (tD) tD.textContent = studiedDays.size;
@@ -851,11 +1221,10 @@ const renderDashboard = () => {
   }
   const sN = $('dash-streak'); if (sN) sN.textContent = streak;
   
-  checkRecoveryMission();
   renderDashboardCalendar();
   
   const ys = $('dash-yearly-summary');
-  if (ys) {
+  if (ys && activeWidgets.includes('yearly')) {
     const curMonth = new Date().getMonth() + 1;
     if (yearlyPlan.goal || (yearlyPlan.months && yearlyPlan.months[curMonth])) {
       ys.classList.remove('hidden'); $('dash-yearly-month').textContent = curMonth;
@@ -865,7 +1234,7 @@ const renderDashboard = () => {
   }
 
   const wCv = $('dash-weekly-chart');
-  if (wCv) {
+  if (wCv && wCv.offsetParent !== null && activeWidgets.includes('weekly-chart')) {
     const now = new Date();
     now.setDate(now.getDate() - (dashWeeklyOffset * 7));
     const currentDay = now.getDay();
@@ -887,7 +1256,7 @@ const renderDashboard = () => {
     
     const lbl = $('dash-weekly-label');
     if (lbl) {
-      if (dashWeeklyOffset === 0) lbl.textContent = '今週';
+      if (dashWeeklyOffset === 0) lbl.textContent = customTexts['dash_chart_weekly_this'] || '今週';
       else if (dashWeeklyOffset === 1) lbl.textContent = '先週';
       else lbl.textContent = `${dashWeeklyOffset}週前`;
     }
@@ -902,7 +1271,7 @@ const renderDashboard = () => {
 
   const subjTotals = {}; studyLogs.forEach(l => { subjTotals[l.subj] = (subjTotals[l.subj] || 0) + l.seconds; });
   const cv = $('dash-subj-chart');
-  if (cv) {
+  if (cv && cv.offsetParent !== null && activeWidgets.includes('subj-chart')) {
     if (Object.keys(subjTotals).length === 0) $('dash-subj-chart-card').classList.add('hidden'); 
     else {
       $('dash-subj-chart-card').classList.remove('hidden');
@@ -912,9 +1281,8 @@ const renderDashboard = () => {
     }
   }
 
-  // Radar Chart
   const rCv = $('dash-radar-chart');
-  if (rCv) {
+  if (rCv && rCv.offsetParent !== null && activeWidgets.includes('radar-chart')) {
     if (Object.keys(subjTotals).length === 0) $('dash-radar-chart-card').classList.add('hidden');
     else {
       $('dash-radar-chart-card').classList.remove('hidden');
@@ -947,41 +1315,98 @@ const renderDashboard = () => {
     }
   }
 
-  const srsCv = $('dash-srs-chart'), srsScatterCv = $('dash-srs-scatter');
-  if (srsCv && Object.keys(srsData).length > 0) {
-    $('dash-srs-chart-card').classList.remove('hidden'); $('dash-srs-scatter-card').classList.remove('hidden');
+  const srsCv = $('dash-srs-chart'), srsScatterCv = $('dash-srs-scatter'), stabCv = $('dash-stability-chart');
+  if (srsCv && srsCv.offsetParent !== null && Object.keys(srsData).length > 0) {
+    if(activeWidgets.includes('srs-chart')) $('dash-srs-chart-card').classList.remove('hidden'); 
+    if(activeWidgets.includes('srs-scatter')) $('dash-srs-scatter-card').classList.remove('hidden');
+    if(activeWidgets.includes('stability-chart') && $('dash-stability-chart-card')) $('dash-stability-chart-card').classList.remove('hidden');
+    
     const buckets = { today: 0, d1: 0, d3: 0, d7: 0, d14: 0 }, scatterData = [];
+    let totalStability = 0;
+    
     Object.values(srsData).forEach(r => {
       const diff = srsDaysDiff(srsNextDate(r));
       if (diff <= 0) buckets.today++; else if (diff === 1) buckets.d1++; else if (diff <= 3) buckets.d3++; else if (diff <= 7) buckets.d7++; else buckets.d14++;
       scatterData.push({ x: r.stability, y: r.difficulty });
+      totalStability += r.stability;
     });
-    if (dashSrsChart) dashSrsChart.destroy();
-    dashSrsChart = new Chart(srsCv, { type: 'bar', data: { labels: ['今日', '1日後', '3日以内', '7日以内', '14日以上'], datasets: [{ label: '単語数', data: [buckets.today, buckets.d1, buckets.d3, buckets.d7, buckets.d14], backgroundColor: ['#C0392B', '#E67E22', '#F1C40F', '#2E7D52', '#2980B9'], borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } } } });
-    if (dashSrsScatter) dashSrsScatter.destroy();
-    dashSrsScatter = new Chart(srsScatterCv, { type: 'scatter', data: { datasets: [{ label: '単語', data: scatterData, backgroundColor: 'rgba(41, 128, 185, 0.5)', pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Stability (定着度)' }, min: 0 }, y: { title: { display: true, text: 'Difficulty (難易度)' }, min: 1, max: 10 } } } });
+    
+    if (activeWidgets.includes('srs-chart')) {
+      if (dashSrsChart) dashSrsChart.destroy();
+      dashSrsChart = new Chart(srsCv, { type: 'bar', data: { labels: ['今日', '1日後', '3日以内', '7日以内', '14日以上'], datasets: [{ label: '単語数', data: [buckets.today, buckets.d1, buckets.d3, buckets.d7, buckets.d14], backgroundColor: ['#C0392B', '#E67E22', '#F1C40F', '#2E7D52', '#2980B9'], borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } } } });
+    }
+    
+    if (activeWidgets.includes('srs-scatter')) {
+      if (dashSrsScatter) dashSrsScatter.destroy();
+      dashSrsScatter = new Chart(srsScatterCv, { type: 'scatter', data: { datasets: [{ label: '単語', data: scatterData, backgroundColor: 'rgba(41, 128, 185, 0.5)', pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Stability (定着度)' }, min: 0 }, y: { title: { display: true, text: 'Difficulty (難易度)' }, min: 1, max: 10 } } } });
+    }
+    
+    if (stabCv && stabCv.offsetParent !== null && activeWidgets.includes('stability-chart')) {
+      const avgStability = totalStability / Object.keys(srsData).length;
+      if (dashStabilityChart) dashStabilityChart.destroy();
+      dashStabilityChart = new Chart(stabCv, {
+        type: 'bar',
+        data: { labels: ['現在の平均定着度'], datasets: [{ label: 'Stability', data: [avgStability], backgroundColor: '#27AE60', borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      });
+    }
   } else {
     if ($('dash-srs-chart-card')) $('dash-srs-chart-card').classList.add('hidden');
     if ($('dash-srs-scatter-card')) $('dash-srs-scatter-card').classList.add('hidden');
+    if ($('dash-stability-chart-card')) $('dash-stability-chart-card').classList.add('hidden');
   }
 
   const hm = $('dash-heatmap');
-  if (hm) {
+  if (hm && activeWidgets.includes('heatmap')) {
+    const mode = $('heatmap-mode-select') ? $('heatmap-mode-select').value : 'time';
     let html = ''; const td = new Date(); td.setHours(0, 0, 0, 0); const stD = new Date(td); stD.setDate(stD.getDate() - 89);
     for (let i = 0; i < stD.getDay(); i++) html += `<div style="width:12px;height:12px;border-radius:2px;background:transparent;"></div>`;
-    const sMap = {}; studyLogs.forEach(l => { sMap[l.date] = (sMap[l.date] || 0) + l.seconds; });
+    
+    const sMap = {}; 
+    if (mode === 'time') {
+      studyLogs.forEach(l => { sMap[l.date] = (sMap[l.date] || 0) + l.seconds; });
+    } else if (mode === 'accuracy') {
+      const accMap = {};
+      dailyChallenges.forEach(d => { if(d.score !== null) { if(!accMap[d.date]) accMap[d.date] = []; accMap[d.date].push(d.score); } });
+      Object.keys(accMap).forEach(k => { sMap[k] = accMap[k].reduce((a,b)=>a+b,0) / accMap[k].length; });
+    } else if (mode === 'new_words') {
+      Object.values(srsData).forEach(r => {
+        if(r.lastReview && r.repetition === 0) {
+          const d = new Date(r.lastReview);
+          const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          sMap[ds] = (sMap[ds] || 0) + 1;
+        }
+      });
+    }
+
     for (let i = 0; i < 90; i++) {
       const d = new Date(stD); d.setDate(d.getDate() + i); const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const sec = sMap[ds] || 0; let bg = 'var(--bg2)'; if (sec > 0) bg = sec < 1800 ? '#a8e6cf' : sec < 3600 ? '#3d8361' : '#1c4b27';
-      html += `<div style="width:12px;height:12px;border-radius:2px;background:${bg};cursor:pointer;" title="${ds}: ${Math.floor(sec / 60)}分" onclick="openStudyLogModal('${ds}')"></div>`;
+      const val = sMap[ds] || 0; let bg = 'var(--bg2)'; 
+      let title = `${ds}: 0`;
+      
+      if (val > 0) {
+        if (mode === 'time') {
+          bg = val < 1800 ? '#a8e6cf' : val < 3600 ? '#3d8361' : '#1c4b27';
+          title = `${ds}: ${Math.floor(val / 60)}分`;
+        } else if (mode === 'accuracy') {
+          bg = val < 50 ? '#fde8e6' : val < 80 ? '#f1c40f' : '#27ae60';
+          title = `${ds}: 正答率 ${Math.round(val)}%`;
+        } else if (mode === 'new_words') {
+          bg = val < 5 ? '#d4e6f1' : val < 15 ? '#2980b9' : '#154360';
+          title = `${ds}: 新規 ${val}語`;
+        }
+      }
+      html += `<div style="width:12px;height:12px;border-radius:2px;background:${bg};cursor:pointer;" title="${title}" onclick="openStudyLogModal('${ds}')"></div>`;
     }
     hm.innerHTML = html; hm.scrollLeft = hm.scrollWidth;
   }
 
   const today = todayDateStr(), evL = $('dash-today-event-list'), plL = $('dash-today-plan-list');
-  if (evL) { const evs = events[today] || []; evL.innerHTML = evs.length ? evs.map(e => `<div class="plan-item-row" style="margin-bottom:6px;border-left:3px solid #3498db;"><div class="pi-text" style="font-size:13px;">${esc(e.text)}</div></div>`).join('') : '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">イベントなし</div>'; }
-  if (plL) { const pls = plans[today] || []; plL.innerHTML = pls.length ? pls.map((p, i) => `<div class="plan-item-row" style="margin-bottom:6px;"><input type="checkbox" ${p.done ? 'checked' : ''} onchange="toggleDashPlan(${i})"><div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:13px;">${esc(p.text)}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--text-muted);">予定なし</div>'; }
-  const tdL = $('dash-today-list'); if (tdL) { const logs = studyLogs.filter(l => l.date === today); tdL.innerHTML = logs.length ? logs.map(l => `<div class="study-log-item"><span class="sli-subj">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span><span class="sli-dur">${Math.floor(l.seconds / 60)}分</span></div>`).join('') : '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px">記録なし</div>'; }
+  if (evL && activeWidgets.includes('today-plan')) { const evs = events[today] || []; evL.innerHTML = evs.length ? evs.map(e => `<div class="plan-item-row" style="margin-bottom:6px;border-left:3px solid #3498db;"><div class="pi-text" style="font-size:13px;">${esc(e.text)}</div></div>`).join('') : '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">イベントなし</div>'; }
+  if (plL && activeWidgets.includes('today-plan')) { const pls = plans[today] || []; plL.innerHTML = pls.length ? pls.map((p, i) => `<div class="plan-item-row" style="margin-bottom:6px;"><input type="checkbox" ${p.done ? 'checked' : ''} onchange="toggleDashPlan(${i})"><div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:13px;">${esc(p.text)}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--text-muted);">予定なし</div>'; }
+  const tdL = $('dash-today-list'); if (tdL && activeWidgets.includes('today-log')) { const logs = studyLogs.filter(l => l.date === today); tdL.innerHTML = logs.length ? logs.map(l => `<div class="study-log-item"><span class="sli-subj">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span><span class="sli-dur">${Math.floor(l.seconds / 60)}分</span></div>`).join('') : '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px">記録なし</div>'; }
+  
+  applyCustomTexts();
 };
 
 const toggleDashPlan = i => { const today = todayDateStr(); if (plans[today] && plans[today][i]) { plans[today][i].done = !plans[today][i].done; save.plans(); renderDashboard(); if (planMode === 'calendar') renderPlanCalendar(); } };
@@ -990,6 +1415,7 @@ const dashCalPrev = () => { dashCalMonth--; if (dashCalMonth < 0) { dashCalMonth
 const dashCalNext = () => { dashCalMonth++; if (dashCalMonth > 11) { dashCalMonth = 0; dashCalYear++; } renderDashboardCalendar(); };
 
 const renderDashboardCalendar = () => {
+  if (!activeWidgets.includes('calendar')) return;
   const cl = $('cal-month-label'); if (cl) cl.textContent = `${dashCalYear}年 ${MONTHS[dashCalMonth]}`;
   const firstDay = new Date(dashCalYear, dashCalMonth, 1), lastDay = new Date(dashCalYear, dashCalMonth + 1, 0);
   let startDow = firstDay.getDay() - 1; if (startDow < 0) startDow = 6; let html = '';
@@ -1003,10 +1429,19 @@ const renderDashboardCalendar = () => {
   const cd = $('cal-days'); if (cd) cd.innerHTML = html;
 };
 // ============================================================
-// [10] VOCAB & CARDS
+// [10] VOCAB
 // ============================================================
+const fetchFreeDictFallback = async (word) => {
+  try {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data[0]?.meanings[0]?.definitions[0]?.definition || null;
+  } catch (e) { return null; }
+};
+
 const renderWordOfTheDay = async () => {
-  const card = $('word-of-the-day-card'); if (!card || !ALL_WORDS.length) return;
+  const card = $('word-of-the-day-card'); if (!card || !ALL_WORDS.length || !activeWidgets.includes('wotd')) return;
   card.classList.remove('hidden');
   const today = todayDateStr(); let w;
   if (cachedWotd.date === today && cachedWotd.word && ALL_WORDS.find(x => x.word === cachedWotd.word.word)) { w = cachedWotd.word; } 
@@ -1017,7 +1452,8 @@ const renderWordOfTheDay = async () => {
   }
   $('wotd-word').textContent = w.word; $('wotd-meaning').textContent = w.meaning || '意味解析中...'; $('wotd-speak').onclick = () => speakWord(w.word);
   const isSaved = savedWords.includes(w.word), sBtn = $('wotd-save-btn');
-  sBtn.textContent = isSaved ? '保存済' : 'カードに追加'; sBtn.className = `action-btn mb-0 flex-1 btn-md ${isSaved ? 'btn-secondary' : ''}`;
+  sBtn.textContent = isSaved ? (customTexts['dash_wotd_saved'] || '保存済') : (customTexts['dash_wotd_save'] || 'Vocabに追加'); 
+  sBtn.className = `action-btn mb-0 flex-1 btn-md ${isSaved ? 'btn-secondary' : ''}`;
   sBtn.onclick = () => { toggleWordSave(w.word); renderWordOfTheDay(); };
 
   const exBox = $('wotd-example');
@@ -1027,8 +1463,16 @@ const renderWordOfTheDay = async () => {
     try {
       const rep = await callGemini([{ role: 'user', content: `英単語「${w.word}」のシンプルで分かりやすい英語の例文を1つと、その自然な和訳を生成して。改行で区切ってテキストのみで出力。` }], 300);
       const html = clean(rep.trim().replace(/\n/g, '<br>')); exBox.innerHTML = html; cachedWotd.exampleHtml = html; safeSet('study_wotd_cache', cachedWotd);
-    } catch (e) { exBox.textContent = '例文の取得に失敗しました。'; }
+    } catch (e) { 
+      const fallbackMeaning = await fetchFreeDictFallback(w.word);
+      if (fallbackMeaning) {
+        exBox.innerHTML = `[Fallback] ${esc(fallbackMeaning)}`;
+      } else {
+        exBox.textContent = '例文の取得に失敗しました。'; 
+      }
+    }
   }
+  applyCustomTexts();
 };
 const nextWordOfTheDay = () => { if (!ALL_WORDS.length) return; const w = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)]; cachedWotd = { date: todayDateStr(), word: w, exampleHtml: '' }; safeSet('study_wotd_cache', cachedWotd); renderWordOfTheDay(); };
 
@@ -1036,13 +1480,18 @@ const toggleWordSave = w => { const idx = savedWords.indexOf(w), add = idx === -
 const getWordProgress = w => wordProgress[w.toLowerCase()] || 'new';
 const setWordProgress = (w, p) => { wordProgress[w.toLowerCase()] = p; save.prog(); };
 const cycleWordProgress = (w, e) => { if (e) e.stopPropagation(); const o = ['new', 'learning', 'mastered']; setWordProgress(w, o[(o.indexOf(getWordProgress(w)) + 1) % o.length]); renderVocab(true); renderVocabStats(); };
+
 const deleteWord = w => {
   if (!confirm(`「${w}」を削除しますか？`)) return;
-  // Use exact match to avoid deleting words with similar spellings but different cases if strictly managed (though lowercasing is used for index).
-  ALL_WORDS = ALL_WORDS.filter(x => x.word !== w);
-  savedWords = savedWords.filter(x => x !== w);
+  ALL_WORDS = ALL_WORDS.filter(x => x.word.toLowerCase() !== w.toLowerCase());
+  savedWords = savedWords.filter(x => x.toLowerCase() !== w.toLowerCase());
   delete srsData[w.toLowerCase()]; delete wordProgress[w.toLowerCase()]; delete vocabMeta[w.toLowerCase()];
-  save.words(); save.saved(); save.srs(); save.prog(); save.meta();
+  
+  customDecks.forEach(deck => {
+    deck.cards = deck.cards.filter(c => c.front.toLowerCase() !== w.toLowerCase());
+  });
+  
+  save.words(); save.saved(); save.srs(); save.prog(); save.meta(); save.decks();
   showToast(`削除: ${w}`); const sr = $('search-result'); if (sr) sr.innerHTML = '';
   closeModal('detail-modal'); renderVocab(true); renderVocabStats(); initCards(); updateTagFilters();
 };
@@ -1058,7 +1507,7 @@ const openAddWordModal = (editWord = null) => {
       ex.value = fd.example || ''; nt.value = fd.note || ''; tg.value = (fd.tags || []).join(', ');
     }
   } else {
-    t.textContent = '単語を手動追加'; w.value = ''; m.value = ''; old.value = ''; p.value = 'other'; ex.value = ''; nt.value = ''; tg.value = '';
+    t.textContent = customTexts['modal_add_word_title'] || '単語を手動追加'; w.value = ''; m.value = ''; old.value = ''; p.value = 'other'; ex.value = ''; nt.value = ''; tg.value = '';
   }
   
   const tags = new Set(); ALL_WORDS.forEach(word => { if (word.tags) word.tags.forEach(tag => tags.add(tag)); });
@@ -1088,6 +1537,7 @@ const addWordManual = () => {
     if (savedWords.includes(old)) { savedWords = savedWords.filter(x => x !== old); savedWords.push(w); }
     if (srsData[old.toLowerCase()]) { srsData[w.toLowerCase()] = srsData[old.toLowerCase()]; delete srsData[old.toLowerCase()]; }
     if (wordProgress[old.toLowerCase()]) { wordProgress[w.toLowerCase()] = wordProgress[old.toLowerCase()]; delete wordProgress[old.toLowerCase()]; }
+    if (vocabMeta[old.toLowerCase()]) { vocabMeta[w.toLowerCase()] = vocabMeta[old.toLowerCase()]; delete vocabMeta[old.toLowerCase()]; }
   } else if (!old && existingIdx >= 0) {
     return showToast('既に登録されています');
   }
@@ -1098,7 +1548,8 @@ const addWordManual = () => {
     ALL_WORDS.unshift(newObj);
   }
   
-  vocabMeta[w.toLowerCase()] = { pos: p, etym: '', affixes: '' };
+  if (!vocabMeta[w.toLowerCase()]) vocabMeta[w.toLowerCase()] = { pos: p, etym: '', affixes: '' };
+  else vocabMeta[w.toLowerCase()].pos = p;
   
   save.words(); save.meta(); save.saved(); save.srs(); save.prog();
   showToast(old ? `更新: ${w}` : `追加: ${w}`);
@@ -1130,12 +1581,21 @@ const searchWord = async (isSuggest = false) => {
     let extractMeaning = html.match(/<h4>意味<\/h4>\s*<p>(.*?)<\/p>/) || html.match(/<li>([^<]{2,40})<\/li>/);
     let meaningText = fd ? fd.meaning : (extractMeaning ? extractMeaning[1].replace(/<[^>]+>/g, '').trim() : '解析完了');
 
-    if (!fd) { ALL_WORDS.push({ word: w, meaning: meaningText, detailHtml: html }); save.words(); showToast(`追加: ${w}`); gainXP(5); updateTagFilters(); } 
+    if (!fd) { ALL_WORDS.push({ word: w, meaning: meaningText, detailHtml: html }); save.words(); showToast(`追加: ${w}`); updateTagFilters(); } 
     else { fd.detailHtml = html; save.words(); }
     
     const isSaved = savedWords.includes(w), pt = `${w}\n${meaningText}\n${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`;
     if (sr) sr.innerHTML = `<div class="card result-box"><div class="flex-between mb-1"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">発音</button></div><div class="flex-gap-8"><button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? '保存済' : '保存'}</button><button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">コピー</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">削除</button></div></div><div class="result-meaning-badge">${esc(meaningText)}</div>${html}</div>`;
-  } catch (e) { if (ld) ld.classList.add('hidden'); handleApiError(e, 'search-result'); }
+  } catch (e) { 
+    const fallbackMeaning = await fetchFreeDictFallback(w);
+    if (ld) ld.classList.add('hidden');
+    if (fallbackMeaning) {
+      if (!fd) { ALL_WORDS.push({ word: w, meaning: fallbackMeaning, detailHtml: `<p>${esc(fallbackMeaning)}</p>` }); save.words(); showToast(`追加: ${w}`); updateTagFilters(); }
+      if (sr) sr.innerHTML = `<div class="card result-box"><div class="result-word-title">${esc(w)}</div><div class="result-meaning-badge">${esc(fallbackMeaning)}</div><p class="text-sm text-muted">※AI解析に失敗したため、無料辞書APIの結果を表示しています。</p></div>`;
+    } else {
+      handleApiError(e, 'search-result'); 
+    }
+  }
 };
 const selectWord = w => { const i = $('word-input'); if (i) { i.value = w; const s = $('word-suggest'); if (s) s.innerHTML = ''; searchWord(); } };
 
@@ -1231,11 +1691,11 @@ const updateTagFilters = () => {
   ALL_WORDS.forEach(w => { if (w.tags) w.tags.forEach(t => tags.add(t)); });
   const c = $('tag-filters'), cs = $('cards-tag-select');
   if (c) {
-    c.innerHTML = `<button class="filter-chip ${vocabTagFilter==='all'?'active':''}" data-tag="all" onclick="setTagFilter('all')">すべて</button>` + 
+    c.innerHTML = `<button class="filter-chip ${vocabTagFilter==='all'?'active':''}" data-tag="all" onclick="setTagFilter('all')" data-i18n="vocab_filter_tag_all">すべて</button>` + 
       Array.from(tags).map(t => `<button class="filter-chip ${vocabTagFilter===t?'active':''}" data-tag="${esc(t)}" onclick="setTagFilter('${escJS(t)}')">${esc(t)}</button>`).join('');
   }
   if (cs) {
-    cs.innerHTML = `<option value="all">すべて</option>` + Array.from(tags).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+    cs.innerHTML = `<option value="all" data-i18n="cards_tag_all">すべて</option>` + Array.from(tags).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
   }
 };
 
@@ -1253,17 +1713,19 @@ const analyzeVocabMeta = async () => {
       if (parsed && Array.isArray(parsed)) { parsed.forEach(x => { if (x.word) vocabMeta[x.word.toLowerCase()] = { pos: x.pos || 'other', etym: x.etym || 'Other', affixes: x.affixes || '' }; }); }
       save.meta(); done += bt.length;
     }
-  } catch (e) { showToast('通信エラー'); } finally { if (b) { b.disabled = false; b.textContent = '品詞語源解析'; } if (s) s.textContent = '完了'; renderVocab(true); }
+  } catch (e) { showToast('通信エラー'); } finally { if (b) { b.disabled = false; b.textContent = customTexts['vocab_btn_analyze'] || '品詞・語源解析'; } if (s) s.textContent = '完了'; renderVocab(true); }
 };
 
 const renderVocabStats = () => {
   const m = ALL_WORDS.filter(w => getWordProgress(w.word) === 'mastered').length, l = ALL_WORDS.filter(w => getWordProgress(w.word) === 'learning').length, b = $('vocab-stats-bar');
-  if (b) b.innerHTML = `<div class="vsb-item"><div class="vsb-num">${ALL_WORDS.length}</div><div class="vsb-label">Total</div></div><div class="vsb-item"><div class="vsb-num text-green">${m}</div><div class="vsb-label">習得済</div></div><div class="vsb-item"><div class="vsb-num text-streak">${l}</div><div class="vsb-label">学習中</div></div>`;
+  if (b) b.innerHTML = `<div class="vsb-item"><div class="vsb-num">${ALL_WORDS.length}</div><div class="vsb-label">Total</div></div><div class="vsb-item"><div class="vsb-num text-green">${m}</div><div class="vsb-label">${customTexts['vocab_filter_prog_mastered'] || '習得済'}</div></div><div class="vsb-item"><div class="vsb-num text-streak">${l}</div><div class="vsb-label">${customTexts['vocab_filter_prog_learning'] || '学習中'}</div></div>`;
 };
 
 const renderVocab = (reset = false) => {
   const vi = $('vocab-search'); const q = vi ? vi.value.toLowerCase() : '';
-  const ls = ALL_WORDS.filter(w => {
+  const sortMode = $('vocab-sort-select') ? $('vocab-sort-select').value : 'newest';
+  
+  let ls = ALL_WORDS.filter(w => {
     if (q && !w.word.toLowerCase().includes(q) && !(w.meaning || '').toLowerCase().includes(q)) return false;
     const m = vocabMeta[w.word.toLowerCase()];
     if (vocabPosFilter !== 'all' && (!m || m.pos !== vocabPosFilter)) return false;
@@ -1272,6 +1734,20 @@ const renderVocab = (reset = false) => {
     if (vocabPrefixFilter) { const a = m?.affixes?.toLowerCase() || ''; if (!w.word.toLowerCase().includes(vocabPrefixFilter) && !a.includes(vocabPrefixFilter)) return false; }
     return true;
   });
+  
+  if (sortMode === 'oldest') {
+    ls = ls.reverse();
+  } else if (sortMode === 'az') {
+    ls.sort((a, b) => a.word.localeCompare(b.word));
+  } else if (sortMode === 'za') {
+    ls.sort((a, b) => b.word.localeCompare(a.word));
+  } else if (sortMode === 'low_retention') {
+    ls.sort((a, b) => {
+      const rA = srsData[a.word.toLowerCase()]?.stability || 0;
+      const rB = srsData[b.word.toLowerCase()]?.stability || 0;
+      return rA - rB;
+    });
+  }
   
   const vc = $('vocab-count'), vg = $('vocab-grid'), btn = $('vocab-load-more-btn');
   if (vc) vc.textContent = `${ls.length} / ${ALL_WORDS.length} 語`;
@@ -1293,6 +1769,7 @@ const renderVocab = (reset = false) => {
   });
   vg.appendChild(fragment);
   if (btn) { if (vocabPage * VOCAB_PER_PAGE < ls.length) btn.classList.remove('hidden'); else btn.classList.add('hidden'); }
+  applyCustomTexts();
 };
 const loadMoreVocab = () => { vocabPage++; renderVocab(false); };
 
@@ -1312,7 +1789,7 @@ const toggleVoiceCommand = () => {
   const btn = $('voice-cmd-btn');
   if (cardVoiceActive) {
      cardVoiceActive = false; if (cardVoiceRec) cardVoiceRec.stop();
-     btn.textContent = '音声操作: OFF'; btn.style.background = ''; btn.style.color = '';
+     btn.textContent = customTexts['cards_btn_voice'] || '音声操作: OFF'; btn.style.background = ''; btn.style.color = '';
   } else {
      if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return showToast('ブラウザ非対応');
      cardVoiceActive = true; btn.textContent = '音声操作: ON'; btn.style.background = 'var(--green)'; btn.style.color = '#fff';
@@ -1381,11 +1858,32 @@ const renderCard = () => {
 
 const flipCard = () => { const cInner = $('flip-inner'); if (cInner) cInner.classList.toggle('flipped'); };
 const changeCard = d => { if (cardList.length) { currentCardIdx = (currentCardIdx + d + cardList.length) % cardList.length; renderCard(); } };
-const shuffleCards = () => { for (let i = cardList.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cardList[i], cardList[j]] = [cardList[j], cardList[i]]; } currentCardIdx = 0; renderCard(); };
+
+const shuffleCards = () => { 
+  if (shuffleSettings.mode === 'weighted') {
+    cardList.sort((a, b) => {
+      const sa = srsData[a.word.toLowerCase()]?.stability || 0;
+      const sb = srsData[b.word.toLowerCase()]?.stability || 0;
+      return sa - sb; 
+    });
+  } else if (shuffleSettings.mode === 'spaced') {
+    cardList.sort((a, b) => {
+      const pa = vocabMeta[a.word.toLowerCase()]?.pos || 'other';
+      const pb = vocabMeta[b.word.toLowerCase()]?.pos || 'other';
+      return pa.localeCompare(pb);
+    });
+  } else {
+    for (let i = cardList.length - 1; i > 0; i--) { 
+      const j = Math.floor(Math.random() * (i + 1)); 
+      [cardList[i], cardList[j]] = [cardList[j], cardList[i]]; 
+    } 
+  }
+  currentCardIdx = 0; renderCard(); 
+};
 
 const toggleAutoPlay = () => {
   const b = $('autoplay-btn'); if (!b) return;
-  if (autoPlayInt) { clearInterval(autoPlayInt); autoPlayInt = null; b.textContent = 'オート: OFF'; b.style.background = ''; b.style.color = ''; }
+  if (autoPlayInt) { clearInterval(autoPlayInt); autoPlayInt = null; b.textContent = customTexts['cards_btn_auto'] || 'オート: OFF'; b.style.background = ''; b.style.color = ''; }
   else { b.textContent = 'オート: ON'; b.style.background = 'var(--green)'; b.style.color = '#fff'; autoPlayInt = setInterval(() => { if (apState === 0) { flipCard(); speakCurrentCard(); apState = 1; } else { changeCard(1); apState = 0; } }, 3500); }
 };
 
@@ -1422,13 +1920,48 @@ if (cInner) {
       }
     }
   });
+
+  let isDragging = false;
+  cInner.addEventListener('mousedown', e => { isDragging = true; swipeStartX = e.clientX; swipeStartY = e.clientY; cInner.style.transition = 'none'; });
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - swipeStartX, dy = e.clientY - swipeStartY;
+    if (Math.abs(dx) > Math.abs(dy) * 2) {
+      e.preventDefault(); 
+      const base = cInner.classList.contains('flipped') ? 180 : 0;
+      cInner.style.transform = `rotateY(${base}deg) translateX(${dx}px) rotate(${dx / 20}deg)`;
+      const sr = $('swipe-right'), sl = $('swipe-left');
+      if (sr) sr.style.opacity = dx > 50 ? 1 : 0; if (sl) sl.style.opacity = dx < -50 ? 1 : 0;
+    }
+  });
+  window.addEventListener('mouseup', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    cInner.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+    const base = cInner.classList.contains('flipped') ? 180 : 0; cInner.style.transform = `rotateY(${base}deg)`;
+    const sr = $('swipe-right'), sl = $('swipe-left'); if (sr) sr.style.opacity = 0; if (sl) sl.style.opacity = 0;
+    const dx = e.clientX - swipeStartX, dy = e.clientY - swipeStartY;
+    if (Math.abs(dx) > Math.abs(dy) * 2) {
+      if (dx > 100) {
+        if (cardList.length) {
+          if (cardsMode === 'srs' || cardsMode === 'weak') srsRateCurrentCard(2);
+          else { setWordProgress(cardList[currentCardIdx].word, 'mastered'); if (navigator.vibrate) navigator.vibrate(30); if (window.confetti) confetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } }); showToast('覚えた'); changeCard(1); }
+        }
+      } else if (dx < -100) {
+        if (cardList.length) {
+          if (cardsMode === 'srs' || cardsMode === 'weak') srsRateCurrentCard(0);
+          else { setWordProgress(cardList[currentCardIdx].word, 'learning'); if (navigator.vibrate) navigator.vibrate(30); showToast('忘れた'); changeCard(1); }
+        }
+      }
+    }
+  });
 }
 
 // ============================================================
 // [11] SKILL UP
 // ============================================================
 const switchWritingTab = t => {
-  ['input', 'daily', 'quiz', 'syntax', 'history'].forEach(x => {
+  ['input', 'daily', 'quiz', 'media', 'shadowing', 'syntax', 'history'].forEach(x => {
     const tb = $('wtab-' + x), pn = $('wpane-' + x);
     if (tb) { if (x === t) tb.classList.add('active'); else tb.classList.remove('active'); }
     if (pn) { if (x === t) pn.classList.add('active'); else pn.classList.remove('active'); }
@@ -1440,30 +1973,52 @@ const switchWritingTab = t => {
 
 const setWritingInputMode = m => { wInputMode = m; ['text', 'file', 'photo'].forEach(x => { const btn = $('wmode-' + x), area = $('w-' + x + '-area'); if (btn) { if (x === m) btn.classList.add('active'); else btn.classList.remove('active'); } if (area) { if (x === m) area.classList.remove('hidden'); else area.classList.add('hidden'); } }); };
 const handleWritingFile = e => { const f = e.target.files[0]; if (!f) return; const fn = $('writing-file-name'), ft = $('writing-file-text'); if (fn) fn.textContent = f.name; const r = new FileReader(); r.onload = ev => { if (ft) ft.value = ev.target.result; }; r.readAsText(f); };
-const handleWritingPhoto = async e => { const f = e.target.files[0]; if (!f) return; wPhotoData = await resizeImage(f); const wp = $('writing-photo-preview'); if (wp) wp.innerHTML = `<img src="${wPhotoData}" style="max-width:100%;border-radius:10px">`; };
+const handleWritingPhoto = async e => { 
+  const f = e.target.files[0]; if (!f) return; 
+  wPhotoData = await resizeImage(f); 
+  const wp = $('writing-photo-preview'); 
+  if (wp) wp.innerHTML = `<img src="${wPhotoData}" style="max-width:100%;border-radius:10px">`; 
+  const qb = $('writing-photo-quiz-btn');
+  if (qb) qb.classList.remove('hidden');
+};
+
+window.generateQuizFromPhoto = async () => {
+  if (!wPhotoData) return showToast('写真を選択してください');
+  const b = wPhotoData.split(',')[1], m = wPhotoData.match(/data:([^;]+)/)[1];
+  const ld = $('writing-loading'), rs = $('writing-result');
+  if (ld) ld.classList.remove('hidden');
+  if (rs) rs.innerHTML = '';
+  try {
+    const rep = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: 'この画像内の英文や内容から、内容理解を問う4択クイズを3問作成し、HTMLで出力してください。解答と解説も必ず含めてください。' }] }], 2000);
+    if (rs) rs.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
+  } catch (e) { if (rs) handleApiError(e, 'writing-result'); }
+  finally { if (ld) ld.classList.add('hidden'); }
+};
 
 const extractSyntaxFromText = async text => { showToast('構文抽出中...'); try { const rep = await callGemini([{ role: 'user', content: text }], 1500, '大学受験レベルの重要構文抽出。JSON配列:[{"syntax":"...","meaning":"...","note":"..."}]', true); const arr = extractJSON(rep); if (!arr || !arr.length) return showToast('構文なし'); let added = 0; arr.forEach(item => { if (item.syntax) { syntaxList.unshift({ id: generateId(), syntax: item.syntax, meaning: item.meaning || '', note: item.note || '', date: new Date().toLocaleDateString('ja-JP') }); added++; } }); if (added > 0) { save.syntax(); const pn = $('wpane-syntax'); if (pn && pn.classList.contains('active')) renderSyntax(); showToast(`${added}件保存`); } } catch (e) { showToast('通信エラー'); } };
 const extractSyntaxFromHistory = async id => { const h = writingHistory.find(x => String(x.id) === String(id)); if (!h) return; await extractSyntaxFromText(h.original + '\n' + h.result.replace(/<[^>]+>/g, '')); };
 
 const submitWriting = async type => {
   let c = [], histTxt = '';
-  if (wInputMode === 'text') { const t = $('writing-text-input')?.value.trim(); if (!t) return; histTxt = t; c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${t}` : type === 'paraphrase' ? `言い換え:\n${t}` : `添削:\n${t}` }]; }
-  else if (wInputMode === 'file') { const t = $('writing-file-text')?.value.trim(); if (!t) return; histTxt = t; c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${t}` : type === 'paraphrase' ? `言い換え:\n${t}` : `添削:\n${t}` }]; }
-  else if (wInputMode === 'photo') { if (!wPhotoData) return; const b = wPhotoData.split(',')[1], m = wPhotoData.match(/data:([^;]+)/)[1]; histTxt = '（写真）'; c = [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: type === 'analyze' ? '画像内の英文を構文解析・和訳' : type === 'paraphrase' ? '画像内の英文を言い換え' : '画像内の英文添削' }]; }
-  const sb = $('writing-submit-btn'), ab = $('writing-analyze-btn'), pb = $('writing-paraphrase-btn'), ld = $('writing-loading'), rs = $('writing-result');
-  if (sb) sb.classList.add('hidden'); if (ab) ab.classList.add('hidden'); if (pb) pb.classList.add('hidden'); if (ld) ld.classList.remove('hidden'); if (rs) rs.innerHTML = '';
+  if (wInputMode === 'text') { const t = $('writing-text-input')?.value.trim(); if (!t) return; histTxt = t; c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${t}` : type === 'paraphrase' ? `言い換え:\n${t}` : type === 'essay' ? `エッセイ評価:\n${t}` : `添削:\n${t}` }]; }
+  else if (wInputMode === 'file') { const t = $('writing-file-text')?.value.trim(); if (!t) return; histTxt = t; c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${t}` : type === 'paraphrase' ? `言い換え:\n${t}` : type === 'essay' ? `エッセイ評価:\n${t}` : `添削:\n${t}` }]; }
+  else if (wInputMode === 'photo') { if (!wPhotoData) return; const b = wPhotoData.split(',')[1], m = wPhotoData.match(/data:([^;]+)/)[1]; histTxt = '（写真）'; c = [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: type === 'analyze' ? '画像内の英文を構文解析・和訳' : type === 'paraphrase' ? '画像内の英文を言い換え' : type === 'essay' ? '画像内のエッセイを評価' : '画像内の英文添削' }]; }
+  const sb = $('writing-submit-btn'), ab = $('writing-analyze-btn'), pb = $('writing-paraphrase-btn'), eb = $('writing-essay-btn'), ld = $('writing-loading'), rs = $('writing-result');
+  if (sb) sb.classList.add('hidden'); if (ab) ab.classList.add('hidden'); if (pb) pb.classList.add('hidden'); if (eb) eb.classList.add('hidden'); if (ld) ld.classList.remove('hidden'); if (rs) rs.innerHTML = '';
   try {
     let sys = 'Please carefully correct the submitted English text and output it in HTML. Provide detailed explanations of grammar and natural expressions in English, and finally give a score out of 100.';
     if (type === 'analyze') sys = 'Please output a very careful syntactic analysis in HTML. Identify the subject (S), verb (V), object (O), complement (C), and modifier (M), color-code them using tags like <span class="svoc-s">S</span>, and insert <span class="slash">/</span> at meaning boundaries. Be sure to include detailed explanations of special syntax in English, and an accurate Japanese translation.';
     else if (type === 'paraphrase') sys = 'Please paraphrase the input English text into more sophisticated, academic English (native paper level) and output it in HTML. Explain in detail why you paraphrased it that way and the nuances between them in English.';
+    else if (type === 'essay') sys = '提出されたエッセイ（自由英作文）を「論理性」「語彙の豊富さ」「文法の正確さ」の観点からルーブリック評価し、HTMLで出力してください。改善案と100点満点のスコアを必ず含めてください。';
+    
     const rep = await callGemini([{ role: 'user', content: c }], 2000, sys), ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '')), newId = generateId();
-    writingHistory.unshift({ id: newId, type, date: new Date().toLocaleString('ja-JP'), original: histTxt.substring(0, 100), fullOriginal: histTxt, result: ht, score: type === 'correct' ? (ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null) : null });
-    save.writing(); gainXP(20);
-    if (rs) { if (type === 'analyze') rs.innerHTML = `<div class="card"><div class="text-xs font-bold text-muted mb-2">白文テスト</div><div class="text-base mb-3" style="line-height:1.6;">${esc(histTxt).replace(/\n/g, '<br>')}</div><button class="action-btn mb-0 bg-accent" onclick="document.getElementById('res-analyzed-${newId}').classList.remove('hidden');this.classList.add('hidden');">正解を見る</button><div id="res-analyzed-${newId}" class="hidden mt-14"><div class="correction-box mt-0">${ht}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button></div></div>`; else rs.innerHTML = `<div class="correction-box">${ht}</div>${type === 'correct' ? `<button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button>` : ''}`; }
-  } catch (e) { handleApiError(e, 'writing-result'); } finally { if (ld) ld.classList.add('hidden'); if (sb) sb.classList.remove('hidden'); if (ab) ab.classList.remove('hidden'); if (pb) pb.classList.remove('hidden'); }
+    writingHistory.unshift({ id: newId, type, date: new Date().toLocaleString('ja-JP'), original: histTxt.substring(0, 100), fullOriginal: histTxt, result: ht, score: (type === 'correct' || type === 'essay') ? (ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null) : null });
+    save.writing();
+    if (rs) { if (type === 'analyze') rs.innerHTML = `<div class="card"><div class="text-xs font-bold text-muted mb-2">白文テスト</div><div class="text-base mb-3" style="line-height:1.6;">${esc(histTxt).replace(/\n/g, '<br>')}</div><button class="action-btn mb-0 bg-accent" onclick="document.getElementById('res-analyzed-${newId}').classList.remove('hidden');this.classList.add('hidden');">正解を見る</button><div id="res-analyzed-${newId}" class="hidden mt-14"><div class="correction-box mt-0">${ht}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button></div></div>`; else rs.innerHTML = `<div class="correction-box">${ht}</div>${(type === 'correct' || type === 'essay') ? `<button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button>` : ''}`; }
+  } catch (e) { handleApiError(e, 'writing-result'); } finally { if (ld) ld.classList.add('hidden'); if (sb) sb.classList.remove('hidden'); if (ab) ab.classList.remove('hidden'); if (pb) pb.classList.remove('hidden'); if (eb) eb.classList.remove('hidden'); }
 };
 
-const renderWritingHistory = () => { const c = $('writing-history-list'); if (c) c.innerHTML = writingHistory.length ? writingHistory.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showWritingHistoryDetail('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''} (${h.type === 'analyze' ? '解析' : h.type === 'paraphrase' ? '言換' : '添削'})</div><div class="text-sm text-sub">${esc(h.original)}</div></div>`).join('') : '<div class="vocab-empty">履歴なし</div>'; };
+const renderWritingHistory = () => { const c = $('writing-history-list'); if (c) c.innerHTML = writingHistory.length ? writingHistory.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showWritingHistoryDetail('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''} (${h.type === 'analyze' ? '解析' : h.type === 'paraphrase' ? '言換' : h.type === 'essay' ? 'エッセイ' : '添削'})</div><div class="text-sm text-sub">${esc(h.original)}</div></div>`).join('') : '<div class="vocab-empty">履歴なし</div>'; };
 const showWritingHistoryDetail = id => {
   const h = writingHistory.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return;
   let html = '';
@@ -1491,6 +2046,7 @@ const renderDaily = () => {
   if (currentDailyTab === 'comp' || currentDailyTab === 'parse' || currentDailyTab === 'reading') {
     const area = $('daily-area-' + currentDailyTab); if (!area) return;
     const tasks = dailyChallenges.filter(d => d.date === ts && d.taskType === currentDailyTab); let html = '';
+    
     if (!tasks.length) html += `<div class="card text-center p-36"><button class="action-btn mb-0 btn-auto-width btn-lg-pad" onclick="generateDailyTask('${currentDailyTab}')">問題を作成</button></div>`;
     else { html += tasks.map(task => { if (!task.answer) return `<div class="card"><p class="text-xs font-bold text-muted mb-3">問題 (${task.date})</p><div class="text-base mb-4 line-height-16">${task.question}</div><textarea id="daily-ans-${task.id}" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="daily-submit-${task.id}" onclick="submitDailyAnswer('${task.id}')">解答・添削</button><div id="daily-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div></div>`; else return `<div class="card"><p class="text-xs font-bold text-green mb-3">完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${task.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(task.answer)}</div><div class="correction-box mt-0">${task.feedback}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromDaily('${task.id}')">重要構文抽出</button></div>`; }).join(''); html += `<div class="text-center mt-4"><button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyTask('${currentDailyTab}')">＋ 追加作成</button></div>`; }
     const hist = dailyChallenges.filter(d => d.date !== ts && d.taskType === currentDailyTab);
@@ -1498,8 +2054,6 @@ const renderDaily = () => {
     area.innerHTML = html;
   } else if (currentDailyTab === 'listen') {
     renderListenArea();
-  } else if (currentDailyTab === 'drill') {
-    // handled via HTML directly generating on click
   }
 };
 
@@ -1508,9 +2062,16 @@ const generateDailyTask = async type => {
   const diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
   let diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（京都大学満点レベル）の極めて高度な' : '中級（京都大学合格レベル）の';
   let sys = '';
-  if (type === 'comp') sys = `高校生向けの${diffText}和文英訳問題を1題出題してください。HTMLのみ。h4で「本日の英作文」、pで日本語問題文。解答や解説は絶対に含めないでください。`;
-  else if (type === 'parse') sys = `高校生向けの${diffText}英文解釈（和訳）問題を1題出題してください。HTMLのみ。h4で「本日の英文解釈」、pで英文。解答や解説は絶対に含めないでください。`;
-  else if (type === 'reading') sys = `高校生向けの${diffText}英語長文（${diff === 'basic' ? '150' : diff === 'advanced' ? '500' : '300'}語程度）と、内容説明の記述式問題を1題出題してください。HTMLのみ。h4で「本日の長文読解」、pで本文と設問。解答や解説は絶対に含めないでください。`;
+  
+  if (type === 'reading') {
+    const interests = userProfile.courses || '一般的な話題';
+    sys = `生徒の興味（${interests}）に合わせた、高校生向けの${diffText}英語長文（${diff === 'basic' ? '150' : diff === 'advanced' ? '500' : '300'}語程度）と、内容説明の記述式問題を1題出題してください。HTMLのみ。h4で「本日の長文読解」、pで本文と設問。解答や解説は絶対に含めないでください。`;
+  } else if (type === 'comp') {
+    sys = `高校生向けの${diffText}和文英訳問題を1題出題してください。HTMLのみ。h4で「本日の英作文」、pで日本語問題文。解答や解説は絶対に含めないでください。`;
+  } else if (type === 'parse') {
+    sys = `高校生向けの${diffText}英文解釈（和訳）問題を1題出題してください。HTMLのみ。h4で「本日の英文解釈」、pで英文。解答や解説は絶対に含めないでください。`;
+  }
+  
   try { const rep = await callGemini([{ role: 'user', content: '問題作成' }], 1500, sys); const ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); const ts = new Date().toLocaleDateString('ja-JP'); dailyChallenges.unshift({ id: 'daily_' + generateId(), date: ts, taskType: type, question: ht, answer: '', feedback: '', score: null }); save.daily(); renderDaily(); } catch (e) { handleApiError(e, a.id); setTimeout(renderDaily, 2000); }
 };
 
@@ -1521,7 +2082,7 @@ const submitDailyAnswer = async id => {
   if (task.taskType === 'comp') sys = '提出された英作文を非常に丁寧に添削しHTMLで出力してください。なぜその表現になるのか詳しく解説し、より自然な模範解答を複数提示してください。最後に100点満点でスコアをつけてください。';
   else if (task.taskType === 'parse') sys = '和訳解答を非常に丁寧に添削しHTMLで出力してください。SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切ってください。特殊構文の構造を図解するように詳しく解説し、100点満点でスコアをつけてください。';
   else if (task.taskType === 'reading') sys = '長文読解の解答を非常に丁寧に添削しHTMLで出力してください。本文の全訳、要旨、設問の論理的な解答プロセスを詳しく解説し、100点満点でスコアをつけてください。';
-  try { const rep = await callGemini([{ role: 'user', content: `問題:\n${task.question}\n解答:\n${i.value}` }], 2500, sys); const ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '')); task.answer = i.value; task.feedback = ht; task.score = ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null; save.daily(); gainXP(20); renderDaily(); } catch (e) { showToast('通信エラー'); if (sb) sb.classList.remove('hidden'); if (ld) ld.classList.add('hidden'); }
+  try { const rep = await callGemini([{ role: 'user', content: `問題:\n${task.question}\n解答:\n${i.value}` }], 2500, sys); const ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '')); task.answer = i.value; task.feedback = ht; task.score = ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null; save.daily(); renderDaily(); } catch (e) { showToast('通信エラー'); if (sb) sb.classList.remove('hidden'); if (ld) ld.classList.add('hidden'); }
 };
 
 const showDailyHistoryDetail = id => {
@@ -1556,6 +2117,17 @@ const generateWeaknessDrill = async () => {
   }
 };
 
+window.generateTrickDrill = async () => {
+  const ld = $('drill-loading'), area = $('drill-content-area');
+  ld.classList.remove('hidden'); area.innerHTML = '';
+  const mistakes = writingHistory.filter(h => h.score !== null && h.score < 80).slice(0, 3).map(h => h.result.replace(/<[^>]+>/g, '').substring(0, 200));
+  try {
+    const rep = await callGemini([{role:'user', content:`過去のミス: ${mistakes.join('\n')}`}], 2000, '過去のミスを分析し、あえて間違えやすいダミー選択肢を混ぜた「ひっかけ問題」を3問作成し、HTMLで出力。解説付き。');
+    area.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
+  } catch(e) { area.innerHTML = '<p class="text-danger">生成失敗</p>'; }
+  finally { ld.classList.add('hidden'); }
+};
+
 const setListenMode = m => {
   currentListenMode = m;
   ['mc', 'dict'].forEach(x => {
@@ -1577,7 +2149,7 @@ const renderListenArea = () => {
         const ans = task.userAnswer >= 0, accL = ACCENT_LABELS[task.accent] || task.accent;
         let opts = task.options.map((opt, i) => { let cls = 'listen-option'; if (ans) { if (i === task.answer) cls += ' show-correct'; else if (i === task.userAnswer && task.userAnswer !== task.answer) cls += ' selected-wrong'; } return `<div class="${cls}" role="button" tabindex="0" onclick="submitDailyListenAnswer('${task.id}', ${i})">${String.fromCharCode(65 + i)}. ${esc(opt)}</div>`; }).join('');
         let card = `<div class="card mb-3"><div class="flex-between align-center mb-3"><span class="text-xs font-bold text-muted">LISTENING — ${accL}</span><span class="text-xs text-muted">${task.date}</span></div><div class="flex-center gap-2 mb-4"><button onclick="playListenAudioById('${task.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">標準再生</button><button onclick="playListenAudioById('${task.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">スロー再生</button></div><p class="text-base font-bold mb-3">${esc(task.question)}</p><div class="listen-options">${opts}</div>`;
-        if (ans) card += `<div style="background:${task.userAnswer === task.answer ? '#d4f0e0' : '#fde8e6'};border-radius:var(--radius-sm);padding:14px;margin-top:14px;"><p style="font-weight:700;margin-bottom:8px;color:${task.userAnswer === task.answer ? '#1a6038' : '#8b1c14'}">${task.userAnswer === task.answer ? '正解！' : '不正解'}</p><p class="text-sm line-height-16">${esc(task.explanation)}</p></div><div class="mt-3 p-14 bg-main radius-sm border"><p class="text-xs font-bold text-muted mb-2">放送文</p><p class="text-sm line-height-16">${esc(task.transcript)}</p></div>`;
+        if (ans) card += `<div style="background:${task.userAnswer === task.answer ? '#d4f0e0' : '#fde8e6'};border-radius:var(--radius-sm);padding:14px;margin-top:14px;"><p style="font-weight:700;margin-bottom:8px;color:${task.userAnswer === task.answer ? '#1a6038' : '#8b1c14'}">${task.userAnswer === task.answer ? '正解！' : '不正解'}</p><p class="text-sm line-height-16">${esc(task.explanation)}</p></div><div class="mt-3 p-14 bg-main radius-sm border"><p class="text-xs font-bold text-muted mb-2">放送文</p><p class="text-sm line-height-16" id="listen-transcript-${task.id}">${esc(task.transcript)}</p></div>`;
         return card + `</div>`;
       }).join('');
       html += `<div class="text-center mt-4"><button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyListen()">＋ 追加作成</button></div>`;
@@ -1638,11 +2210,43 @@ const submitDailyDictation = async id => {
     const sys = `生徒のディクテーション（書き取り）を添削し、HTMLで出力してください。元の正解文と生徒の解答を比較し、間違えた部分（スペルミス、聞き逃しなど）を指摘し、100点満点でスコアをつけてください。最後に和訳と解説も添えてください。\n正解文: ${task.transcript}\n和訳: ${task.translation}\n解説: ${task.explanation}`;
     const rep = await callGemini([{ role: 'user', content: `生徒の解答:\n${i.value.trim()}` }], 1500, sys);
     task.userAnswer = i.value.trim(); task.feedback = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
-    save.listen(); gainXP(15); renderListenArea();
+    save.listen(); renderListenArea();
   } catch (e) { showToast('通信エラー'); if (sb) sb.classList.remove('hidden'); if (ld) ld.classList.add('hidden'); }
 };
 
-const playListenAudioById = (id, rate = 1.0) => { const t = listenHistory.find(x => String(x.id) === String(id)); if (!t) return; speakWithAccent(t.transcript, t.accent, rate); };
+const playListenAudioById = (id, rate = 1.0) => { 
+  const t = listenHistory.find(x => String(x.id) === String(id)); 
+  if (!t) return; 
+  
+  if (!window.speechSynthesis) return; 
+  speechSynthesis.cancel(); 
+  const langMap = { en_US: 'en-US', en_GB: 'en-GB', en_AU: 'en-AU' }; 
+  const lang = langMap[t.accent] || 'en-US'; 
+  
+  const u = new SpeechSynthesisUtterance(t.transcript); 
+  u.lang = lang; 
+  if (availableVoices.length > 0) {
+    const voice = availableVoices.find(v => v.lang === u.lang) || availableVoices.find(v => v.lang.startsWith(u.lang.split('-')[0]));
+    if (voice) u.voice = voice;
+  }
+  u.rate = rate; 
+  
+  const transcriptEl = $(`listen-transcript-${id}`);
+  if (transcriptEl) {
+    const originalText = transcriptEl.textContent;
+    u.onboundary = (event) => {
+      if (event.name === 'word') {
+        const before = originalText.substring(0, event.charIndex);
+        const word = originalText.substring(event.charIndex, event.charIndex + event.charLength);
+        const after = originalText.substring(event.charIndex + event.charLength);
+        transcriptEl.innerHTML = `${esc(before)}<span style="background:var(--streak);color:#fff;border-radius:2px;padding:0 2px;">${esc(word)}</span>${esc(after)}`;
+      }
+    };
+    u.onend = () => { transcriptEl.textContent = originalText; };
+  }
+  
+  speechSynthesis.speak(u); 
+};
 
 const showListenHistoryDetail = id => {
   const h = listenHistory.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return;
@@ -1654,7 +2258,7 @@ const showListenHistoryDetail = id => {
     const ans = h.userAnswer >= 0;
     let opts = h.options.map((o, i) => { let c = 'listen-option'; if (ans) { if (i === h.answer) c += ' show-correct'; else if (i === h.userAnswer && h.userAnswer !== h.answer) c += ' selected-wrong'; } return `<div class="${c}">${String.fromCharCode(65 + i)}. ${esc(o)}</div>`; }).join('');
     ht = `<div class="text-xs font-bold text-muted mb-3">LISTENING (${h.date})</div><div class="flex-center gap-2 mb-4"><button onclick="playListenAudioById('${h.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">標準再生</button><button onclick="playListenAudioById('${h.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">スロー再生</button></div><p class="text-base font-bold mb-3">${esc(h.question)}</p><div class="listen-options">${opts}</div>`;
-    if (ans) ht += `<div style="background:${h.userAnswer === h.answer ? '#d4f0e0' : '#fde8e6'};border-radius:var(--radius-sm);padding:14px;margin-top:14px;"><p style="font-weight:700;margin-bottom:8px;color:${h.userAnswer === h.answer ? '#1a6038' : '#8b1c14'}">${h.userAnswer === h.answer ? '正解！' : '不正解'}</p><p class="text-sm">${esc(h.explanation)}</p></div><div class="mt-3 p-14 bg-main radius-sm border"><p class="text-xs font-bold text-muted mb-2">放送文</p><p class="text-sm">${esc(h.transcript)}</p></div>`;
+    if (ans) ht += `<div style="background:${h.userAnswer === h.answer ? '#d4f0e0' : '#fde8e6'};border-radius:var(--radius-sm);padding:14px;margin-top:14px;"><p style="font-weight:700;margin-bottom:8px;color:${h.userAnswer === h.answer ? '#1a6038' : '#8b1c14'}">${h.userAnswer === h.answer ? '正解！' : '不正解'}</p><p class="text-sm">${esc(h.explanation)}</p></div><div class="mt-3 p-14 bg-main radius-sm border"><p class="text-xs font-bold text-muted mb-2">放送文</p><p class="text-sm" id="listen-transcript-${h.id}">${esc(h.transcript)}</p></div>`;
   }
   ht += `<div class="mt-4 pt-3 border-top"><p class="text-xs font-bold mb-2">理解度 (FSRS)</p><div class="flex-gap-8"><button onclick="srsReviewItem('${sK}',0);showListenHistoryDetail('${h.id}')" class="btn-srs bg-danger">忘</button><button onclick="srsReviewItem('${sK}',1);showListenHistoryDetail('${h.id}')" class="btn-srs bg-streak">難</button><button onclick="srsReviewItem('${sK}',2);showListenHistoryDetail('${h.id}')" class="btn-srs bg-green">覚</button><button onclick="srsReviewItem('${sK}',3);showListenHistoryDetail('${h.id}')" class="btn-srs bg-blue">完</button></div><p class="text-xs text-muted text-center mt-2">${sT}</p></div><button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteListenHistory('${h.id}')">この問題を削除</button>`;
   mb.innerHTML = ht; openModal('writing-history-modal');
@@ -1663,6 +2267,8 @@ const deleteListenHistory = id => { if (!confirm('削除しますか？')) retur
 
 const generateWordQuiz = async () => {
   const range = $('quiz-range').value, count = parseInt($('quiz-count').value), loading = $('word-quiz-loading'), area = $('word-quiz-area'), btn = $('generate-quiz-btn');
+  const includeFill = $('quiz-include-fill') && $('quiz-include-fill').checked;
+  
   let targetWords = [];
   if (range === 'saved') targetWords = ALL_WORDS.filter(w => savedWords.includes(w.word));
   else if (range === 'srs') targetWords = srsGetDueWords();
@@ -1678,11 +2284,11 @@ const generateWordQuiz = async () => {
   const shuffled = targetWords.sort(() => 0.5 - Math.random()).slice(0, count), wordsToPrompt = shuffled.map(w => w.word).join(', ');
   loading.classList.remove('hidden'); area.innerHTML = ''; if (btn) btn.disabled = true;
   
-  const sys = `以下の英単語を使ってランダムにクイズを作成し、JSON配列のみで出力してください。単語: ${wordsToPrompt}
-出題形式は以下の3種類のいずれかをランダムに混ぜてください。
+  let sys = `以下の英単語を使ってランダムにクイズを作成し、JSON配列のみで出力してください。単語: ${wordsToPrompt}
+出題形式は以下の${includeFill ? '3' : '2'}種類のいずれかをランダムに混ぜてください。
 1. 4択問題 {"type":"mc", "word":"...", "q":"(単語) の意味は？", "options":["...", "...", "...", "..."], "ans": (正解のインデックス0-3)}
-2. 穴埋め問題 {"type":"fill", "word":"...", "q":"英文の穴埋め: I eat an ___.", "ans": "(正解の単語)"}
-3. 並び替え問題 {"type":"sort", "word":"...", "q":"和訳: 私はりんごを食べる", "options":["eat", "I", "apple", "an"], "ans":["I", "eat", "an", "apple"]}`;
+${includeFill ? '2. 穴埋め問題 {"type":"fill", "word":"...", "q":"英文の穴埋め: I eat an ___.", "ans": "(正解の単語)"}' : ''}
+${includeFill ? '3' : '2'}. 並び替え問題 {"type":"sort", "word":"...", "q":"和訳: 私はりんごを食べる", "options":["eat", "I", "apple", "an"], "ans":["I", "eat", "an", "apple"]}`;
 
   try {
     const rep = await callGemini([{ role: 'user', content: sys }], 2000, '', true);
@@ -1699,7 +2305,7 @@ const renderWordQuiz = () => {
   const area = $('word-quiz-area');
   if (activeQuizIndex >= activeQuizList.length) {
     area.innerHTML = `<div class="card text-center p-40"><h2 style="font-family:var(--font-block); font-size:32px; margin-bottom:10px;">RESULT</h2><p style="font-size:18px; font-weight:700; color:var(--accent); margin-bottom:20px;">${quizScore} / ${activeQuizList.length} 問正解</p><button class="action-btn" onclick="$('word-quiz-area').innerHTML='';">終了する</button></div>`;
-    gainXP(quizScore * 5); return;
+    return;
   }
   const q = activeQuizList[activeQuizIndex];
   let html = `<div class="card"><p class="text-xs font-bold text-muted mb-2">Q${activeQuizIndex + 1} / ${activeQuizList.length}</p><p class="text-lg font-bold mb-4 line-height-15">${esc(q.q)}</p><div id="quiz-interactive-area">`;
@@ -1726,6 +2332,88 @@ const submitWordQuiz = (type, val) => {
   fb.innerHTML = `<p style="font-weight:700; color:${isCorrect ? '#1a6038' : '#8b1c14'}; margin-bottom:8px;">${isCorrect ? '正解！' : '不正解'}</p><p class="text-sm text-sub">正解: ${esc(correctText)}</p><button class="action-btn mt-3 mb-0 bg-accent" onclick="activeQuizIndex++; renderWordQuiz();">次の問題へ</button>`;
 };
 
+window.generateYouTubeLesson = async () => {
+  const url = $('media-yt-url').value;
+  if(!url) return showToast('URLを入力してください');
+  const ld = $('media-loading'), area = $('media-result-area');
+  ld.classList.remove('hidden'); area.innerHTML = '';
+  try {
+    const rep = await callGemini([{role:'user', content:`以下のYouTube動画URLの内容を推測・取得し、英語学習用の「要約」「重要単語」「内容理解クイズ」をHTMLで作成してください。URL: ${url}`}], 2000);
+    area.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
+  } catch(e) { area.innerHTML = '<p class="text-danger">生成失敗</p>'; }
+  finally { ld.classList.add('hidden'); }
+};
+
+window.openPdfReaderModal = () => { openModal('pdf-reader-modal'); };
+window.loadPdfFile = (e) => {
+  const f = e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  $('pdf-reader-container').innerHTML = `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`;
+};
+
+window.openShadowingModal = () => { openModal('shadowing-modal'); };
+window.playShadowingModel = () => {
+  const text = $('shadowing-text-input').value;
+  if(!text) return showToast('英文を入力してください');
+  speakWord(text);
+  drawFakeWaveform('shadowing-model-canvas', '#2980B9');
+};
+window.toggleShadowingRecord = async () => {
+  const btn = $('shadowing-record-btn');
+  if(btn.textContent === '録音開始') {
+    btn.textContent = '停止'; btn.classList.remove('bg-danger'); btn.classList.add('bg-accent');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      shadowingAudioCtx = new AudioContext();
+      const source = shadowingAudioCtx.createMediaStreamSource(stream);
+      shadowingAnalyser = shadowingAudioCtx.createAnalyser();
+      source.connect(shadowingAnalyser);
+      drawRealWaveform('shadowing-user-canvas', '#E67E22');
+    } catch(e) { showToast('マイクの許可が必要です'); toggleShadowingRecord(); }
+  } else {
+    btn.textContent = '録音開始'; btn.classList.remove('bg-accent'); btn.classList.add('bg-danger');
+    if(shadowingAudioCtx) shadowingAudioCtx.close();
+    cancelAnimationFrame(shadowingReqAnimFrame);
+  }
+};
+const drawFakeWaveform = (id, color) => {
+  const canvas = $(id); if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let x = 0;
+  const draw = () => {
+    if(x > canvas.width) return;
+    ctx.fillStyle = color;
+    const h = Math.random() * canvas.height;
+    ctx.fillRect(x, (canvas.height - h)/2, 2, h);
+    x += 3;
+    requestAnimationFrame(draw);
+  };
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  draw();
+};
+const drawRealWaveform = (id, color) => {
+  const canvas = $(id); if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  shadowingAnalyser.fftSize = 256;
+  const bufferLength = shadowingAnalyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  const draw = () => {
+    shadowingReqAnimFrame = requestAnimationFrame(draw);
+    shadowingAnalyser.getByteFrequencyData(dataArray);
+    ctx.fillStyle = 'var(--bg2)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const barWidth = (canvas.width / bufferLength) * 2.5;
+    let x = 0;
+    for(let i = 0; i < bufferLength; i++) {
+      const barHeight = dataArray[i] / 2;
+      ctx.fillStyle = color;
+      ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+      x += barWidth + 1;
+    }
+  };
+  draw();
+};
+
 const renderSyntax = () => { const c = $('syntax-list'); if (!c) return; if (!syntaxList.length) { c.innerHTML = '<div class="vocab-empty">構文なし</div>'; return; } c.innerHTML = syntaxList.map(s => { const sK = "syntax_" + s.id, r = srsData[sK.toLowerCase()], sT = r ? `次回: ${srsDaysDiff(srsNextDate(r)) <= 0 ? '今日' : srsDaysDiff(srsNextDate(r)) + '日後'}` : '未登録'; return `<div class="card mb-2 p-14"><div class="flex-between align-center mb-2"><div class="text-base font-bold line-height-15" style="font-family:var(--font-block);">${esc(s.syntax)}</div><button onclick="deleteSyntax('${s.id}')" class="btn-clear text-danger">✕</button></div><div class="text-sm text-sub mb-1">${esc(s.meaning || '')}</div>${s.note ? `<div class="text-xs text-muted mt-2 pt-2 border-top border-dashed">${esc(s.note)}</div>` : ''}<div class="flex align-center gap-1 mt-3"><button onclick="srsReviewItem('${sK}',0);renderSyntax()" class="btn-srs bg-danger btn-pill">忘</button><button onclick="srsReviewItem('${sK}',1);renderSyntax()" class="btn-srs bg-streak btn-pill">難</button><button onclick="srsReviewItem('${sK}',2);renderSyntax()" class="btn-srs bg-green btn-pill">覚</button><button onclick="srsReviewItem('${sK}',3);renderSyntax()" class="btn-srs bg-blue btn-pill">完</button><span class="text-xs text-muted ml-2 whitespace-nowrap">${sT}</span></div></div>`; }).join(''); };
 const addSyntaxManual = () => { const nt = $('syntax-new-text'), nm = $('syntax-new-meaning'), nn = $('syntax-new-note'); if (!nt || !nt.value.trim()) return; syntaxList.unshift({ id: generateId(), syntax: nt.value.trim(), meaning: nm ? nm.value.trim() : '', note: nn ? nn.value.trim() : '', date: new Date().toLocaleDateString('ja-JP') }); save.syntax(); renderSyntax(); nt.value = ''; if (nm) nm.value = ''; if (nn) nn.value = ''; showToast('追加'); };
 const deleteSyntax = id => { syntaxList = syntaxList.filter(s => String(s.id) !== String(id)); save.syntax(); renderSyntax(); };
@@ -1736,7 +2424,184 @@ const exportSyntaxPDF = () => {
 };
 
 // ============================================================
-// [12] PLANNER & LOGS
+// [12] CUSTOM DECKS
+// ============================================================
+const ccInitDecks = () => { ccRenderSelects(); ccRenderDecksList(); if (ccDeckId) ccLoadDeck(); };
+const ccRenderSelects = () => { const o = `<option value="">${customTexts['cc_select_default'] || '-- 選択 --'}</option>` + customDecks.map(d => `<option value="${d.id}" ${d.id === ccDeckId ? 'selected' : ''}>${esc(d.name)}</option>`).join(''); ['cc-deck-select', 'cc-edit-deck-select'].forEach(id => { const e = $(id); if (e) e.innerHTML = o; }); };
+const ccRenderDecksList = () => { const c = $('cc-decks-list'); if (c) c.innerHTML = customDecks.length ? customDecks.map(d => `<div class="card flex-between align-center"><span>${esc(d.name)} (${d.cards.length}枚)</span><div class="flex-gap-8"><button onclick="ccDeleteDeck('${d.id}')" class="btn-clear text-danger">削除</button></div></div>`).join('') : ''; };
+const ccCreateDeck = () => { const i = $('cc-new-deck-name'); if (!i || !i.value.trim()) return; customDecks.push({ id: 'deck_' + generateId(), name: i.value.trim(), cards: [] }); save.decks(); ccInitDecks(); showToast('作成'); i.value = ''; };
+const ccDeleteDeck = id => { 
+  if (!confirm('削除しますか？')) return; 
+  customDecks = customDecks.filter(d => d.id !== id); 
+  if (ccDeckId === id) {
+    ccDeckId = null; 
+    ccList = [];
+    ccIdx = 0;
+    ccRenderCard();
+  }
+  save.decks(); ccInitDecks(); 
+};
+const setCCMode = m => { ccMode = m; ['study', 'edit', 'decks'].forEach(x => { const el = $('cc-mode-' + x), a = $('cc-' + x + '-area'); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } if (a) { if (x === m) a.classList.remove('hidden'); else a.classList.add('hidden'); } }); if (m === 'study') ccLoadDeck(); if (m === 'edit' || m === 'decks') ccInitDecks(); };
+
+const ccLoadDeck = () => { const s = $('cc-deck-select'); if (s && s.value) ccDeckId = s.value; const d = customDecks.find(x => x.id === ccDeckId), fc = $('cc-flip-card'), ed = $('cc-empty-deck'), nd = $('cc-no-deck'), cc = $('cc-card-counter'), cn = $('cc-card-nav'); if (fc) { if (d && d.cards.length) fc.classList.remove('hidden'); else fc.classList.add('hidden'); } if (ed) { if (d && !d.cards.length) ed.classList.remove('hidden'); else ed.classList.add('hidden'); } if (nd) { if (!d) nd.classList.remove('hidden'); else nd.classList.add('hidden'); } if (cc) { if (d && d.cards.length) cc.classList.remove('hidden'); else cc.classList.add('hidden'); } if (cn) { if (d && d.cards.length) cn.classList.remove('hidden'); else cn.classList.add('hidden'); } if (!d || !d.cards.length) return; ccList = d.cards.slice(); ccIdx = 0; ccRenderCard(); };
+const ccRenderCard = () => { 
+  const fi = $('cc-flip-inner'), cf = $('cc-card-front'), cb = $('cc-card-back'), ci = $('cc-card-idx'), ct = $('cc-card-total'); 
+  if (fi) fi.classList.remove('flipped'); 
+  if (!ccList.length) {
+    if (cf) cf.textContent = '—'; if (cb) cb.textContent = '—'; if (ci) ci.textContent = '0'; if (ct) ct.textContent = '0';
+    return;
+  }
+  if (cf) cf.textContent = ccList[ccIdx].front; if (cb) cb.textContent = ccList[ccIdx].back; if (ci) ci.textContent = ccIdx + 1; if (ct) ct.textContent = ccList.length; 
+};
+const ccFlipCard = () => { const fi = $('cc-flip-inner'); if (fi) fi.classList.toggle('flipped'); };
+const ccChangeCard = d => { if (ccList.length) { ccIdx = (ccIdx + d + ccList.length) % ccList.length; ccRenderCard(); } };
+const ccShuffleCards = () => { for (let i = ccList.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ccList[i], ccList[j]] = [ccList[j], ccList[i]]; } ccIdx = 0; ccRenderCard(); };
+
+const ccRenderCards = () => { const s = $('cc-edit-deck-select'); if (s && s.value) ccDeckId = s.value; const d = customDecks.find(x => x.id === ccDeckId), ned = $('cc-no-edit-deck'), ce = $('cc-card-editor'), cl = $('cc-card-list'); if (ned) { if (d) ned.classList.add('hidden'); else ned.classList.remove('hidden'); } if (ce) { if (d) ce.classList.remove('hidden'); else ce.classList.add('hidden'); } if (!d || !cl) return; cl.innerHTML = d.cards.map((c, i) => `<div class="card flex-between p-10"><div><b>${esc(c.front)}</b><br><span class="text-muted">${esc(c.back)}</span></div><button onclick="ccDeleteCard(${i})" class="btn-clear text-danger">✕</button></div>`).join(''); };
+const ccAddCard = () => { const fi = $('cc-new-front'), bi = $('cc-new-back'), d = customDecks.find(x => x.id === ccDeckId); if (fi && bi && d && fi.value.trim() && bi.value.trim()) { d.cards.push({ front: fi.value.trim(), back: bi.value.trim() }); save.decks(); ccRenderCards(); fi.value = ''; bi.value = ''; fi.focus(); showToast('追加'); } };
+const ccDeleteCard = i => { const d = customDecks.find(x => x.id === ccDeckId); if (d) { d.cards.splice(i, 1); save.decks(); ccRenderCards(); } };
+
+const setCCAiMode = m => { ccAiMode = m; ['text', 'file', 'photo'].forEach(x => { const btn = $('cc-ai-mode-' + x), area = $('cc-ai-' + x + '-area'); if (btn) { if (x === m) btn.classList.add('active'); else btn.classList.remove('active'); } if (area) { if (x === m) area.classList.remove('hidden'); else area.classList.add('hidden'); } }); };
+const handleCCAiFile = e => { const f = e.target.files[0]; if (!f) return; const fn = $('cc-ai-file-name'); if (fn) fn.textContent = f.name; const r = new FileReader(); r.onload = ev => { ccAiFileData = ev.target.result; }; r.readAsText(f); };
+const handleCCAiPhoto = async e => { const f = e.target.files[0]; if (!f) return; ccAiPhotoData = await resizeImage(f); const pv = $('cc-ai-photo-preview'); if (pv) pv.innerHTML = `<img src="${ccAiPhotoData}" style="max-width:100%;border-radius:10px">`; };
+const ccGenerateCardsAI = async () => {
+  const d = customDecks.find(x => x.id === ccDeckId); if (!d) return showToast('デッキ未選択'); let c = [];
+  if (ccAiMode === 'text') { const p = $('cc-ai-prompt')?.value.trim(); if (!p) return showToast('テーマ入力必須'); c = [{ role: 'user', content: `「${p}」に関連するフラッシュカードのペア生成` }]; } 
+  else if (ccAiMode === 'file') { if (!ccAiFileData) return showToast('ファイル未選択'); const p = $('cc-ai-file-prompt')?.value.trim() || 'フラッシュカード生成'; c = [{ role: 'user', content: `ファイル内容:\n${ccAiFileData.substring(0, 5000)}\n\n指示:${p}` }]; } 
+  else if (ccAiMode === 'photo') { if (!ccAiPhotoData) return showToast('写真未選択'); const b = ccAiPhotoData.split(',')[1], m = ccAiPhotoData.match(/data:([^;]+)/)[1], p = $('cc-ai-photo-prompt')?.value.trim() || '画像内容からカード生成'; c = [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: p }] }]; }
+  const btn = $('cc-ai-btn'); if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+  try {
+    const rep = await callGemini(c, 1500, 'JSON配列。キーは "front" と "back"。フロントとバックを簡潔に。', true);
+    const arr = extractJSON(rep);
+    if (arr && arr.length) {
+      let added = 0; arr.forEach(cd => { if (cd.front && cd.back) { d.cards.push({ front: String(cd.front), back: String(cd.back) }); added++; } });
+      save.decks(); ccRenderCards(); showToast(`${added}枚生成`);
+      if (ccAiMode === 'text') { const i = $('cc-ai-prompt'); if (i) i.value = ''; }
+      else if (ccAiMode === 'file') { const f = $('cc-ai-file-input'); if (f) f.value = ''; $('cc-ai-file-name').textContent = ''; $('cc-ai-file-prompt').value = ''; ccAiFileData = ''; }
+      else if (ccAiMode === 'photo') { $('cc-ai-photo-input').value = ''; $('cc-ai-photo-preview').innerHTML = ''; $('cc-ai-photo-prompt').value = ''; ccAiPhotoData = null; }
+    } else showToast('失敗');
+  } catch (e) { showToast('通信エラー'); } finally { if (btn) { btn.disabled = false; btn.textContent = customTexts['cc_ai_btn'] || 'AIで生成'; } }
+};
+
+// ============================================================
+// [13] SUBJECT QA
+// ============================================================
+const setSubject = s => { 
+  curSubj = s; 
+  document.querySelectorAll('#subject-tabs .stab').forEach((b, i) => { if (Object.keys(subjConf)[i] === s) b.classList.add('active'); else b.classList.remove('active'); }); 
+  const sl = $('subject-label'); if (sl) sl.textContent = (customTexts['subj_tab_' + s.substring(0,3)] || subjConf[s]) + 'モード'; 
+  
+  const ocrOpt = $('math-sci-ocr-option');
+  if(ocrOpt) {
+    if(s === 'math' || s === 'science') ocrOpt.classList.remove('hidden');
+    else ocrOpt.classList.add('hidden');
+  }
+  
+  renderSubjectChat(); renderSubjectSaved(); renderSubjectQuiz(); 
+};
+const switchSubjectView = v => { ['chat', 'history', 'quiz'].forEach(x => { const el = $('sview-' + x), _v = $('subject-' + x + '-view'); if (el) { if (x === v) el.classList.add('active'); else el.classList.remove('active'); } if (_v) { if (x === v) _v.classList.remove('hidden'); else _v.classList.add('hidden'); } }); if (v === 'history') renderSubjectSaved(); if (v === 'quiz') renderSubjectQuiz(); };
+const setSubjectInputMode = m => { sqMode = m; ['text', 'file', 'photo'].forEach(x => { const el = $('sqmode-' + x), a = $('sq-' + x + '-area'); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } if (a) { if (x === m) a.classList.remove('hidden'); else a.classList.add('hidden'); } }); };
+const handleSubjectFile = e => { const f = e.target.files[0], fn = $('subject-file-name'); if (!f) return; if (fn) fn.textContent = f.name; const r = new FileReader(); r.onload = ev => sqFileData = ev.target.result; r.readAsText(f); };
+const handleSubjectPhoto = async e => { const f = e.target.files[0], pp = $('subject-photo-preview'); if (!f) return; sqPhotoData = await resizeImage(f); if (pp) pp.innerHTML = `<img src="${sqPhotoData}" style="max-width:100%;border-radius:10px">`; };
+
+const _sendSubj = async (c, dt) => {
+  if (!subjHist[curSubj]) subjHist[curSubj] = [];
+  subjHist[curSubj].push({ role: 'user', content: typeof c === 'string' ? c : dt });
+  const ct = $('subject-chat'); if (!ct) return;
+  ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble user">${esc(dt)}</div><div class="chat-bubble ai" id="sq-load"><span class="loading-dots"></span></div>`); ct.scrollTop = ct.scrollHeight;
+  try {
+    const rep = await callGemini(subjHist[curSubj].slice(0, -1).concat([{ role: 'user', content: c }]), 1500);
+    const cleanRep = clean(rep); subjHist[curSubj].push({ role: 'assistant', content: cleanRep }); const ld = $('sq-load'); if (ld) ld.remove();
+    ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')} <button class="copy-btn mt-2" onclick="saveLastSubjectQA(this,'${curSubj}')">保存</button></div>`);
+  } catch (e) { const ld = $('sq-load'); if (ld) ld.remove(); ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai text-danger">通信エラー</div>`); subjHist[curSubj].pop(); }
+  ct.scrollTop = ct.scrollHeight;
+};
+const sendSubjectMessage = () => { const i = $('subject-input'); if (!i || !i.value.trim()) return; const t = i.value.trim(); i.value = ''; autoResize(i); _sendSubj(t, t); };
+const sendSubjectFileMessage = () => { if (sqFileData) { const ex = $('subject-file-extra'); _sendSubj([{ type: 'text', text: (ex ? ex.value : '') + '\n' + sqFileData }], 'ファイル添付'); if (ex) ex.value = ''; sqFileData = ''; const fn = $('subject-file-name'); if (fn) fn.textContent = ''; } };
+const sendSubjectPhotoMessage = () => { 
+  if (sqPhotoData) { 
+    const b = sqPhotoData.split(',')[1], m = sqPhotoData.match(/data:([^;]+)/)[1], ex = $('subject-photo-extra'); 
+    let textPrompt = ex ? ex.value || '質問' : '質問';
+    const isMathOcr = $('subject-math-ocr-check') && $('subject-math-ocr-check').checked && (curSubj === 'math' || curSubj === 'science');
+    if(isMathOcr) {
+      textPrompt = `画像内の数式や問題を正確に読み取り、なぜその公式を使うのかを含めてステップバイステップで詳しく解説してください。\n追加の質問: ${textPrompt}`;
+    }
+    _sendSubj([{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: textPrompt }], '写真'); 
+    if (ex) ex.value = ''; sqPhotoData = null; const pp = $('subject-photo-preview'); if (pp) pp.innerHTML = ''; 
+  } 
+};
+
+const renderSubjectChat = () => { const c = $('subject-chat'); if (!c) return; c.innerHTML = ''; (subjHist[curSubj] || []).forEach(m => { c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ${m.role === 'user' ? 'user' : 'ai'}">${m.role === 'user' ? esc(m.content) : String(m.content).replace(/\n/g, '<br>')}</div>`); }); c.scrollTop = c.scrollHeight; };
+const clearSubjectChat = () => { subjHist[curSubj] = []; renderSubjectChat(); };
+const saveLastSubjectQA = async (btn, subj) => {
+  const hist = subjHist[subj]; if (!hist || hist.length < 2) return;
+  const qObj = hist[hist.length - 2].content;
+  let qStr = '画像';
+  let imageId = null;
+  
+  if (typeof qObj === 'string') {
+    qStr = qObj;
+  } else if (Array.isArray(qObj)) {
+    const textPart = qObj.find(x => x.type === 'text');
+    if (textPart) qStr = textPart.text;
+    const imgPart = qObj.find(x => x.type === 'image');
+    if (imgPart) {
+      const base64 = `data:${imgPart.source.media_type};base64,${imgPart.source.data}`;
+      imageId = await saveImageToDB(base64);
+    }
+  }
+  
+  subjectSaved.unshift({ id: generateId(), subject: subj, subjectLabel: subjConf[subj], date: new Date().toLocaleString(), question: qStr, answer: hist[hist.length - 1].content, imageId });
+  save.subSaved(); showToast('保存済'); if (btn) { btn.textContent = '保存済'; btn.disabled = true; }
+};
+const generateSimilarSubject = async id => {
+  const x = subjectSaved.find(s => String(s.id) === String(id)); if (!x) return; showToast('類題生成中...');
+  try {
+    const rep = await callGemini([{ role: 'user', content: `以下の問題と解答を参考にして、状況や数値を変えた類題を1つ出題し、その解答解説も出力して。JSONのみ: {"question":"...","answer":"..."}\nQ: ${x.question}\nA: ${x.answer}` }], 1500, '', true);
+    const json = extractJSON(rep); subjectSaved.unshift({ id: generateId(), subject: x.subject, subjectLabel: x.subjectLabel, date: new Date().toLocaleString(), question: json.question, answer: clean(json.answer) });
+    save.subSaved(); renderSubjectSaved(); showToast('類題追加');
+  } catch (e) { showToast('通信エラー'); }
+};
+const renderSubjectSaved = () => { 
+  const ls = subjectSaved.filter(x => x.subject === curSubj), sl = $('subject-saved-list'); if (!sl) return; 
+  sl.innerHTML = ls.length ? ls.map(x => `<div class="card mb-2"><div class="text-xs text-muted mb-1">${x.date}</div><div class="text-sm font-bold mb-1">${esc(x.question)}</div>${x.imageId ? `<div class="mb-2"><button class="btn-text-muted" onclick="showSavedImage('${x.imageId}')">画像を表示</button><div id="saved-img-${x.imageId}" class="mt-1"></div></div>` : ''}<div class="text-xs text-sub">${esc(x.answer)}</div><div class="flex-gap-8 mt-2"><button class="copy-btn" onclick="generateSimilarSubject('${x.id}')">類題生成</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteSubjectSaved('${x.id}')">削除</button></div></div>`).join('') : '<div class="vocab-empty">空</div>'; 
+};
+window.showSavedImage = async (id) => {
+  const container = $(`saved-img-${id}`);
+  if (!container) return;
+  if (container.innerHTML) { container.innerHTML = ''; return; }
+  const data = await getImageFromDB(id);
+  if (data) container.innerHTML = `<img src="${data}" style="max-width:100%; border-radius:8px;">`;
+};
+const deleteSubjectSaved = id => { subjectSaved = subjectSaved.filter(x => String(x.id) !== String(id)); save.subSaved(); renderSubjectSaved(); };
+
+const renderSubjectQuiz = () => { const sqs = $('subject-quiz-start'), sqa = $('subject-quiz-area'); if (!sqs || !sqa) return; const pendingQuiz = subjectQuizzes.find(q => q.subject === curSubj && !q.answer); if (pendingQuiz) { sqs.classList.add('hidden'); sqa.classList.remove('hidden'); renderSubjectQuizActive(pendingQuiz); } else { sqs.classList.remove('hidden'); sqa.classList.add('hidden'); const hist = subjectQuizzes.filter(q => q.subject === curSubj && q.answer), hl = $('subject-quiz-history-list'); if (hl) hl.innerHTML = hist.length ? `<p class="section-note">過去の復習問題</p>` + hist.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showSubjectQuizHistory('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''}</div><div class="text-sm">${h.question.replace(/<[^>]+>/g, '').substring(0, 60)}...</div></div>`).join('') : ''; } };
+const generateSubjectQuiz = async () => {
+  const ls = subjectSaved.filter(x => x.subject === curSubj); if (!ls.length) return showToast('QA履歴なし');
+  const qas = ls.slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n'), sqs = $('subject-quiz-start'), sqa = $('subject-quiz-area');
+  if (sqs) sqs.classList.add('hidden'); if (sqa) { sqa.classList.remove('hidden'); sqa.innerHTML = '<div class="card text-center p-36"><span class="loading-dots"></span></div>'; }
+  try {
+    const rep = await callGemini([{ role: 'user', content: `【QA履歴】\n${qas}\n\n復習問題を作成` }], 1000, `QA履歴から極めて難関な復習問題を1問作成。HTML(h4+p)のみ。解答解説なし。`);
+    const html = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()), newQuiz = { id: 'squiz_' + generateId(), subject: curSubj, date: new Date().toLocaleDateString('ja-JP'), question: html, answer: '', feedback: '', score: null };
+    subjectQuizzes.unshift(newQuiz); save.subQuiz(); renderSubjectQuizActive(newQuiz);
+  } catch (e) { if (sqa) handleApiError(e, sqa.id); }
+};
+const renderSubjectQuizActive = quiz => { const sqa = $('subject-quiz-area'); if (!sqa) return; if (!quiz.answer) sqa.innerHTML = `<div class="card"><p class="text-xs font-bold text-muted mb-3">復習問題</p><div class="text-base mb-4 line-height-16">${quiz.question}</div><textarea id="subquiz-answer-input" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="subquiz-submit-btn" onclick="submitSubjectQuiz('${quiz.id}')">添削</button><div id="subquiz-loading" class="hidden text-center"><span class="loading-dots"></span></div></div>`; else sqa.innerHTML = `<div class="card"><p class="text-xs font-bold text-green mb-3">添削完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${quiz.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(quiz.answer)}</div><div class="correction-box mt-0">${quiz.feedback}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="renderSubjectQuiz()">戻る</button></div>`; };
+const submitSubjectQuiz = async id => {
+  const i = $('subquiz-answer-input'); if (!i || !i.value.trim()) return; const ans = i.value.trim(), quiz = subjectQuizzes.find(q => String(q.id) === String(id)), sb = $('subquiz-submit-btn'), ld = $('subquiz-loading');
+  if (!quiz) return; if (sb) sb.classList.add('hidden'); if (ld) ld.classList.remove('hidden');
+  const ls = subjectSaved.filter(x => x.subject === curSubj).slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n');
+  try {
+    const rep = await callGemini([{ role: 'user', content: `問題:\n${quiz.question}\n解答:\n${ans}` }], 2000, `非常に丁寧な添削と解説をHTML出力。100点満点スコア。参考:\n${ls}`);
+    const html = clean(rep.replace(/```html?/g, '').replace(/```/g, '')); quiz.answer = ans; quiz.feedback = html; quiz.score = html.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null;
+    save.subQuiz(); renderSubjectQuizActive(quiz);
+  } catch (e) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); if (sb) sb.classList.remove('hidden'); }
+};
+const showSubjectQuizHistory = id => { const h = subjectQuizzes.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return; let html = `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${h.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(h.answer)}</div><div class="correction-box mt-0">${h.feedback}</div><button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteSubjectQuizHistory('${id}')">この問題を削除</button>`; mb.innerHTML = html; openModal('writing-history-modal'); };
+const deleteSubjectQuizHistory = id => { if (!confirm('削除しますか？')) return; subjectQuizzes = subjectQuizzes.filter(x => String(x.id) !== String(id)); save.subQuiz(); renderSubjectQuiz(); closeModal('writing-history-modal'); };
+
+// ============================================================
+// [14] PLANNER & LOGS
 // ============================================================
 const setPlanMode = m => {
   planMode = m; ['calendar', 'yearly', 'gantt', 'score', 'ai'].forEach(x => { const el = $('plan-mode-' + x); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } });
@@ -1784,6 +2649,49 @@ const addPlanDatePlan = () => { const i = $('new-plan-input'), t = $('new-plan-t
 const togglePlanDatePlan = i => { if (plans[selectedPlanDate] && plans[selectedPlanDate][i]) { plans[selectedPlanDate][i].done = !plans[selectedPlanDate][i].done; save.plans(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
 const deletePlanDatePlan = i => { if (plans[selectedPlanDate]) { plans[selectedPlanDate].splice(i, 1); if (plans[selectedPlanDate].length === 0) delete plans[selectedPlanDate]; save.plans(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
 
+window.rebuildScheduleAI = async () => {
+  if(!confirm('過去の未完了の予定を今日以降に自動で再配置しますか？')) return;
+  const today = todayDateStr();
+  let pendingTasks = [];
+  
+  Object.keys(plans).forEach(date => {
+    if(date < today) {
+      plans[date].forEach(p => { if(!p.done) pendingTasks.push(p.text); });
+      plans[date] = plans[date].filter(p => p.done);
+    }
+  });
+  
+  if(pendingTasks.length === 0) return showToast('再配置する未完了タスクはありません');
+  
+  const targetDate = $('gantt-target-date')?.value;
+  let prompt = '';
+  if (targetDate && targetDate >= today) {
+    prompt = `以下の未完了タスクを、今日(${today})から目標日(${targetDate})までの間に無理なく分散させて配置し、JSON配列で出力してください。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
+  } else {
+    prompt = `以下の未完了タスクを、今日(${today})から1週間以内に無理なく分散させて配置し、JSON配列で出力してください。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
+  }
+
+  showToast('AIがスケジュールを再構築中...');
+  try {
+    const rep = await callGemini([{role:'user', content:prompt}], 1500, '', true);
+    const arr = extractJSON(rep);
+    if(arr && arr.length) {
+      arr.forEach(d => {
+        if(!plans[d.date]) plans[d.date] = [];
+        d.tasks.forEach(t => plans[d.date].push({text: t, done: false, time: ''}));
+      });
+      save.plans();
+      renderPlanCalendar();
+      renderPlanDateList();
+      showToast('スケジュールを再構築しました');
+    } else {
+      showToast('再構築に失敗しました');
+    }
+  } catch(e) {
+    showToast('通信エラー');
+  }
+};
+
 const renderTextbooks = () => { const c = $('textbook-chips'); if (c) c.innerHTML = textbooks.length ? textbooks.map((t, i) => `<span class="filter-chip flex align-center gap-1">${esc(t)}<button onclick="deleteTextbook(${i})" class="btn-clear text-danger">✕</button></span>`).join('') : '<span class="text-xs text-muted">空</span>'; };
 const addTextbook = () => { const i = $('new-textbook-input'); if (!i) return; const v = i.value.trim(); if (v && !textbooks.includes(v)) { textbooks.push(v); save.books(); i.value = ''; renderTextbooks(); } };
 const deleteTextbook = i => { textbooks.splice(i, 1); save.books(); renderTextbooks(); };
@@ -1803,7 +2711,22 @@ const updateYearlyMonth = (m, val) => { if (!yearlyPlan.months) yearlyPlan.month
 const saveYearlyPlan = () => { const mg = $('yearly-main-goal'); if (mg) yearlyPlan.goal = mg.value.trim(); save.yearly(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 const saveYearlyPlanDebounced = debounce(saveYearlyPlan, 500);
 
-// ガントチャート(自動スケジュール)
+window.generateMilestonesAI = async () => {
+  const goal = $('yearly-main-goal').value;
+  if(!goal) return showToast('年間大目標を入力してください');
+  showToast('AIがマイルストーンを生成中...');
+  try {
+    const rep = await callGemini([{role:'user', content:`目標「${goal}」を達成するための月別マイルストーンをJSONで出力。形式: {"4":"...", "5":"..."}`}], 1000, '', true);
+    const json = extractJSON(rep);
+    if(json) {
+      Object.keys(json).forEach(m => {
+        if(yearlyPlan.months) yearlyPlan.months[m] = json[m];
+      });
+      save.yearly(); renderYearlyPlan(); showToast('生成完了');
+    }
+  } catch(e) { showToast('生成失敗'); }
+};
+
 const generateGanttSchedule = async () => {
   const targetName = $('gantt-target-name')?.value.trim();
   const targetDate = $('gantt-target-date')?.value;
@@ -1832,8 +2755,11 @@ const generateGanttSchedule = async () => {
       const d = dayPlan.date;
       if (!plans[d]) plans[d] = [];
       dayPlan.tasks.forEach(t => {
-        plans[d].push({ text: `[${targetName}] ${t}`, done: false, time: null });
-        addedCount++;
+        const taskText = `[${targetName}] ${t}`;
+        if (!plans[d].some(p => p.text === taskText)) {
+          plans[d].push({ text: taskText, done: false, time: null });
+          addedCount++;
+        }
       });
     });
     save.plans();
@@ -1843,10 +2769,11 @@ const generateGanttSchedule = async () => {
     if (resultText) resultText.textContent = `${addedCount}件のタスクをカレンダーに自動配置しました。`;
     showToast('スケジュール作成完了');
     
-    // イベントにも目標日を登録
     if (!events[targetDate]) events[targetDate] = [];
-    events[targetDate].push({ text: `★ ${targetName} 当日 ★` });
-    save.events();
+    if (!events[targetDate].some(e => e.text.includes(targetName))) {
+      events[targetDate].push({ text: `[ ${targetName} 当日 ]` });
+      save.events();
+    }
     
   } catch(e) {
     showToast('通信エラー: スケジュール作成に失敗しました');
@@ -1891,7 +2818,8 @@ const generatePersonalizedExam = async () => {
 
 const ocrScore = async e => {
   const f = e.target.files[0]; if (!f) return; showToast('画像解析中...'); 
-  const resized = await resizeImage(f), b = resized.split(',')[1], m = resized.match(/data:([^;]+)/)[1];
+  const resized = await resizeImage(f, 2048, 2048, true); 
+  const b = resized.split(',')[1], m = resized.match(/data:([^;]+)/)[1];
   try {
     const rep = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: '成績表から模試名、実施日(YYYY/MM形式)、各科目の点数と偏差値(catはenglish,math,japanese,science,social,totalのいずれか、detailは科目名)、各志望校判定(univ,rank)を抽出せよ。出力は必ず {"name":"","date":"","subjects":[{"cat":"","detail":"","score":"","dev":""}],"judges":[{"univ":"","rank":""}]} のJSON形式のみ。' }] }], 2000, '', true);
     const json = extractJSON(rep), ni = $('score-exam-name'), di = $('score-exam-date');
@@ -1913,21 +2841,62 @@ const addExamScore = () => {
   const subjects = []; document.querySelectorAll('.score-subject-row').forEach(r => { const cat = r.querySelector('.exam-subj-cat').value, detail = r.querySelector('.exam-subj-detail').value, score = r.querySelector('.exam-subj-score').value.trim(), dev = r.querySelector('.exam-subj-dev').value.trim(); if (score || dev) subjects.push({ cat, detail, score, dev }); });
   const judges = []; document.querySelectorAll('.score-judge-row').forEach(r => { const univ = r.querySelector('.exam-judge-univ').value.trim(), rank = r.querySelector('.exam-judge-rank').value; if (univ) judges.push({ univ, rank }); });
   const di = $('score-exam-date'), mi = $('score-memo'); examScores.unshift({ id: Date.now(), name: n, date: di ? di.value.trim() : '', memo: mi ? mi.value.trim() : '', subjects, judges }); save.exams();
-  renderScoreList(); renderScoreChart(); showToast('保存'); gainXP(50);
+  renderScoreList(); renderScoreChart(); showToast('保存');
   ni.value = ''; if (di) di.value = ''; if (mi) mi.value = ''; $('exam-subjects-container').innerHTML = ''; $('exam-judges-container').innerHTML = ''; addExamSubjectRow(); addExamJudgeRow();
 };
 const deleteExamScore = id => { examScores = examScores.filter(s => s.id !== id); save.exams(); renderScoreList(); renderScoreChart(); };
 const renderScoreList = () => { const c = $('score-list'); if (!c) return; if (!examScores.length) { c.innerHTML = '<div class="vocab-empty">成績なし</div>'; return; } c.innerHTML = examScores.map(s => { const subjHtml = (s.subjects || []).map(x => `<div class="flex-between border-bottom border-dashed py-4 text-xs"><span>${(SCORE_SUBJECTS[x.cat]?.label || x.cat)} (${esc(x.detail)})</span><span>${x.score ? esc(x.score) + '点' : '-'} ${x.dev ? '(偏:' + esc(x.dev) + ')' : ''}</span></div>`).join(''); const judgeHtml = (s.judges || []).map(x => `<span class="inline-block bg-main border radius-sm px-6 py-2 mr-4 mb-2 text-xs font-bold">${esc(x.univ)} <span class="text-danger">${esc(x.rank)}</span></span>`).join(''); return `<div class="card mb-2"><div class="flex-between align-center mb-2"><div><div class="text-base font-bold">${esc(s.name)}</div>${s.date ? `<div class="text-xs text-muted mt-1">${esc(s.date)}</div>` : ''}</div><button onclick="deleteExamScore(${s.id})" class="btn-clear">✕</button></div>${subjHtml ? `<div class="mb-2">${subjHtml}</div>` : ''}${judgeHtml ? `<div class="mb-2">${judgeHtml}</div>` : ''}${s.memo ? `<div class="text-xs text-muted pt-2 border-top">${esc(s.memo)}</div>` : ''}</div>`; }).join(''); };
 
+const setScoreChartMode = m => {
+  scoreChartMode = m;
+  ['dev', 'judge'].forEach(x => {
+    const btn = $('score-chart-mode-' + x);
+    if (btn) { if (x === m) btn.classList.add('active'); else btn.classList.remove('active'); }
+  });
+  renderScoreChart();
+};
+
 const renderScoreChart = () => {
   const cv = $('scoreLineChart'), card = $('score-chart-card'); if (!cv || !card) return;
+  if (cv.offsetParent === null) return; 
+  
   const scored = examScores.filter(s => s.subjects && s.subjects.some(x => x.dev)); if (!scored.length) { card.classList.add('hidden'); return; }
   card.classList.remove('hidden');
-  const sorted = [...scored].reverse(), labels = sorted.map(s => s.date || s.name), allDetails = [...new Set(sorted.flatMap(s => s.subjects.filter(x => x.dev).map(x => x.detail)))];
+  
+  const sorted = [...scored].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+  const labels = sorted.map(s => s.date || s.name);
   const colors = ['#2980B9', '#C0392B', '#2E7D52', '#E67E22', '#8E44AD', '#16A085', '#D35400', '#2C3E50'];
-  const datasets = allDetails.map((det, i) => ({ label: det, data: sorted.map(s => { const f = s.subjects.find(x => x.detail === det && x.dev); return f ? parseFloat(f.dev) : null; }), borderColor: colors[i % colors.length], backgroundColor: colors[i % colors.length] + '33', tension: 0.3, pointRadius: 5, pointHoverRadius: 7, spanGaps: true }));
+  
+  let datasets = [];
+  let allDetails = [];
+  
+  if (scoreChartMode === 'dev') {
+    allDetails = [...new Set(sorted.flatMap(s => s.subjects.filter(x => x.dev).map(x => x.detail)))];
+    datasets = allDetails.map((det, i) => ({ label: det, data: sorted.map(s => { const f = s.subjects.find(x => x.detail === det && x.dev); return f ? parseFloat(f.dev) : null; }), borderColor: colors[i % colors.length], backgroundColor: colors[i % colors.length] + '33', tension: 0.3, pointRadius: 5, pointHoverRadius: 7, spanGaps: true }));
+  } else {
+    const rankMap = { 'A': 5, 'B': 4, 'C': 3, 'D': 2, 'E': 1 };
+    allDetails = [...new Set(sorted.flatMap(s => (s.judges || []).map(x => x.univ)))];
+    datasets = allDetails.map((univ, i) => ({ label: univ, data: sorted.map(s => { const f = (s.judges || []).find(x => x.univ === univ); return f ? rankMap[f.rank] || null : null; }), borderColor: colors[i % colors.length], backgroundColor: colors[i % colors.length] + '33', tension: 0.3, pointRadius: 5, pointHoverRadius: 7, spanGaps: true }));
+  }
+  
   if (scoreLineChart) scoreLineChart.destroy();
-  scoreLineChart = new Chart(cv, { type: 'line', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: '偏差値' }, suggestedMin: 30, suggestedMax: 70 } } } });
+  scoreLineChart = new Chart(cv, { 
+    type: 'line', 
+    data: { labels, datasets }, 
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      plugins: { legend: { display: false } }, 
+      scales: { 
+        y: { 
+          title: { display: true, text: scoreChartMode === 'dev' ? '偏差値' : '判定' }, 
+          suggestedMin: scoreChartMode === 'dev' ? 30 : 1, 
+          suggestedMax: scoreChartMode === 'dev' ? 70 : 5,
+          ticks: scoreChartMode === 'judge' ? { callback: function(value) { return ['E','D','C','B','A'][value-1] || ''; }, stepSize: 1 } : {}
+        } 
+      } 
+    } 
+  });
   const leg = $('score-chart-legend'); if (leg) leg.innerHTML = allDetails.map((d, i) => `<span class="flex align-center gap-1"><span style="width:12px;height:12px;border-radius:50%;background:${colors[i % colors.length]};display:inline-block;"></span>${esc(d)}</span>`).join('');
 };
 function buildScoreContext() { if (!examScores.length) return ''; return '\n【模試】\n' + examScores.slice(0, 5).map(s => { let p = [`${s.name}`]; if (s.subjects) p.push(...s.subjects.map(x => `${x.detail}:${x.score}/${x.dev}`)); return p.join(' '); }).join('\n'); }
@@ -1948,7 +2917,10 @@ const renderLogListModal = () => {
         <div class="text-xs text-muted mb-1">${l.date}</div>
         <div class="text-sm font-bold"><span class="sli-subj mr-2">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span> ${Math.floor(l.seconds / 60)}分</div>
       </div>
-      <button onclick="deleteStudyLogFromList(${l.ts})" class="btn-clear text-danger">削除</button>
+      <div class="flex-gap-8">
+        <button onclick="openLogEditModal(${l.ts})" class="btn-clear text-accent">編集</button>
+        <button onclick="deleteStudyLogFromList(${l.ts})" class="btn-clear text-danger">削除</button>
+      </div>
     </div>
   `).join('');
 };
@@ -1957,6 +2929,35 @@ const deleteStudyLogFromList = ts => {
   studyLogs = studyLogs.filter(l => l.ts !== ts);
   save.logs(); renderLogListModal();
   if ($('Dashboard').classList.contains('active')) renderDashboard();
+};
+
+window.openLogEditModal = (ts) => {
+  const log = studyLogs.find(l => l.ts === ts);
+  if (!log) return;
+  $('edit-log-ts').value = log.ts;
+  $('edit-log-date').value = log.date;
+  $('edit-log-subj').value = log.subj;
+  $('edit-log-min').value = Math.floor(log.seconds / 60);
+  openModal('log-edit-modal');
+};
+
+window.saveEditedLog = () => {
+  const ts = parseInt($('edit-log-ts').value);
+  const date = $('edit-log-date').value;
+  const subj = $('edit-log-subj').value;
+  const min = parseInt($('edit-log-min').value) || 0;
+  if (!date || min <= 0) return showToast('正しく入力してください');
+  const log = studyLogs.find(l => l.ts === ts);
+  if (log) {
+    log.date = date;
+    log.subj = subj;
+    log.seconds = min * 60;
+    save.logs();
+    renderLogListModal();
+    if ($('Dashboard').classList.contains('active')) renderDashboard();
+    closeModal('log-edit-modal');
+    showToast('保存しました');
+  }
 };
 
 const openStudyLogModal = ds => { currentLogDate = ds; const t = $('log-modal-title'); if (t) t.textContent = ds; renderDailyEventList(); renderDailyPlanList(); renderLogModalList(); openModal('log-modal'); };
@@ -1968,11 +2969,23 @@ const addDailyPlanFromModal = () => { const i = $('log-modal-plan-input'); if (!
 const toggleDailyPlanFromModal = i => { if (plans[currentLogDate] && plans[currentLogDate][i]) { plans[currentLogDate][i].done = !plans[currentLogDate][i].done; save.plans(); renderDailyPlanList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
 const deleteDailyPlanFromModal = i => { if (plans[currentLogDate]) { plans[currentLogDate].splice(i, 1); if (plans[currentLogDate].length === 0) delete plans[currentLogDate]; save.plans(); renderDailyPlanList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
 const renderLogModalList = () => { const c = $('log-modal-list'), ls = studyLogs.filter(l => l.date === currentLogDate); if (c) c.innerHTML = ls.length ? ls.map(l => `<div class="card flex-between mb-2 p-14"><div><span class="sli-subj">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span> <span class="font-bold ml-2">${Math.floor(l.seconds / 60)}分</span></div><button onclick="deleteStudyLog(${l.ts})" class="btn-clear text-danger">✕</button></div>`).join('') : '<div class="vocab-empty p-20">記録なし</div>'; };
-const addStudyLogManual = () => { const si = $('log-modal-subj'), mi = $('log-modal-min'); if (!si || !mi) return; const m = parseInt(mi.value) || 0; if (m <= 0) return; studyLogs.push({ date: currentLogDate, subj: si.value, seconds: m * 60, ts: Date.now() }); const cut = new Date(); cut.setDate(cut.getDate() - 365); studyLogs = studyLogs.filter(l => new Date(l.date) >= cut); save.logs(); gainXP(Math.floor(m / 10) || 1); renderLogModalList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); mi.value = ''; };
+const addStudyLogManual = () => { 
+  const si = $('log-modal-subj'), mi = $('log-modal-min'); 
+  if (!si || !mi) return; 
+  const m = parseInt(mi.value) || 0; 
+  if (m <= 0) return showToast('1分以上を入力してください'); 
+  studyLogs.push({ date: currentLogDate, subj: si.value, seconds: m * 60, ts: Date.now() }); 
+  const cut = new Date(); cut.setDate(cut.getDate() - 365); 
+  studyLogs = studyLogs.filter(l => new Date(l.date) >= cut); 
+  save.logs(); 
+  renderLogModalList(); 
+  if ($('Dashboard').classList.contains('active')) renderDashboard(); 
+  mi.value = ''; 
+};
 const deleteStudyLog = ts => { studyLogs = studyLogs.filter(l => l.ts !== ts); save.logs(); renderLogModalList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 
 // ============================================================
-// [13] IMPORT
+// [15] IMPORT
 // ============================================================
 const openImportModal = () => { openModal('import-modal'); };
 const switchImportTab = t => { curImpTab = t; ['file', 'text', 'url', 'photo'].forEach(x => { const tb = $('itab-' + x), c = $('itab-content-' + x); if (tb) { if (x === t) tb.classList.add('active'); else tb.classList.remove('active'); } if (c) { if (x === t) c.classList.remove('hidden'); else c.classList.add('hidden'); } }); };
@@ -1988,51 +3001,119 @@ const renderPreview = (w, id) => {
   if (sm) sm.textContent = `${impWords.length}語`; 
 };
 
+const parseCSV = (text) => {
+  const result = [];
+  let row = [], inQuotes = false, currentVal = '';
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') { currentVal += '"'; i++; }
+        else { inQuotes = false; }
+      } else { currentVal += char; }
+    } else {
+      if (char === '"') { inQuotes = true; }
+      else if (char === ',') { row.push(currentVal); currentVal = ''; }
+      else if (char === '\n' || char === '\r') {
+        row.push(currentVal); currentVal = '';
+        if (row.some(v => v.trim() !== '')) result.push(row);
+        row = [];
+        if (char === '\r' && i + 1 < text.length && text[i + 1] === '\n') i++;
+      } else { currentVal += char; }
+    }
+  }
+  if (currentVal || row.length > 0) { 
+    row.push(currentVal); 
+    if (row.some(v => v.trim() !== '')) result.push(row); 
+  }
+  return result;
+};
+
 const ifi = $('import-file-input'); if (ifi) ifi.addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return; const ld = $('import-loading');
-  if (f.type === 'application/pdf') {
-    if (ld) ld.classList.remove('hidden');
-    const r = new FileReader();
-    r.onload = async ev => {
-      const b64 = ev.target.result.split(',')[1];
-      try {
-        const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: 'application/pdf', data: b64 } }, { type: 'text', text: 'このPDFの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力してください。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]' }] }], 2500, '', true);
-        const w = extractJSON(rep); renderPreview(w, 'file-preview');
-      } catch (err) { showToast('PDF解析エラー'); } finally { if (ld) ld.classList.add('hidden'); }
-    };
-    r.readAsDataURL(f);
-  } else {
-    // Process text, csv, tsv
+  if (ld) ld.classList.remove('hidden');
+
+  const isText = f.name.match(/\.(txt|csv|tsv|json)$/i) || f.type.startsWith('text/');
+  const isPdf = f.name.match(/\.pdf$/i) || f.type === 'application/pdf';
+
+  if (isText) {
     const r = new FileReader(); r.onload = ev => { 
       let w = []; 
       const txt = ev.target.result;
       if (f.name.endsWith('.json')) { 
         try { const d = JSON.parse(txt); w = d.map(x => ({ word: (x.word || x.term || '').trim(), meaning: (x.meaning || x.translation || '').trim(), example: (x.example || '').trim() })); } catch (err) {} 
+      } else if (f.name.endsWith('.csv')) {
+        const rows = parseCSV(txt);
+        w = rows.map(parts => {
+          if (parts.length < 2) return { word: parts[0].trim(), meaning: '', example: '' };
+          return { word: parts[0].trim(), meaning: parts[1].trim(), example: parts[2] ? parts[2].trim() : '' };
+        }).filter(p => p.word);
       } else {
-        // Robust splitting for CSV/TSV
         w = txt.split('\n').map(l => {
-          let sep = ',';
-          if (f.name.endsWith('.tsv') || l.includes('\t')) sep = '\t';
+          let sep = '\t';
           const parts = l.split(sep);
           if (parts.length < 2) return { word: l.trim(), meaning: '', example: '' };
-          return { word: parts[0].trim().replace(/^"|"$/g, ''), meaning: parts.slice(1).join(sep).trim().replace(/^"|"$/g, ''), example: '' };
+          return { word: parts[0].trim(), meaning: parts.slice(1).join(sep).trim(), example: '' };
         }).filter(p => p.word);
       }
       renderPreview(w, 'file-preview'); 
+      if (ld) ld.classList.add('hidden');
     }; 
     r.readAsText(f);
+  } else if (isPdf) {
+    const r = new FileReader();
+    r.onload = async ev => {
+      const b64 = ev.target.result.split(',')[1];
+      try {
+        const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: 'application/pdf', data: b64 } }, { type: 'text', text: 'このPDFの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力してください。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]' }] }], 2500, '', true);
+        const w = extractJSON(rep);
+        if (w && Array.isArray(w)) {
+          renderPreview(w, 'file-preview');
+        } else {
+          showToast('単語を抽出できませんでした');
+        }
+      } catch (err) { 
+        showToast('PDF解析エラー'); 
+      } finally { 
+        if (ld) ld.classList.add('hidden'); 
+      }
+    };
+    r.readAsDataURL(f);
+  } else {
+    const r = new FileReader();
+    r.onload = async ev => {
+      const b64 = ev.target.result.split(',')[1];
+      const mimeType = f.type || 'application/octet-stream';
+      try {
+        const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: mimeType, data: b64 } }, { type: 'text', text: 'このファイルの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力してください。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]' }] }], 2500, '', true);
+        const w = extractJSON(rep);
+        if (w && Array.isArray(w)) {
+          renderPreview(w, 'file-preview');
+        } else {
+          showToast('単語を抽出できませんでした');
+        }
+      } catch (err) { 
+        showToast('ファイル解析エラー'); 
+      } finally { 
+        if (ld) ld.classList.add('hidden'); 
+      }
+    };
+    r.readAsDataURL(f);
   }
 });
 
-const ita = $('import-textarea'); if (ita) ita.addEventListener('input', function () { 
-  const w = this.value.split('\n').map(l => {
-    const sep = l.includes('\t') ? '\t' : ',';
-    const idx = l.indexOf(sep);
-    if (idx === -1) return { word: l.trim(), meaning: '', example: '' };
-    return { word: l.substring(0, idx).trim(), meaning: l.substring(idx + 1).trim(), example: '' };
-  }).filter(p => p.word);
-  if (w.length) renderPreview(w, 'text-preview'); 
-});
+const ita = $('import-textarea'); 
+if (ita) {
+  ita.addEventListener('input', debounce(function () { 
+    const w = this.value.split('\n').map(l => {
+      const sep = l.includes('\t') ? '\t' : ',';
+      const idx = l.indexOf(sep);
+      if (idx === -1) return { word: l.trim(), meaning: '', example: '' };
+      return { word: l.substring(0, idx).trim(), meaning: l.substring(idx + 1).trim(), example: '' };
+    }).filter(p => p.word);
+    if (w.length) renderPreview(w, 'text-preview'); 
+  }, 500));
+}
 
 const fetchAndParseUrl = async () => {
   const i = $('import-url-input'); if (!i || !i.value.trim()) return;
@@ -2087,124 +3168,66 @@ const handleImportPhoto = async e => {
   } catch (err) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); } 
 };
 
-const applyImport = m => { 
+const applyImport = async m => { 
   if (!impWords.length) return; 
-  const formattedWords = impWords.map(w => ({ word: w.word, meaning: w.meaning || '', example: w.example || '', tags: [] }));
-  if (m === 'replace') ALL_WORDS = formattedWords; 
-  else formattedWords.forEach(w => { if (!ALL_WORDS.find(x => x.word.toLowerCase() === w.word.toLowerCase())) ALL_WORDS.push(w); }); 
-  save.words(); initCards(); updateTagFilters(); closeModal('import-modal'); showToast(`完了`); gainXP(10); 
+  
+  const bulkTagsInput = $('import-bulk-tags');
+  const bulkTags = bulkTagsInput && bulkTagsInput.value.trim() ? bulkTagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+  
+  const formattedWords = impWords.map(w => ({ word: w.word, meaning: w.meaning || '', example: w.example || '', tags: [...bulkTags] }));
+  
+  const aiFill = $('import-ai-fill') && $('import-ai-fill').checked;
+  if (aiFill) {
+    showToast('AI補完中...');
+    const toFill = formattedWords.filter(w => !w.meaning || !w.example);
+    if (toFill.length > 0) {
+      try {
+        const rep = await callGemini([{role:'user', content:`以下の英単語の意味と例文を補完しJSON配列で出力。形式:[{"word":"...","meaning":"...","example":"..."}]\n単語: ${toFill.map(w=>w.word).join(', ')}`}], 2000, '', true);
+        const filled = extractJSON(rep);
+        if (filled && Array.isArray(filled)) {
+          filled.forEach(fw => {
+            const target = formattedWords.find(w => w.word === fw.word);
+            if (target) {
+              target.meaning = target.meaning || fw.meaning;
+              target.example = target.example || fw.example;
+            }
+          });
+        }
+      } catch(e) { showToast('AI補完の一部に失敗しました'); }
+    }
+  }
+
+  if (m === 'replace') {
+    ALL_WORDS = formattedWords; 
+  } else {
+    const strategy = $('import-merge-strategy') ? $('import-merge-strategy').value : 'skip';
+    
+    if (strategy === 'skip') {
+      formattedWords.forEach(w => { if (!ALL_WORDS.find(x => x.word.toLowerCase() === w.word.toLowerCase())) ALL_WORDS.push(w); }); 
+    } else if (strategy === 'overwrite') {
+      formattedWords.forEach(w => {
+        const idx = ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.word.toLowerCase());
+        if (idx >= 0) ALL_WORDS[idx] = w;
+        else ALL_WORDS.push(w);
+      });
+    } else if (strategy === 'merge') {
+      formattedWords.forEach(w => {
+        const existing = ALL_WORDS.find(x => x.word.toLowerCase() === w.word.toLowerCase());
+        if (existing) {
+          if (w.meaning && !existing.meaning.includes(w.meaning)) existing.meaning += (existing.meaning ? ' / ' : '') + w.meaning;
+          if (w.example && !existing.example) existing.example = w.example;
+          if (w.tags) {
+            w.tags.forEach(t => { if (!existing.tags.includes(t)) existing.tags.push(t); });
+          }
+        } else {
+          ALL_WORDS.push(w);
+        }
+      });
+    }
+  }
+  
+  save.words(); initCards(); updateTagFilters(); closeModal('import-modal'); showToast(`完了`); 
   const ab = $('import-action-bar'); if (ab) ab.classList.add('hidden'); 
-};
-
-// ============================================================
-// [14] SUBJECT QA
-// ============================================================
-const setSubject = s => { curSubj = s; document.querySelectorAll('#subject-tabs .stab').forEach((b, i) => { if (Object.keys(subjConf)[i] === s) b.classList.add('active'); else b.classList.remove('active'); }); const sl = $('subject-label'); if (sl) sl.textContent = subjConf[s] + 'モード'; renderSubjectChat(); renderSubjectSaved(); renderSubjectQuiz(); };
-const switchSubjectView = v => { ['chat', 'history', 'quiz'].forEach(x => { const el = $('sview-' + x), _v = $('subject-' + x + '-view'); if (el) { if (x === v) el.classList.add('active'); else el.classList.remove('active'); } if (_v) { if (x === v) _v.classList.remove('hidden'); else _v.classList.add('hidden'); } }); if (v === 'history') renderSubjectSaved(); if (v === 'quiz') renderSubjectQuiz(); };
-const setSubjectInputMode = m => { sqMode = m; ['text', 'file', 'photo'].forEach(x => { const el = $('sqmode-' + x), a = $('sq-' + x + '-area'); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } if (a) { if (x === m) a.classList.remove('hidden'); else a.classList.add('hidden'); } }); };
-const handleSubjectFile = e => { const f = e.target.files[0], fn = $('subject-file-name'); if (!f) return; if (fn) fn.textContent = f.name; const r = new FileReader(); r.onload = ev => sqFileData = ev.target.result; r.readAsText(f); };
-const handleSubjectPhoto = async e => { const f = e.target.files[0], pp = $('subject-photo-preview'); if (!f) return; sqPhotoData = await resizeImage(f); if (pp) pp.innerHTML = `<img src="${sqPhotoData}" style="max-width:100%;border-radius:10px">`; };
-
-const _sendSubj = async (c, dt) => {
-  if (!subjHist[curSubj]) subjHist[curSubj] = [];
-  subjHist[curSubj].push({ role: 'user', content: typeof c === 'string' ? c : dt });
-  const ct = $('subject-chat'); if (!ct) return;
-  ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble user">${esc(dt)}</div><div class="chat-bubble ai" id="sq-load"><span class="loading-dots"></span></div>`); ct.scrollTop = ct.scrollHeight;
-  try {
-    const rep = await callGemini(subjHist[curSubj].slice(0, -1).concat([{ role: 'user', content: c }]), 1500);
-    const cleanRep = clean(rep); subjHist[curSubj].push({ role: 'assistant', content: cleanRep }); const ld = $('sq-load'); if (ld) ld.remove();
-    ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')} <button class="copy-btn mt-2" onclick="saveLastSubjectQA(this,'${curSubj}')">保存</button></div>`);
-  } catch (e) { const ld = $('sq-load'); if (ld) ld.remove(); ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai text-danger">通信エラー</div>`); subjHist[curSubj].pop(); }
-  ct.scrollTop = ct.scrollHeight;
-};
-const sendSubjectMessage = () => { const i = $('subject-input'); if (!i || !i.value.trim()) return; const t = i.value.trim(); i.value = ''; autoResize(i); _sendSubj(t, t); };
-const sendSubjectFileMessage = () => { if (sqFileData) { const ex = $('subject-file-extra'); _sendSubj([{ type: 'text', text: (ex ? ex.value : '') + '\n' + sqFileData }], 'ファイル添付'); if (ex) ex.value = ''; sqFileData = ''; const fn = $('subject-file-name'); if (fn) fn.textContent = ''; } };
-const sendSubjectPhotoMessage = () => { if (sqPhotoData) { const b = sqPhotoData.split(',')[1], m = sqPhotoData.match(/data:([^;]+)/)[1], ex = $('subject-photo-extra'); _sendSubj([{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: ex ? ex.value || '質問' : '質問' }], '写真'); if (ex) ex.value = ''; sqPhotoData = null; const pp = $('subject-photo-preview'); if (pp) pp.innerHTML = ''; } };
-
-const renderSubjectChat = () => { const c = $('subject-chat'); if (!c) return; c.innerHTML = ''; (subjHist[curSubj] || []).forEach(m => { c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ${m.role === 'user' ? 'user' : 'ai'}">${m.role === 'user' ? esc(m.content) : String(m.content).replace(/\n/g, '<br>')}</div>`); }); c.scrollTop = c.scrollHeight; };
-const clearSubjectChat = () => { subjHist[curSubj] = []; renderSubjectChat(); };
-const saveLastSubjectQA = (btn, subj) => {
-  const hist = subjHist[subj]; if (!hist || hist.length < 2) return;
-  const qObj = hist[hist.length - 2].content, qStr = typeof qObj === 'string' ? qObj : (Array.isArray(qObj) ? (qObj.find(x => x.type === 'text')?.text || '画像') : '画像');
-  subjectSaved.unshift({ id: generateId(), subject: subj, subjectLabel: subjConf[subj], date: new Date().toLocaleString(), question: qStr, answer: hist[hist.length - 1].content });
-  save.subSaved(); showToast('保存済'); if (btn) { btn.textContent = '保存済'; btn.disabled = true; }
-};
-const generateSimilarSubject = async id => {
-  const x = subjectSaved.find(s => String(s.id) === String(id)); if (!x) return; showToast('類題生成中...');
-  try {
-    const rep = await callGemini([{ role: 'user', content: `以下の問題と解答を参考にして、状況や数値を変えた類題を1つ出題し、その解答解説も出力して。JSONのみ: {"question":"...","answer":"..."}\nQ: ${x.question}\nA: ${x.answer}` }], 1500, '', true);
-    const json = extractJSON(rep); subjectSaved.unshift({ id: generateId(), subject: x.subject, subjectLabel: x.subjectLabel, date: new Date().toLocaleString(), question: json.question, answer: clean(json.answer) });
-    save.subSaved(); renderSubjectSaved(); showToast('類題追加');
-  } catch (e) { showToast('通信エラー'); }
-};
-const renderSubjectSaved = () => { const ls = subjectSaved.filter(x => x.subject === curSubj), sl = $('subject-saved-list'); if (!sl) return; sl.innerHTML = ls.length ? ls.map(x => `<div class="card mb-2"><div class="text-xs text-muted mb-1">${x.date}</div><div class="text-sm font-bold mb-1">${esc(x.question)}</div><div class="text-xs text-sub">${esc(x.answer)}</div><div class="flex-gap-8 mt-2"><button class="copy-btn" onclick="generateSimilarSubject('${x.id}')">類題生成</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteSubjectSaved('${x.id}')">削除</button></div></div>`).join('') : '<div class="vocab-empty">空</div>'; };
-const deleteSubjectSaved = id => { subjectSaved = subjectSaved.filter(x => String(x.id) !== String(id)); save.subSaved(); renderSubjectSaved(); };
-
-const renderSubjectQuiz = () => { const sqs = $('subject-quiz-start'), sqa = $('subject-quiz-area'); if (!sqs || !sqa) return; const pendingQuiz = subjectQuizzes.find(q => q.subject === curSubj && !q.answer); if (pendingQuiz) { sqs.classList.add('hidden'); sqa.classList.remove('hidden'); renderSubjectQuizActive(pendingQuiz); } else { sqs.classList.remove('hidden'); sqa.classList.add('hidden'); const hist = subjectQuizzes.filter(q => q.subject === curSubj && q.answer), hl = $('subject-quiz-history-list'); if (hl) hl.innerHTML = hist.length ? `<p class="section-note">過去の復習問題</p>` + hist.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showSubjectQuizHistory('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''}</div><div class="text-sm">${h.question.replace(/<[^>]+>/g, '').substring(0, 60)}...</div></div>`).join('') : ''; } };
-const generateSubjectQuiz = async () => {
-  const ls = subjectSaved.filter(x => x.subject === curSubj); if (!ls.length) return showToast('QA履歴なし');
-  const qas = ls.slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n'), sqs = $('subject-quiz-start'), sqa = $('subject-quiz-area');
-  if (sqs) sqs.classList.add('hidden'); if (sqa) { sqa.classList.remove('hidden'); sqa.innerHTML = '<div class="card text-center p-36"><span class="loading-dots"></span></div>'; }
-  try {
-    const rep = await callGemini([{ role: 'user', content: `【QA履歴】\n${qas}\n\n復習問題を作成` }], 1000, `QA履歴から極めて難関な復習問題を1問作成。HTML(h4+p)のみ。解答解説なし。`);
-    const html = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()), newQuiz = { id: 'squiz_' + generateId(), subject: curSubj, date: new Date().toLocaleDateString('ja-JP'), question: html, answer: '', feedback: '', score: null };
-    subjectQuizzes.unshift(newQuiz); save.subQuiz(); renderSubjectQuizActive(newQuiz);
-  } catch (e) { if (sqa) handleApiError(e, sqa.id); }
-};
-const renderSubjectQuizActive = quiz => { const sqa = $('subject-quiz-area'); if (!sqa) return; if (!quiz.answer) sqa.innerHTML = `<div class="card"><p class="text-xs font-bold text-muted mb-3">復習問題</p><div class="text-base mb-4 line-height-16">${quiz.question}</div><textarea id="subquiz-answer-input" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="subquiz-submit-btn" onclick="submitSubjectQuiz('${quiz.id}')">添削</button><div id="subquiz-loading" class="hidden text-center"><span class="loading-dots"></span></div></div>`; else sqa.innerHTML = `<div class="card"><p class="text-xs font-bold text-green mb-3">添削完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${quiz.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(quiz.answer)}</div><div class="correction-box mt-0">${quiz.feedback}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="renderSubjectQuiz()">戻る</button></div>`; };
-const submitSubjectQuiz = async id => {
-  const i = $('subquiz-answer-input'); if (!i || !i.value.trim()) return; const ans = i.value.trim(), quiz = subjectQuizzes.find(q => String(q.id) === String(id)), sb = $('subquiz-submit-btn'), ld = $('subquiz-loading');
-  if (!quiz) return; if (sb) sb.classList.add('hidden'); if (ld) ld.classList.remove('hidden');
-  const ls = subjectSaved.filter(x => x.subject === curSubj).slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n');
-  try {
-    const rep = await callGemini([{ role: 'user', content: `問題:\n${quiz.question}\n解答:\n${ans}` }], 2000, `非常に丁寧な添削と解説をHTML出力。100点満点スコア。参考:\n${ls}`);
-    const html = clean(rep.replace(/```html?/g, '').replace(/```/g, '')); quiz.answer = ans; quiz.feedback = html; quiz.score = html.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null;
-    save.subQuiz(); gainXP(15); renderSubjectQuizActive(quiz);
-  } catch (e) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); if (sb) sb.classList.remove('hidden'); }
-};
-const showSubjectQuizHistory = id => { const h = subjectQuizzes.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return; let html = `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${h.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(h.answer)}</div><div class="correction-box mt-0">${h.feedback}</div><button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteSubjectQuizHistory('${id}')">この問題を削除</button>`; mb.innerHTML = html; openModal('writing-history-modal'); };
-const deleteSubjectQuizHistory = id => { if (!confirm('削除しますか？')) return; subjectQuizzes = subjectQuizzes.filter(x => String(x.id) !== String(id)); save.subQuiz(); renderSubjectQuiz(); closeModal('writing-history-modal'); };
-
-// ============================================================
-// [15] CUSTOM DECKS
-// ============================================================
-const ccInitDecks = () => { ccRenderSelects(); ccRenderDecksList(); if (ccDeckId) ccLoadDeck(); };
-const ccRenderSelects = () => { const o = '<option value="">-- 選択 --</option>' + customDecks.map(d => `<option value="${d.id}" ${d.id === ccDeckId ? 'selected' : ''}>${esc(d.name)}</option>`).join(''); ['cc-deck-select', 'cc-edit-deck-select'].forEach(id => { const e = $(id); if (e) e.innerHTML = o; }); };
-const ccRenderDecksList = () => { const c = $('cc-decks-list'); if (c) c.innerHTML = customDecks.length ? customDecks.map(d => `<div class="card flex-between align-center"><span>${esc(d.name)} (${d.cards.length}枚)</span><div class="flex-gap-8"><button onclick="ccDeleteDeck('${d.id}')" class="btn-clear text-danger">削除</button></div></div>`).join('') : ''; };
-const ccCreateDeck = () => { const i = $('cc-new-deck-name'); if (!i || !i.value.trim()) return; customDecks.push({ id: 'deck_' + generateId(), name: i.value.trim(), cards: [] }); save.decks(); ccInitDecks(); showToast('作成'); i.value = ''; };
-const ccDeleteDeck = id => { if (!confirm('削除しますか？')) return; customDecks = customDecks.filter(d => d.id !== id); if (ccDeckId === id) ccDeckId = null; save.decks(); ccInitDecks(); };
-const setCCMode = m => { ccMode = m; ['study', 'edit', 'decks'].forEach(x => { const el = $('cc-mode-' + x), a = $('cc-' + x + '-area'); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } if (a) { if (x === m) a.classList.remove('hidden'); else a.classList.add('hidden'); } }); if (m === 'study') ccLoadDeck(); if (m === 'edit' || m === 'decks') ccInitDecks(); };
-
-const ccLoadDeck = () => { const s = $('cc-deck-select'); if (s && s.value) ccDeckId = s.value; const d = customDecks.find(x => x.id === ccDeckId), fc = $('cc-flip-card'), ed = $('cc-empty-deck'), nd = $('cc-no-deck'), cc = $('cc-card-counter'), cn = $('cc-card-nav'); if (fc) { if (d && d.cards.length) fc.classList.remove('hidden'); else fc.classList.add('hidden'); } if (ed) { if (d && !d.cards.length) ed.classList.remove('hidden'); else ed.classList.add('hidden'); } if (nd) { if (!d) nd.classList.remove('hidden'); else nd.classList.add('hidden'); } if (cc) { if (d && d.cards.length) cc.classList.remove('hidden'); else cc.classList.add('hidden'); } if (cn) { if (d && d.cards.length) cn.classList.remove('hidden'); else cn.classList.add('hidden'); } if (!d || !d.cards.length) return; ccList = d.cards.slice(); ccIdx = 0; ccRenderCard(); };
-const ccRenderCard = () => { if (!ccList.length) return; const fi = $('cc-flip-inner'), cf = $('cc-card-front'), cb = $('cc-card-back'), ci = $('cc-card-idx'), ct = $('cc-card-total'); if (fi) fi.classList.remove('flipped'); if (cf) cf.textContent = ccList[ccIdx].front; if (cb) cb.textContent = ccList[ccIdx].back; if (ci) ci.textContent = ccIdx + 1; if (ct) ct.textContent = ccList.length; };
-const ccFlipCard = () => { const fi = $('cc-flip-inner'); if (fi) fi.classList.toggle('flipped'); };
-const ccChangeCard = d => { if (ccList.length) { ccIdx = (ccIdx + d + ccList.length) % ccList.length; ccRenderCard(); } };
-const ccShuffleCards = () => { for (let i = ccList.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ccList[i], ccList[j]] = [ccList[j], ccList[i]]; } ccIdx = 0; ccRenderCard(); };
-
-const ccRenderCards = () => { const s = $('cc-edit-deck-select'); if (s && s.value) ccDeckId = s.value; const d = customDecks.find(x => x.id === ccDeckId), ned = $('cc-no-edit-deck'), ce = $('cc-card-editor'), cl = $('cc-card-list'); if (ned) { if (d) ned.classList.add('hidden'); else ned.classList.remove('hidden'); } if (ce) { if (d) ce.classList.remove('hidden'); else ce.classList.add('hidden'); } if (!d || !cl) return; cl.innerHTML = d.cards.map((c, i) => `<div class="card flex-between p-10"><div><b>${esc(c.front)}</b><br><span class="text-muted">${esc(c.back)}</span></div><button onclick="ccDeleteCard(${i})" class="btn-clear text-danger">✕</button></div>`).join(''); };
-const ccAddCard = () => { const fi = $('cc-new-front'), bi = $('cc-new-back'), d = customDecks.find(x => x.id === ccDeckId); if (fi && bi && d && fi.value.trim() && bi.value.trim()) { d.cards.push({ front: fi.value.trim(), back: bi.value.trim() }); save.decks(); ccRenderCards(); fi.value = ''; bi.value = ''; fi.focus(); showToast('追加'); } };
-const ccDeleteCard = i => { const d = customDecks.find(x => x.id === ccDeckId); if (d) { d.cards.splice(i, 1); save.decks(); ccRenderCards(); } };
-
-const setCCAiMode = m => { ccAiMode = m; ['text', 'file', 'photo'].forEach(x => { const btn = $('cc-ai-mode-' + x), area = $('cc-ai-' + x + '-area'); if (btn) { if (x === m) btn.classList.add('active'); else btn.classList.remove('active'); } if (area) { if (x === m) area.classList.remove('hidden'); else area.classList.add('hidden'); } }); };
-const handleCCAiFile = e => { const f = e.target.files[0]; if (!f) return; const fn = $('cc-ai-file-name'); if (fn) fn.textContent = f.name; const r = new FileReader(); r.onload = ev => { ccAiFileData = ev.target.result; }; r.readAsText(f); };
-const handleCCAiPhoto = async e => { const f = e.target.files[0]; if (!f) return; ccAiPhotoData = await resizeImage(f); const pv = $('cc-ai-photo-preview'); if (pv) pv.innerHTML = `<img src="${ccAiPhotoData}" style="max-width:100%;border-radius:10px">`; };
-const ccGenerateCardsAI = async () => {
-  const d = customDecks.find(x => x.id === ccDeckId); if (!d) return showToast('デッキ未選択'); let c = [];
-  if (ccAiMode === 'text') { const p = $('cc-ai-prompt')?.value.trim(); if (!p) return showToast('テーマ入力必須'); c = [{ role: 'user', content: `「${p}」に関連するフラッシュカードのペア生成` }]; } 
-  else if (ccAiMode === 'file') { if (!ccAiFileData) return showToast('ファイル未選択'); const p = $('cc-ai-file-prompt')?.value.trim() || 'フラッシュカード生成'; c = [{ role: 'user', content: `ファイル内容:\n${ccAiFileData.substring(0, 5000)}\n\n指示:${p}` }]; } 
-  else if (ccAiMode === 'photo') { if (!ccAiPhotoData) return showToast('写真未選択'); const b = ccAiPhotoData.split(',')[1], m = ccAiPhotoData.match(/data:([^;]+)/)[1], p = $('cc-ai-photo-prompt')?.value.trim() || '画像内容からカード生成'; c = [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: p }] }]; }
-  const btn = $('cc-ai-btn'); if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
-  try {
-    const rep = await callGemini(c, 1500, 'JSON配列。キーは "front" と "back"。フロントとバックを簡潔に。', true);
-    const arr = extractJSON(rep);
-    if (arr && arr.length) {
-      let added = 0; arr.forEach(cd => { if (cd.front && cd.back) { d.cards.push({ front: String(cd.front), back: String(cd.back) }); added++; } });
-      save.decks(); ccRenderCards(); showToast(`${added}枚生成`);
-      if (ccAiMode === 'text') { const i = $('cc-ai-prompt'); if (i) i.value = ''; }
-      else if (ccAiMode === 'file') { const f = $('cc-ai-file-input'); if (f) f.value = ''; $('cc-ai-file-name').textContent = ''; $('cc-ai-file-prompt').value = ''; ccAiFileData = ''; }
-      else if (ccAiMode === 'photo') { $('cc-ai-photo-input').value = ''; $('cc-ai-photo-preview').innerHTML = ''; $('cc-ai-photo-prompt').value = ''; ccAiPhotoData = null; }
-    } else showToast('失敗');
-  } catch (e) { showToast('通信エラー'); } finally { if (btn) { btn.disabled = false; btn.textContent = 'AIで生成'; } }
 };
 
 // ============================================================
@@ -2213,17 +3236,20 @@ const ccGenerateCardsAI = async () => {
 const loadProfileFields = () => { const map = { targetUniv: 'target-univ', grade: 'grade', courses: 'courses' }; Object.entries(map).forEach(([k, id]) => { const e = $('profile-' + id); if (e) e.value = userProfile[k] || ''; }); };
 const saveProfile = () => { const u = $('profile-target-univ'), g = $('profile-grade'), c = $('profile-courses'); if (u) userProfile.targetUniv = u.value.trim(); if (g) userProfile.grade = g.value.trim(); if (c) userProfile.courses = c.value.trim(); save.profile(); };
 const saveProfileDebounced = debounce(saveProfile, 500);
-const toggleProfileCard = () => { const f = $('profile-fields'), b = $('profile-toggle-btn'); if (!f || !b) return; const hid = f.classList.contains('hidden'); if (hid) f.classList.remove('hidden'); else f.classList.add('hidden'); b.textContent = hid ? '折りたたむ' : '展開'; };
+const toggleProfileCard = () => { const f = $('profile-fields'), b = $('profile-toggle-btn'); if (!f || !b) return; const hid = f.classList.contains('hidden'); if (hid) f.classList.remove('hidden'); else f.classList.add('hidden'); b.textContent = hid ? (customTexts['plan_ai_prof_toggle'] || '折りたたむ') : '展開'; };
 
 const saveReminderSettings = async () => {
   const t = $('reminder-time'); if (!t || !t.value) return;
-  userProfile.reminderTime = t.value; save.profile();
+  userProfile.reminderTime = t.value; 
+  userProfile.aiNotificationTiming = $('ai-notification-timing') && $('ai-notification-timing').checked;
+  save.profile();
   try {
     if (Notification.permission !== "granted") {
       const perm = await Notification.requestPermission();
       if (perm !== "granted") { $('reminder-status-text').textContent = '通知がブロックされています。ブラウザの設定を変更してください。'; return; }
     }
-    $('reminder-status-text').textContent = `毎日 ${t.value} に通知します`; showToast('リマインダー設定保存'); startReminderCheck();
+    $('reminder-status-text').textContent = userProfile.aiNotificationTiming ? 'AIが最適なタイミングで通知します' : `毎日 ${t.value} に通知します`; 
+    showToast('リマインダー設定保存'); startReminderCheck();
   } catch (e) { showToast('通知の設定に失敗しました'); }
 };
 
@@ -2232,33 +3258,48 @@ const startReminderCheck = () => {
   reminderCheckInt = setInterval(() => {
     if (!userProfile.reminderTime || Notification.permission !== "granted") return;
     const now = new Date(), currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`, todayStr = todayDateStr();
-    if (currentHM >= userProfile.reminderTime && localStorage.getItem('study_last_notified') !== todayStr) {
+    
+    let targetTime = userProfile.reminderTime;
+    if (userProfile.aiNotificationTiming) {
+      targetTime = '21:00'; 
+    }
+
+    if (currentHM >= targetTime && localStorage.getItem('study_last_notified') !== todayStr) {
       new Notification('Study App', { body: '今日の単語・復習タスクを終わらせましょう！' });
       localStorage.setItem('study_last_notified', todayStr);
     }
   }, 60000);
 };
 
-const buyFreezeItem = () => {
-  if ((userProfile.xp || 0) >= 1000) {
-    userProfile.xp -= 1000; userProfile.freezeItems = (userProfile.freezeItems || 0) + 1; save.profile();
-    showToast('Freezeアイテムを獲得しました');
-    if ($('freeze-count')) $('freeze-count').textContent = userProfile.freezeItems;
-    if ($('Dashboard').classList.contains('active')) renderDashboard();
-  } else showToast('XPが不足しています（1000XP必要）');
-};
-
 const updateFooter = () => { const f = $('manage-footer'); if (f) f.textContent = `Study — 単語: ${ALL_WORDS.length}` }
 const showDangerBox = id => { const b = $(id); if (b) b.classList.remove('hidden'); }; const hideDangerBox = id => { const b = $(id); if (b) b.classList.add('hidden'); };
 const checkConfirm = (iid, bid, ex) => { const i = $(iid), b = $(bid); if (i && b) b.disabled = i.value !== ex; };
-const exportData = () => { const b = new Blob([JSON.stringify({ ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan }, null, 2)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'study_data.json'; a.click(); };
+
+const exportData = async () => { 
+  showToast('エクスポート準備中...');
+  const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan };
+  
+  const images = {};
+  for (const s of subjectSaved) {
+    if (s.imageId) {
+      const imgData = await getImageFromDB(s.imageId);
+      if (imgData) images[s.imageId] = imgData;
+    }
+  }
+  data.images = images;
+  
+  const b = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'study_data.json'; a.click(); 
+  showToast('エクスポート完了');
+};
+
 const exportCSV = () => {
   if (!ALL_WORDS.length) return showToast('単語がありません');
   const csvContent = "Word,Meaning,Example,Tags\n" + ALL_WORDS.map(w => `"${w.word.replace(/"/g, '""')}","${(w.meaning || '').replace(/"/g, '""')}","${(w.example || '').replace(/"/g, '""')}","${(w.tags || []).join(',').replace(/"/g, '""')}"`).join("\n");
   const b = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'study_vocab.csv'; a.click();
 };
-const clearData = async () => { localStorage.clear(); await localforage.clear(); location.reload(); };
+const clearData = async () => { localStorage.clear(); await localforage.clear(); await imageStore.clear(); location.reload(); };
 
 const openWeeklyReport = async () => {
   openModal('weekly-report-modal'); $('weekly-report-content').innerHTML = '<div class="text-center p-40"><span class="loading-dots">AIが分析中</span></div>';
@@ -2271,6 +3312,12 @@ const openWeeklyReport = async () => {
   try { let rep = await callGemini([{ role: 'user', content: prompt }], 1500); $('weekly-report-content').innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); } catch (e) { $('weekly-report-content').innerHTML = '<p class="text-danger">分析に失敗しました。通信環境を確認してください。</p><button class="action-btn mt-3" onclick="openWeeklyReport()">リトライ</button>'; }
 };
 
+window.exportWeeklyReportPDF = () => {
+  const content = $('weekly-report-content').innerHTML;
+  const html = `<!DOCTYPE html><html lang="ja"><head><title>Weekly Report</title><style>body{font-family:sans-serif;padding:20px;line-height:1.6;} h4{border-bottom:1px solid #ccc;padding-bottom:5px;}</style></head><body><h1>Weekly Study Report</h1>${content}</body></html>`;
+  printHtml(html);
+};
+
 const openWeaknessAnalysis = async () => {
   openModal('weakness-modal'); $('weakness-content').innerHTML = '<div class="text-center p-40"><span class="loading-dots">AIが弱点を抽出中</span></div>'; $('weakness-focus-btn').classList.add('hidden');
   const overdue = Object.entries(srsData).map(([w, r]) => ({ word: w, ef: r.stability, overdueDays: srsDaysDiff(srsNextDate(r)) * -1 })).filter(x => x.overdueDays >= 0 || x.ef < 2.0).sort((a, b) => (b.overdueDays - a.overdueDays) || (a.ef - b.ef)).slice(0, 10);
@@ -2281,46 +3328,106 @@ const openWeaknessAnalysis = async () => {
 };
 const startWeaknessFocusMode = () => { closeModal('weakness-modal'); setTabByIndex(4); setCardsMode('weak'); };
 
-window.openSimulationModal = () => {
-  openModal('simulation-modal');
-  const cv = $('simulation-chart');
-  if (!cv) return;
-  
-  const labels = [];
-  const data = [];
-  
-  const stabilities = Object.values(srsData).map(r => r.stability);
-  const avgStability = stabilities.length > 0 ? stabilities.reduce((a, b) => a + b, 0) / stabilities.length : 1.0;
-  const safeStability = Math.max(0.1, avgStability);
-  
-  for(let i=0; i<=30; i+=3) {
-    labels.push(i===0 ? '今日' : `${i}日後`);
-    const ret = Math.exp(Math.log(0.9) * i / safeStability) * 100;
-    data.push(ret);
+window.openAutoListenModal = () => { openModal('auto-listen-modal'); };
+window.toggleAutoListen = () => {
+  const btn = $('auto-listen-start-btn');
+  if (autoListenInt) {
+    clearTimeout(autoListenInt); autoListenInt = null;
+    btn.textContent = '再生開始'; btn.classList.remove('bg-danger'); btn.classList.add('bg-purple');
+    speechSynthesis.cancel();
+  } else {
+    btn.textContent = '停止'; btn.classList.remove('bg-purple'); btn.classList.add('bg-danger');
+    const onlyReview = $('auto-listen-only-review').checked;
+    autoListenWords = onlyReview ? srsGetDueWords() : ALL_WORDS.slice();
+    if(!autoListenWords.length) { showToast('対象の単語がありません'); toggleAutoListen(); return; }
+    autoListenIdx = 0; autoListenState = 0;
+    playNextAutoListen();
   }
-  
-  if (simulationChart) simulationChart.destroy();
-  simulationChart = new Chart(cv, {
-    type: 'line',
-    data: { 
-      labels, 
-      datasets: [{ 
-        label: '平均記憶保持率(%)', 
-        data, 
-        borderColor: '#E67E22', 
-        backgroundColor: '#E67E2233', 
-        fill: true, 
-        tension: 0.4 
-      }] 
-    },
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      plugins: { legend: { display: false } }, 
-      scales: { y: { min: 0, max: 100 } } 
-    }
-  });
 };
+const playNextAutoListen = () => {
+  if(!autoListenInt && $('auto-listen-start-btn').textContent === '再生開始') return;
+  if(autoListenIdx >= autoListenWords.length) autoListenIdx = 0;
+  const w = autoListenWords[autoListenIdx];
+  $('auto-listen-word').textContent = w.word;
+  $('auto-listen-meaning').textContent = w.meaning || '---';
+  $('auto-listen-example').textContent = w.example || '---';
+  
+  let textToSpeak = '';
+  let lang = 'en-US';
+  if(autoListenState === 0) { textToSpeak = w.word; }
+  else if(autoListenState === 1) { textToSpeak = w.meaning; lang = 'ja-JP'; }
+  else if(autoListenState === 2) { textToSpeak = w.example || w.word; }
+  
+  const u = new SpeechSynthesisUtterance(textToSpeak);
+  u.lang = lang;
+  u.onend = () => {
+    autoListenState++;
+    if(autoListenState > 2) { autoListenState = 0; autoListenIdx++; }
+    autoListenInt = setTimeout(playNextAutoListen, 800);
+  };
+  speechSynthesis.speak(u);
+};
+
+window.openStoryGenModal = () => { openModal('story-gen-modal'); };
+window.generateStory = async () => {
+  const area = $('story-result-area');
+  const ld = $('story-loading');
+  ld.classList.remove('hidden'); area.innerHTML = '';
+  const words = srsGetDueWords().slice(0, 10).map(w => w.word);
+  if(!words.length) words.push(...ALL_WORDS.slice(0,10).map(w=>w.word));
+  try {
+    const rep = await callGemini([{role:'user', content:`以下の単語を全て使って、面白い英語のショートストーリーを作成し、和訳と解説をHTMLで出力してください。単語: ${words.join(', ')}`}], 2000);
+    area.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
+  } catch(e) { area.innerHTML = '<p class="text-danger">生成失敗</p>'; }
+  finally { ld.classList.add('hidden'); }
+};
+
+window.openImageGalleryModal = () => {
+  if(!cardList.length) return;
+  const w = cardList[currentCardIdx].word;
+  openModal('image-gallery-modal');
+  const grid = $('image-gallery-grid');
+  grid.innerHTML = `
+    <img src="https://source.unsplash.com/featured/300x300/?${encodeURIComponent(w)},1" style="width:100%; border-radius:8px;">
+    <img src="https://source.unsplash.com/featured/300x300/?${encodeURIComponent(w)},2" style="width:100%; border-radius:8px;">
+    <img src="https://source.unsplash.com/featured/300x300/?${encodeURIComponent(w)},3" style="width:100%; border-radius:8px;">
+    <img src="https://source.unsplash.com/featured/300x300/?${encodeURIComponent(w)},4" style="width:100%; border-radius:8px;">
+  `;
+};
+
+window.openTagManagerModal = () => {
+  openModal('tag-manager-modal');
+  const tags = new Set();
+  ALL_WORDS.forEach(w => { if(w.tags) w.tags.forEach(t => tags.add(t)); });
+  $('tag-manager-list').innerHTML = Array.from(tags).map(t => `
+    <div class="flex-between card p-10 mb-2">
+      <span class="font-bold">${esc(t)}</span>
+      <button class="btn-clear text-danger" onclick="deleteTagGlobally('${escJS(t)}')">削除</button>
+    </div>
+  `).join('');
+};
+window.deleteTagGlobally = (tag) => {
+  if(!confirm(`タグ「${tag}」を全ての単語から削除しますか？`)) return;
+  ALL_WORDS.forEach(w => { if(w.tags) w.tags = w.tags.filter(t => t !== tag); });
+  save.words(); updateTagFilters(); openTagManagerModal(); showToast('削除しました');
+};
+
+window.openShuffleSettingsModal = () => {
+  document.querySelectorAll('input[name="shuffle-mode"]').forEach(r => {
+    if(r.value === shuffleSettings.mode) r.checked = true;
+  });
+  openModal('shuffle-settings-modal');
+};
+window.saveShuffleSettings = () => {
+  const mode = document.querySelector('input[name="shuffle-mode"]:checked').value;
+  shuffleSettings.mode = mode;
+  safeSet('study_shuffle_settings', shuffleSettings);
+  closeModal('shuffle-settings-modal');
+  showToast('設定を保存しました');
+};
+
+window.connectGoogleDrive = () => { showToast('Google Drive連携は準備中です'); };
+window.connectDropbox = () => { showToast('Dropbox連携は準備中です'); };
 
 // ============================================================
 // [17] ROUTER & INIT
@@ -2343,13 +3450,20 @@ const triggerTabEffects = (id) => {
   if (id === 'Cards') { updateTagFilters(); initCards(); }
   if (id === 'CustomCards') ccInitDecks();
   if (id === 'Manage') {
-    updateFooter(); updateAutoSyncBtn(); initModelSelect();
+    updateFooter(); updateAutoSyncBtn(); initModelSelect(); renderBackupList();
     if (userProfile.reminderTime) $('reminder-time').value = userProfile.reminderTime;
-    if ($('freeze-count')) $('freeze-count').textContent = userProfile.freezeItems || 0;
+    if ($('ai-notification-timing')) $('ai-notification-timing').checked = userProfile.aiNotificationTiming;
     if (fsrsRetention) { $('fsrs-retention-slider').value = fsrsRetention; $('fsrs-retention-label').textContent = fsrsRetention + '%'; }
     const uiFontSize = localStorage.getItem('study_ui_font_size') || 'medium';
     const uiFontSelect = $('ui-font-size-select');
     if (uiFontSelect) uiFontSelect.value = uiFontSize;
+    const scheduleEnabled = safeGet('study_dark_schedule_enabled', false);
+    const toggle = $('dark-mode-schedule-toggle');
+    if (toggle) toggle.checked = scheduleEnabled;
+    if (scheduleEnabled) $('dark-mode-schedule-times').classList.remove('hidden');
+    $('dark-mode-start').value = safeGet('study_dark_schedule_start', '20:00');
+    $('dark-mode-end').value = safeGet('study_dark_schedule_end', '06:00');
+    if (userProfile.customThemeColor) $('custom-theme-bg').value = userProfile.customThemeColor;
   }
   if (id === 'SkillUp') switchWritingTab('input');
   if (id === 'Subject') { renderSubjectChat(); renderSubjectSaved(); renderSubjectQuiz(); }
@@ -2366,7 +3480,6 @@ document.addEventListener('touchend', e => {
   if (!e.changedTouches.length) return;
   const dx = e.changedTouches[0].clientX - swipeStartX, dy = e.changedTouches[0].clientY - swipeStartY;
   if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2 && !window.getSelection().toString()) {
-    // Add all horizontal scrollable elements to the ignore list to prevent swipe conflicts
     if (e.target.closest('.flip-inner, .nav-bar, .heatmap-grid, [style*="overflow-x"], textarea, .cal-wrap, .chat-container, .quiz-sortable, .writing-tabs, .chat-subject-tabs, .import-tab-bar, .month-tabs, .week-day-tabs')) return;
     if (dx < 0 && currentTabIndex < TABS.length - 1) setTabByIndex(currentTabIndex + 1);
     else if (dx > 0 && currentTabIndex > 0) setTabByIndex(currentTabIndex - 1);
@@ -2375,26 +3488,52 @@ document.addEventListener('touchend', e => {
 
 async function initAppData() {
   localforage.config({ name: 'StudyApp' });
-  ALL_WORDS = (await localforage.getItem('study_words')) || [];
-  savedWords = (await localforage.getItem('study_saved')) || [];
-  plans = (await localforage.getItem('study_plans')) || {};
-  events = (await localforage.getItem('study_events')) || {};
-  writingHistory = (await localforage.getItem('study_writing')) || [];
-  subjectSaved = (await localforage.getItem('study_subject_saved')) || [];
-  subjectQuizzes = (await localforage.getItem('study_subject_quizzes')) || [];
-  examScores = (await localforage.getItem('study_exam_scores')) || [];
-  textbooks = (await localforage.getItem('study_textbooks')) || [];
-  srsData = (await localforage.getItem('study_srs')) || {};
-  userProfile = (await localforage.getItem('study_profile')) || { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', freezeItems: 0, badges: [], themeColor: 'default' };
-  customDecks = (await localforage.getItem('study_custom_decks')) || [];
-  wordProgress = (await localforage.getItem('study_word_progress')) || {};
-  vocabMeta = (await localforage.getItem('study_vocab_meta')) || {};
-  dailyChallenges = (await localforage.getItem('study_daily')) || [];
-  syntaxList = (await localforage.getItem('study_syntax')) || [];
-  listenHistory = (await localforage.getItem('study_listen')) || [];
-  studyLogs = (await localforage.getItem('study_logs')) || [];
-  yearlyPlan = (await localforage.getItem('study_yearly_plan')) || { year: new Date().getFullYear(), goal: '', months: {} };
-  freezeLogs = (await localforage.getItem('study_freeze_logs')) || [];
+  
+  const [
+    words, saved, p, ev, writing, subSaved, subQuiz, exams, books, srs, prof, decks, prog, meta, daily, syntax, listen, logs, yearly, freeze
+  ] = await Promise.all([
+    localforage.getItem('study_words'),
+    localforage.getItem('study_saved'),
+    localforage.getItem('study_plans'),
+    localforage.getItem('study_events'),
+    localforage.getItem('study_writing'),
+    localforage.getItem('study_subject_saved'),
+    localforage.getItem('study_subject_quizzes'),
+    localforage.getItem('study_exam_scores'),
+    localforage.getItem('study_textbooks'),
+    localforage.getItem('study_srs'),
+    localforage.getItem('study_profile'),
+    localforage.getItem('study_custom_decks'),
+    localforage.getItem('study_word_progress'),
+    localforage.getItem('study_vocab_meta'),
+    localforage.getItem('study_daily'),
+    localforage.getItem('study_syntax'),
+    localforage.getItem('study_listen'),
+    localforage.getItem('study_logs'),
+    localforage.getItem('study_yearly_plan'),
+    localforage.getItem('study_freeze_logs')
+  ]);
+
+  ALL_WORDS = words || [];
+  savedWords = saved || [];
+  plans = p || {};
+  events = ev || {};
+  writingHistory = writing || [];
+  subjectSaved = subSaved || [];
+  subjectQuizzes = subQuiz || [];
+  examScores = exams || [];
+  textbooks = books || [];
+  srsData = srs || {};
+  userProfile = prof || { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', aiNotificationTiming: false, freezeItems: 0, themeColor: 'default', customThemeColor: '' };
+  customDecks = decks || [];
+  wordProgress = prog || {};
+  vocabMeta = meta || {};
+  dailyChallenges = daily || [];
+  syntaxList = syntax || [];
+  listenHistory = listen || [];
+  studyLogs = logs || [];
+  yearlyPlan = yearly || { year: new Date().getFullYear(), goal: '', months: {} };
+  freezeLogs = freeze || [];
   
   ALL_WORDS = ALL_WORDS.map(w => {
     if (typeof w === 'string') return { word: w, meaning: '', example: '', tags: [] };
@@ -2404,17 +3543,34 @@ async function initAppData() {
   });
   
   const cur = getISOWeek(new Date()), last = parseInt(localStorage.getItem('study_last_week') || '-1');
-  if (last !== -1 && cur !== last) { for (let i = 0; i < 7; i++) { const k = getWeekKey(i); if (plans[k]) plans[k] = plans[k].map(p => ({ ...p, done: false })); } save.plans(); showToast('リセット'); }
+  if (last !== -1 && cur !== last) { 
+    const today = todayDateStr();
+    let carriedOver = 0;
+    Object.keys(plans).forEach(date => {
+      if (date < today) {
+        const incomplete = plans[date].filter(p => !p.done);
+        if (incomplete.length > 0) {
+          if (!plans[today]) plans[today] = [];
+          incomplete.forEach(p => {
+            plans[today].push({ text: p.text + ' (繰越)', done: false, time: p.time || '' });
+            carriedOver++;
+          });
+          plans[date] = plans[date].filter(p => p.done);
+        }
+      }
+    });
+    if (carriedOver > 0) { save.plans(); showToast(`${carriedOver}件の未完了タスクを今週に繰り越しました`); }
+  }
   localStorage.setItem('study_last_week', cur); currentWeekDay = getTodayWeekIdx();
   
   if (userProfile.reminderTime) { $('reminder-time').value = userProfile.reminderTime; startReminderCheck(); }
-  if ($('freeze-count')) $('freeze-count').textContent = userProfile.freezeItems || 0;
   
   const uiFontSize = localStorage.getItem('study_ui_font_size') || 'medium';
   document.documentElement.setAttribute('data-font-size', uiFontSize);
   
   applyThemeColor();
   loadWidgetOrder();
+  loadCustomTexts(); 
   
   const wi = $('word-input'); if (wi) wi.addEventListener('input', debounce(() => searchWord(true), 200));
   const vs = $('vocab-search'); if (vs) vs.addEventListener('input', debounce(() => renderVocab(true), 200));
@@ -2429,10 +3585,12 @@ async function initAppData() {
   
   updateTagFilters(); initCards(); setPlanMode('calendar'); updateFooter(); renderVocabStats(); renderTextbooks(); loadProfileFields(); updateTimerDisplay(); renderTimerPresets(); addExamSubjectRow(); addExamJudgeRow(); updateAutoSyncBtn(); initModelSelect();
   
-  consumeFreezeIfNeeded(); renderDashboard();
+  renderCountdown();
+  renderDashboard();
+  
+  createAutoBackup();
 }
 
 const getISOWeek = date => { const d = new Date(date.getTime()); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7); };
-const getWeekKey = idx => 'week_' + idx;
 
 window.addEventListener('DOMContentLoaded', initAppData);
