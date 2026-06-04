@@ -163,6 +163,7 @@ a, button, input, select, textarea {
 .pb-3 { padding-bottom: 12px; } 
 .pt-2 { padding-top: 8px; }
 .pt-3 { padding-top: 12px; }
+.p-0 { padding: 0; }
 .p-8 { padding: 8px; }
 .p-10 { padding: 10px; }
 .p-12 { padding: 12px; }
@@ -185,6 +186,7 @@ a, button, input, select, textarea {
 .text-lg { font-size: calc(17px * var(--text-scale)); }
 .text-28 { font-size: calc(28px * var(--text-scale)); }
 .font-bold { font-weight: 700; }
+.italic { font-style: italic; }
 
 .text-muted { color: var(--text-muted); } 
 .text-sub { color: var(--text-sub); }
@@ -366,7 +368,6 @@ header {
 .btn-dashed { background: none; border: 1px dashed var(--border2); border-radius: var(--radius-sm); padding: 8px; color: var(--text-sub); cursor: pointer; }
 .btn-text-muted { font-size: calc(11px * var(--text-scale)); font-weight: bold; color: var(--text-muted); border: none; background: transparent; cursor: pointer; }
 .btn-clear { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: calc(13px * var(--text-scale)); font-weight: bold; }
-.btn-share { background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 4px 10px; border-radius: 50px; font-size: calc(10px * var(--text-scale)); font-weight: bold; cursor: pointer; }
 
 .theme-btn-default { background: #2D2B27; color: #fff; border: none; }
 .theme-btn-red { background: #C0392B; color: #fff; border: none; }
@@ -441,7 +442,8 @@ header {
 .prog-badge.new { background: var(--bg2); color: var(--text-muted); }
 
 .mode-toggle { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-.month-tabs, .week-day-tabs, .chat-subject-tabs, .import-tab-bar, .writing-tabs { display: flex; gap: 5px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; touch-action: pan-y; }
+/* 横スクロール可能なタブ群の touch-action を修正 */
+.month-tabs, .week-day-tabs, .chat-subject-tabs, .import-tab-bar, .writing-tabs { display: flex; gap: 5px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; touch-action: auto; }
 .ptab, .stab, .itab { flex-shrink: 0; padding: 7px 13px; border-radius: 50px; font-size: calc(12px * var(--text-scale)); font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; text-align: center; }
 .ptab.active, .stab.active, .itab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 .ptab { flex: 1; min-width: fit-content; }
@@ -541,7 +543,7 @@ header {
 .chat-send-btn { background: var(--accent); color: var(--bg); border: none; padding: 0 14px; height: 36px; border-radius: 50px; font-size: calc(13px * var(--text-scale)); font-weight: 700; cursor: pointer; flex-shrink: 0; }
 
 .writing-tabs::-webkit-scrollbar { display: none; }
-.writing-tab { flex: 1; min-width: 68px; padding: 9px 4px; text-align: center; border-radius: var(--radius-xs); font-size: calc(11px * var(--text-scale)); font-weight: 700; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; white-space: nowrap; }
+.writing-tab { flex-shrink: 0; min-width: 68px; padding: 9px 12px; text-align: center; border-radius: var(--radius-xs); font-size: calc(11px * var(--text-scale)); font-weight: 700; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; white-space: nowrap; }
 .writing-tab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 .writing-pane { display: none; }
 .writing-pane.active { display: block; }
@@ -578,6 +580,21 @@ header {
 .dash-streak-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
 .dash-streak-num { font-size: calc(32px * var(--text-scale)); font-weight: 700; font-family: var(--font-block); }
 .dash-streak-label { font-size: calc(10px * var(--text-scale)); color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 2px; }
+
+/* Avatar Styling */
+.dash-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
 
 .chart-container-180 { position: relative; height: 180px; }
 .chart-container-220 { position: relative; height: 220px; }
@@ -623,6 +640,40 @@ header {
 
 .btn-srs { flex: 1; padding: 10px 4px; border: none; border-radius: 4px; font-weight: 700; cursor: pointer; color: #fff; }
 .srs-status-text { font-size: calc(11px * var(--text-scale)); color: var(--green); text-align: center; margin-top: 6px; font-weight: 600; min-height: 16px; }
+
+/* Search Mic Button */
+.search-mic-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+}
+.search-mic-btn.listening {
+  color: var(--danger);
+  animation: pulse-text 1.5s infinite;
+}
+@keyframes pulse-text {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* カウントダウン */
+.countdown-number {
+  font-size: calc(42px * var(--text-scale));
+  font-weight: 700;
+  font-family: var(--font-block);
+  color: var(--accent);
+  line-height: 1;
+}
+.countdown-label {
+  font-size: calc(12px * var(--text-scale));
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
 
 /* ==========================
    7. Animations
