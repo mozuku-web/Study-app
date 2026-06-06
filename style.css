@@ -107,6 +107,13 @@ body {
   user-select: none;
 }
 
+/* iOS Safari Body Scroll Lock */
+body.modal-open-locked {
+  position: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+
 p, span, div, h1, h2, h3, h4, h5, h6, li, td, th {
   user-select: text;
 }
@@ -296,9 +303,9 @@ header {
 .nav-bar::-webkit-scrollbar { display: none; }
 
 .nav-item {
-  flex: 1; 
+  flex: 1 0 auto; 
   min-width: 55px; 
-  padding: 10px 4px 9px; 
+  padding: 10px 8px 9px; 
   text-align: center;
   font-size: 9px; 
   font-weight: 700; 
@@ -368,6 +375,7 @@ header {
 .btn-dashed { background: none; border: 1px dashed var(--border2); border-radius: var(--radius-sm); padding: 8px; color: var(--text-sub); cursor: pointer; }
 .btn-text-muted { font-size: calc(11px * var(--text-scale)); font-weight: bold; color: var(--text-muted); border: none; background: transparent; cursor: pointer; }
 .btn-clear { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: calc(13px * var(--text-scale)); font-weight: bold; }
+.btn-play-task { border-radius: 50px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--bg); border: none; cursor: pointer; font-size: 16px; margin-right: 6px; }
 
 .theme-btn-default { background: #2D2B27; color: #fff; border: none; }
 .theme-btn-red { background: #C0392B; color: #fff; border: none; }
@@ -673,6 +681,14 @@ header {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* Mistakes Views */
+.mistake-sub-area {
+  display: block;
+}
+.mistake-sub-area.hidden {
+  display: none !important;
 }
 
 /* ==========================
