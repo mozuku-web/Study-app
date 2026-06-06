@@ -28,10 +28,15 @@
   <div class="logo-wrap"><div class="logo-text" data-i18n="header_logo">Study</div><div class="logo-dot"></div></div>
   <div class="header-btns">
     <button class="dark-toggle" id="dark-toggle-btn" onclick="toggleDark()" data-i18n="header_dark_toggle">AUTO</button>
-    <button class="api-btn" onclick="setTabByIndex(9)" data-i18n="header_settings">SETTINGS</button>
+    <button class="api-btn" onclick="setTabByIndex(10)" data-i18n="header_settings">SETTINGS</button>
   </div>
 </header>
 <div class="toast" id="toast"></div>
+
+<!-- Quick Capture Floating Button -->
+<button id="quick-capture-btn" class="global-mic-btn" style="bottom: 150px; background: var(--streak); display: flex;" onclick="openQuickCaptureModal()">
+  <span class="material-symbols-rounded">edit_note</span>
+</button>
 
 <div class="view-container" id="view-container">
 
@@ -151,6 +156,12 @@
     <div class="card mb-14 widget-item" id="dash-stability-chart-card" data-widget-id="stability-chart">
       <p class="text-xs font-bold text-muted mb-2" data-i18n="dash_chart_stability">記憶の平均定着度推移 (Stability)</p>
       <div class="chart-container-180"><canvas id="dash-stability-chart"></canvas></div>
+    </div>
+    
+    <!-- Review Forecast Widget -->
+    <div class="card mb-14 widget-item" id="dash-forecast-card" data-widget-id="forecast">
+      <p class="text-xs font-bold text-muted mb-2">Review Forecast</p>
+      <div id="dash-forecast-grid" class="heatmap-grid heatmap-layout"></div>
     </div>
 
     <!-- Subject Chart Widget -->
@@ -618,7 +629,16 @@
         <button class="btn-pill bg-accent2 text-bg border-none" onclick="rebuildScheduleAI()" data-i18n="plan_rebuild_btn">AI再構築</button>
       </div>
       <div id="plan-content" class="mb-2"></div>
-      <div class="plan-add-row mt-0"><input type="text" id="new-plan-input" placeholder="予定を追加..." data-i18n-placeholder="plan_plan_input" onkeydown="if(event.key==='Enter')addPlanDatePlan()"><input type="text" id="new-plan-time" placeholder="時間" class="plan-time-input w-60" data-i18n-placeholder="plan_plan_time"><button onclick="addPlanDatePlan()" class="add-btn" data-i18n="plan_plan_add">追加</button></div>
+      <div class="plan-add-row mt-0">
+        <input type="text" id="new-plan-input" placeholder="予定を追加..." data-i18n-placeholder="plan_plan_input" onkeydown="if(event.key==='Enter')addPlanDatePlan()">
+        <input type="text" id="new-plan-time" placeholder="時間" class="plan-time-input w-60" data-i18n-placeholder="plan_plan_time">
+        <select id="new-plan-routine" class="score-input w-auto p-8 text-xs">
+          <option value="none">Once</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+        <button onclick="addPlanDatePlan()" class="add-btn" data-i18n="plan_plan_add">追加</button>
+      </div>
     </div>
     <div class="card" id="textbook-card"><p class="text-sm font-bold mb-2" data-i18n="plan_book_title">使用参考書</p><div id="textbook-chips" class="flex-gap-wrap mb-2"></div><div class="plan-add-row"><input type="text" id="new-textbook-input" placeholder="参考書追加" data-i18n-placeholder="plan_book_input" onkeydown="if(event.key==='Enter')addTextbook()"><button onclick="addTextbook()" class="add-btn" data-i18n="plan_book_add">追加</button></div></div>
   </div>
@@ -636,7 +656,10 @@
 
   <div id="plan-gantt-area" class="hidden">
     <div class="card mb-3">
-      <p class="text-sm font-bold mb-2" data-i18n="plan_gantt_title">逆算スケジュール自動作成 (AI)</p>
+      <div class="flex-between mb-2">
+        <p class="text-sm font-bold" data-i18n="plan_gantt_title">逆算スケジュール自動作成 (AI)</p>
+        <button class="btn-pill btn-outline" onclick="slideGanttSchedule()">Delay Slide</button>
+      </div>
       <p class="text-xs text-muted mb-3 line-height-15" data-i18n="plan_gantt_note">目標日と使用する参考書・タスク量を入力すると、AIが試験日までの日数を計算し、今日やるべき日割りスケジュールをカレンダーに登録します。</p>
       
       <p class="text-xs font-bold text-muted mb-1" data-i18n="plan_gantt_target">目標・テスト名</p>
@@ -695,9 +718,54 @@
   </div>
 </div>
 
+<!-- MISTAKES -->
+<div id="Mistakes" class="view">
+  <p class="page-title">Mistakes</p>
+  <div class="mode-toggle mb-3">
+    <button class="ptab active" id="mistake-tab-saved" onclick="switchMistakeTab('saved')">Saved</button>
+    <button class="ptab" id="mistake-tab-calc" onclick="switchMistakeTab('calc')">Calculation</button>
+    <button class="ptab" id="mistake-tab-exam" onclick="switchMistakeTab('exam')">Exam</button>
+  </div>
+  
+  <div id="mistake-area-saved" class="mistake-sub-area">
+    <div id="mistake-saved-list" class="flex-col gap-6">
+      <p class="text-sm text-muted text-center p-20">Saved items will appear here.</p>
+    </div>
+  </div>
+  
+  <div id="mistake-area-calc" class="mistake-sub-area hidden">
+    <div class="card mb-3">
+      <p class="text-sm font-bold mb-2">Add Calculation Mistake</p>
+      <textarea id="calc-mistake-input" class="score-input mb-2 h-72" placeholder="Describe your calculation mistake..."></textarea>
+      <button class="action-btn mb-0" onclick="addCalcMistake()">Add</button>
+    </div>
+    <div id="mistake-calc-list" class="flex-col gap-6"></div>
+  </div>
+  
+  <div id="mistake-area-exam" class="mistake-sub-area hidden">
+    <div class="card mb-3">
+      <p class="text-sm font-bold mb-2">Add Exam Mistake</p>
+      <input type="text" id="exam-mistake-name" class="score-input mb-2" placeholder="Exam Name">
+      <textarea id="exam-mistake-question" class="score-input mb-2 h-72" placeholder="Question Details..."></textarea>
+      <textarea id="exam-mistake-reason" class="score-input mb-2 h-72" placeholder="Why did you make a mistake?"></textarea>
+      <button class="action-btn mb-0" onclick="addExamMistake()">Add</button>
+    </div>
+    <div id="mistake-exam-list" class="flex-col gap-6"></div>
+  </div>
+</div>
+
 <!-- MANAGE -->
 <div id="Manage" class="view">
   <p class="page-title" data-i18n="manage_title">Manage</p>
+
+  <div class="card mb-4">
+    <p class="text-xs font-bold text-muted mb-2">Gemini API Key</p>
+    <div class="flex-gap-8 align-center mb-2">
+      <input type="password" id="gemini-api-key-input" class="score-input flex-1" placeholder="AIzaSy...">
+      <button class="action-btn mb-0 flex-1 btn-auto-width" onclick="saveApiKey()">Save</button>
+    </div>
+    <p class="text-xs text-muted">※保存するとローカルにのみ記録されます。</p>
+  </div>
   
   <div class="card mb-4">
     <p class="text-xs font-bold text-muted mb-2" data-i18n="manage_log_title">学習データの管理</p>
@@ -828,6 +896,16 @@
 </div><!-- view-container end -->
 
 <!-- MODALS -->
+
+<!-- Quick Capture Modal -->
+<div class="modal-overlay" id="quick-capture-modal" onclick="if(event.target===this) closeModal('quick-capture-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('quick-capture-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg">Quick Capture</p>
+    <textarea id="qc-text-input" class="writing-textarea min-h-100 mb-3" placeholder="Note down anything quickly..."></textarea>
+    <button class="action-btn mb-0" onclick="saveQuickCapture()">Save to Inbox</button>
+  </div>
+</div>
 
 <div class="modal-overlay" id="add-word-modal" onclick="if(event.target===this) closeModal('add-word-modal')">
   <div class="modal-sheet">
@@ -1204,6 +1282,7 @@
   <div class="nav-item" data-tab="CustomCards" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">folder_copy</span><span data-i18n="nav_decks">Decks</span></div>
   <div class="nav-item" data-tab="Subject" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">forum</span><span data-i18n="nav_qa">QA</span></div>
   <div class="nav-item" data-tab="Plan" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">calendar_month</span><span data-i18n="nav_plan">Plan</span></div>
+  <div class="nav-item" data-tab="Mistakes" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">error</span><span>Mistakes</span></div>
   <div class="nav-item" data-tab="Manage" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">settings</span><span data-i18n="nav_manage">Manage</span></div>
 </nav>
 
