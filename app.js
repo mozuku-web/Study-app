@@ -1854,24 +1854,6 @@ const searchWord = async (isSuggest = false) => {
 };
 const selectWord = w => { const i = $('word-input'); if (i) { i.value = w; const s = $('word-suggest'); if (s) s.innerHTML = ''; searchWord(); } };
 
-window.openWordMapModal = async () => {
-  const titleEl = document.querySelector('#modal-body .result-word-title');
-  if (!titleEl) return;
-  const word = titleEl.textContent;
-  
-  openModal('word-map-modal');
-  const container = $('word-map-container');
-  container.innerHTML = '<div class="flex-center h-full"><span class="loading-dots">AIが関連語を分析中</span></div>';
-  
-  try {
-    const prompt = `英単語「${word}」の類義語、反義語、派生語、同じ語源を持つ単語を分析し、視覚的なマインドマップ風のHTMLとCSSを生成してください。外部ライブラリは使わず、divとflexbox等を使って美しくデザインしてください。文字が途切れないように折り返し（word-wrap: break-word）を適用し、挨拶や語りかけは一切不要です。客観的なトーンで出力してください。`;
-    const rep = await callGemini([{ role: 'user', content: prompt }], 2000);
-    container.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
-  } catch (e) {
-    container.innerHTML = '<div class="flex-center h-full text-danger">マップの生成に失敗しました。</div>';
-  }
-};
-
 window.regenerateWordDetail = async (w) => {
   const mc = $('modal-detail-content');
   if (!mc) return;
@@ -1956,7 +1938,7 @@ window.showWordModal = async (w, m) => {
   
   const imgContainer = $('modal-image-container');
   if (imgContainer) {
-    imgContainer.innerHTML = `<img src="https://source.unsplash.com/featured/300x150/?${encodeURIComponent(w)}" style="border-radius: 8px; max-width: 100%; opacity: 0.8;" onerror="this.style.display='none'">`;
+    imgContainer.innerHTML = `<img src="https://image.pollinations.io/prompt/${encodeURIComponent(w)}?width=300&height=150&nologo=true" style="border-radius: 8px; max-width: 100%; opacity: 0.8;" onerror="this.style.display='none'">`;
   }
 };
 
@@ -2226,7 +2208,7 @@ const renderCard = () => {
   
   if (imgC) {
     if (showImg) {
-      imgC.innerHTML = `<img src="https://source.unsplash.com/featured/300x150/?${encodeURIComponent(c.word)}" style="width:100%; height:auto; border-radius:8px; opacity:0.8;" onerror="this.style.display='none'">`;
+      imgC.innerHTML = `<img src="https://image.pollinations.io/prompt/${encodeURIComponent(c.word)}?width=300&height=150&nologo=true" style="width:100%; height:auto; border-radius:8px; opacity:0.8;" onerror="this.style.display='none'">`;
     } else {
       imgC.innerHTML = '';
     }
@@ -4339,10 +4321,10 @@ window.openImageGalleryModal = () => {
   openModal('image-gallery-modal');
   const grid = $('image-gallery-grid');
   grid.innerHTML = `
-    <img src="https://source.unsplash.com/featured/300x300/?${encodeURIComponent(w)},1" style="width:100%; border-radius:8px;">
-    <img src="https://source.unsplash.com/featured/300x300/?${encodeURIComponent(w)},2" style="width:100%; border-radius:8px;">
-    <img src="https://source.unsplash.com/featured/300x300/?${encodeURIComponent(w)},3" style="width:100%; border-radius:8px;">
-    <img src="https://source.unsplash.com/featured/300x300/?${encodeURIComponent(w)},4" style="width:100%; border-radius:8px;">
+    <img src="https://image.pollinations.io/prompt/${encodeURIComponent(w + ' concept art')}?width=300&height=300&nologo=true&seed=1" style="width:100%; border-radius:8px;">
+    <img src="https://image.pollinations.io/prompt/${encodeURIComponent(w + ' realistic')}?width=300&height=300&nologo=true&seed=2" style="width:100%; border-radius:8px;">
+    <img src="https://image.pollinations.io/prompt/${encodeURIComponent(w + ' illustration')}?width=300&height=300&nologo=true&seed=3" style="width:100%; border-radius:8px;">
+    <img src="https://image.pollinations.io/prompt/${encodeURIComponent(w + ' minimal')}?width=300&height=300&nologo=true&seed=4" style="width:100%; border-radius:8px;">
   `;
 };
 
