@@ -501,6 +501,24 @@ header {
   border: 2px dashed var(--border2);
 }
 
+/* Widget Layout (2 Columns) */
+.widget-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.widget-grid-2col .widget-item {
+  margin-bottom: 0; /* Override default margin */
+}
+.widget-grid-2col .widget-item[data-widget-id="wotd"],
+.widget-grid-2col .widget-item[data-widget-id="hero"],
+.widget-grid-2col .widget-item[data-widget-id="actions"],
+.widget-grid-2col .widget-item[data-widget-id="streak"],
+.widget-grid-2col .widget-item[data-widget-id="calendar"],
+.widget-grid-2col .widget-item[data-widget-id="heatmap"] {
+  grid-column: span 2; /* These widgets span full width even in 2col mode */
+}
+
 /* Recovery Mission */
 .recovery-mission-card {
   background: linear-gradient(135deg, #fde8e6 0%, #fff 100%);
@@ -690,6 +708,11 @@ header {
 .mistake-sub-area.hidden {
   display: none !important;
 }
+.mistake-cause-tag {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
 
 /* Word Map Styles */
 #word-map-container {
@@ -701,6 +724,13 @@ header {
 .word-map-node {
   word-break: break-word;
   white-space: normal;
+}
+
+/* KaTeX Display Scroll */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
 }
 
 /* ==========================
