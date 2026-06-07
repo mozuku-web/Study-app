@@ -11,7 +11,7 @@ const clean = html => {
   if (window.DOMPurify) return DOMPurify.sanitize(html);
   const temp = document.createElement('div');
   temp.textContent = html;
-  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div)(.*?)&gt;/gi, '<$1$2$3>');
+  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td)(.*?)&gt;/gi, '<$1$2$3>');
 };
 
 const safeSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -71,6 +71,37 @@ const processToastQueue = () => {
   }, 2200);
 };
 
+// Undo (元に戻す) 機能
+let undoTimeout = null;
+let pendingUndoAction = null;
+const showUndoSnackbar = (msg, undoFn, commitFn) => {
+  if (pendingUndoAction && pendingUndoAction.commit) pendingUndoAction.commit();
+  pendingUndoAction = { undo: undoFn, commit: commitFn };
+  const sb = $('undo-snackbar');
+  if (!sb) return;
+  $('undo-message').textContent = msg;
+  sb.classList.add('show');
+  clearTimeout(undoTimeout);
+  undoTimeout = setTimeout(() => {
+    if (pendingUndoAction && pendingUndoAction.commit) pendingUndoAction.commit();
+    pendingUndoAction = null;
+    sb.classList.remove('show');
+  }, 5000);
+};
+window.addEventListener('DOMContentLoaded', () => {
+  const undoBtn = $('undo-btn');
+  if (undoBtn) {
+    undoBtn.onclick = () => {
+      if (pendingUndoAction && pendingUndoAction.undo) {
+        pendingUndoAction.undo();
+        pendingUndoAction = null;
+      }
+      clearTimeout(undoTimeout);
+      $('undo-snackbar').classList.remove('show');
+    };
+  }
+});
+
 const autoResize = el => { 
   if (!el) return; 
   const scrollY = window.scrollY;
@@ -102,19 +133,19 @@ const getTotalStudySeconds = () => studyLogs.reduce((a, l) => a + l.seconds, 0);
 
 const openModal = id => { 
   $(id).classList.add('open'); 
-  document.body.style.overflow = 'hidden'; 
+  document.body.classList.add('modal-open-locked');
   history.pushState({ modal: id }, ''); 
 };
 const closeModal = id => { 
   $(id).classList.remove('open'); 
   if (!document.querySelector('.modal-overlay.open')) {
-    document.body.style.overflow = '';
+    document.body.classList.remove('modal-open-locked');
   }
   if (history.state && history.state.modal === id) history.back(); 
 };
 window.addEventListener('popstate', () => { 
   document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open')); 
-  document.body.style.overflow = '';
+  document.body.classList.remove('modal-open-locked');
 });
 
 const resizeImage = (file, maxWidth = 1024, maxHeight = 1024, skipResize = false) => {
@@ -138,6 +169,52 @@ const resizeImage = (file, maxWidth = 1024, maxHeight = 1024, skipResize = false
     };
     reader.readAsDataURL(file);
   });
+};
+
+// Cropper.js 連携
+let cropperInstance = null;
+let cropTargetCallback = null;
+window.openImageCropper = (file, callback) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const imgEl = $('image-crop-target');
+    if (!imgEl) return;
+    imgEl.src = e.target.result;
+    openModal('image-crop-modal');
+    if (cropperInstance) cropperInstance.destroy();
+    cropperInstance = new Cropper(imgEl, {
+      viewMode: 1,
+      autoCropArea: 1,
+      background: false
+    });
+    cropTargetCallback = callback;
+  };
+  reader.readAsDataURL(file);
+};
+window.applyImageCrop = () => {
+  if (!cropperInstance || !cropTargetCallback) return;
+  const canvas = cropperInstance.getCroppedCanvas({ maxWidth: 1024, maxHeight: 1024 });
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+  cropTargetCallback(dataUrl);
+  closeModal('image-crop-modal');
+  cropperInstance.destroy();
+  cropperInstance = null;
+  cropTargetCallback = null;
+};
+
+// KaTeX レンダリング
+const renderMath = (el) => {
+  if (window.renderMathInElement && el) {
+    renderMathInElement(el, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false},
+        {left: '\\(', right: '\\)', display: false},
+        {left: '\\[', right: '\\]', display: true}
+      ],
+      throwOnError: false
+    });
+  }
 };
 
 const handleApiError = (e, containerId) => {
@@ -226,7 +303,7 @@ window.resetCustomTexts = () => {
 // ============================================================
 // [2] CONSTANTS & STATE
 // ============================================================
-const TABS = ['Dashboard', 'Timer', 'ImportSearch', 'Vocab', 'Cards', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Manage'];
+const TABS = ['Dashboard', 'Timer', 'ImportSearch', 'Vocab', 'Cards', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Mistakes', 'Manage'];
 const ACCENTS = ['en_US', 'en_GB', 'en_AU'];
 const ACCENT_LABELS = { en_US: 'アメリカ英語', en_GB: 'イギリス英語', en_AU: 'オーストラリア英語' };
 const SCORE_SUBJECTS = { japanese: { label: '国語', details: ['現代文', '古文', '漢文', '総合'] }, math: { label: '数学', details: ['数学I・A', '数学II・B', '数学III・C', '総合'] }, english: { label: '英語', details: ['リーディング', 'リスニング', 'ライティング', '総合'] }, science: { label: '理科', details: ['物理', '化学', '生物', '地学', '基礎', '総合'] }, social: { label: '社会', details: ['歴史', '地理', '公共', '倫理', '政経', '総合'] }, total: { label: '総合', details: ['文系', '理系', '全体'] } };
@@ -247,6 +324,8 @@ const THEMES = {
 };
 
 let ALL_WORDS = [], savedWords = [], plans = {}, events = {}, writingHistory = [], subjectSaved = [], subjectQuizzes = [], examScores = [], textbooks = [], srsData = {}, userProfile = { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', aiNotificationTiming: false, freezeItems: 0, themeColor: 'default', customThemeColor: '' }, customDecks = [], wordProgress = {}, vocabMeta = {}, dailyChallenges = [], syntaxList = [], listenHistory = [], studyLogs = [], freezeLogs = [];
+let examMistakes = [], calcMistakes = [], otherMistakes = [], subjectFolders = [];
+let goalTimes = safeGet('study_goal_times', { english: 0, math: 0, japanese: 0, science: 0, social: 0, other: 0 });
 let yearlyPlan = { year: new Date().getFullYear(), goal: '', months: {} };
 let countdownData = safeGet('study_countdown', { name: '', date: '' });
 let quickCaptures = safeGet('study_quick_captures', []);
@@ -257,6 +336,7 @@ let fsrsRetention = safeGet('study_fsrs_retention', 90);
 let cachedWotd = safeGet('study_wotd_cache', { date: '', word: null, exampleHtml: '' });
 let cachedQuote = safeGet('study_quote_cache', { date: '', text: '', author: '', explanation: '' });
 let activeWidgets = safeGet('study_active_widgets', ['wotd', 'hero', 'quote', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'subj-chart', 'heatmap', 'calendar', 'quick-capture-inbox', 'today-plan', 'today-log']);
+let widgetColumnMode = safeGet('study_widget_column_mode', '1');
 let shuffleSettings = safeGet('study_shuffle_settings', { mode: 'random' });
 
 let reminderCheckInt = null;
@@ -264,7 +344,7 @@ let swipeStartX = 0, swipeStartY = 0;
 let _audioUnlocked = false;
 let mBtn = null, rec = null, aInp = null;
 let wotdIndex = -1;
-let dashSubjChart = null, dashSrsChart = null, dashSrsScatter = null, wordRetentionChart = null, dashWeeklyChart = null, simulationChart = null, dashRadarChart = null, dashStabilityChart = null;
+let dashSubjChart = null, dashSrsChart = null, dashSrsScatter = null, wordRetentionChart = null, dashWeeklyChart = null, simulationChart = null, dashRadarChart = null, dashStabilityChart = null, mistakeRadarChart = null;
 let weaknessWords = [];
 let vocabPosFilter = 'all', vocabProgFilter = 'all', vocabTagFilter = 'all', vocabPrefixFilter = '';
 let vocabPage = 1;
@@ -306,6 +386,8 @@ let shadowingAnalyser = null;
 let shadowingDataArray = null;
 let shadowingReqAnimFrame = null;
 
+let mistakeTab = 'saved';
+
 // ============================================================
 // [3] STORAGE & SYNC
 // ============================================================
@@ -344,14 +426,18 @@ const save = {
   listen: () => safeSave('study_listen', listenHistory.slice(0, 100)),
   logs: () => safeSave('study_logs', studyLogs),
   yearly: () => safeSave('study_yearly_plan', yearlyPlan),
-  freezeLogs: () => safeSave('study_freeze_logs', freezeLogs)
+  freezeLogs: () => safeSave('study_freeze_logs', freezeLogs),
+  examMistakes: () => safeSave('study_exam_mistakes', examMistakes),
+  calcMistakes: () => safeSave('study_calc_mistakes', calcMistakes),
+  otherMistakes: () => safeSave('study_other_mistakes', otherMistakes),
+  subjectFolders: () => safeSave('study_subject_folders', subjectFolders)
 };
 
 const createAutoBackup = async () => {
   const today = todayDateStr();
   const lastBackup = localStorage.getItem('study_last_backup_date');
   if (lastBackup !== today) {
-    const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan };
+    const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan, examMistakes, calcMistakes, otherMistakes, subjectFolders };
     await localforage.setItem('backup_' + today, data);
     localStorage.setItem('study_last_backup_date', today);
     
@@ -374,6 +460,14 @@ window.createManualBackup = async () => {
   renderBackupList();
 };
 
+window.renderBackupList = async () => {
+  const sel = $('backup-restore-select');
+  if (!sel) return;
+  const keys = await localforage.keys();
+  const backupKeys = keys.filter(k => k.startsWith('backup_')).sort((a, b) => b.localeCompare(a));
+  sel.innerHTML = '<option value="">復元ポイントを選択...</option>' + backupKeys.map(k => `<option value="${k}">${k.replace('backup_', '')}</option>`).join('');
+};
+
 window.restoreBackup = async () => {
   const sel = $('backup-restore-select');
   if (!sel || !sel.value) return showToast('復元ポイントを選択してください');
@@ -381,7 +475,7 @@ window.restoreBackup = async () => {
   
   const data = await localforage.getItem(sel.value);
   if (data) {
-    ALL_WORDS = data.ALL_WORDS || []; savedWords = data.savedWords || []; plans = data.plans || {}; events = data.events || {}; writingHistory = data.writingHistory || []; subjectSaved = data.subjectSaved || []; subjectQuizzes = data.subjectQuizzes || []; examScores = data.examScores || []; textbooks = data.textbooks || []; srsData = data.srsData || {}; userProfile = data.userProfile || userProfile; customDecks = data.customDecks || []; wordProgress = data.wordProgress || {}; vocabMeta = data.vocabMeta || {}; dailyChallenges = data.dailyChallenges || []; syntaxList = data.syntaxList || []; listenHistory = data.listenHistory || []; studyLogs = data.studyLogs || []; yearlyPlan = data.yearlyPlan || yearlyPlan;
+    ALL_WORDS = data.ALL_WORDS || []; savedWords = data.savedWords || []; plans = data.plans || {}; events = data.events || {}; writingHistory = data.writingHistory || []; subjectSaved = data.subjectSaved || []; subjectQuizzes = data.subjectQuizzes || []; examScores = data.examScores || []; textbooks = data.textbooks || []; srsData = data.srsData || {}; userProfile = data.userProfile || userProfile; customDecks = data.customDecks || []; wordProgress = data.wordProgress || {}; vocabMeta = data.vocabMeta || {}; dailyChallenges = data.dailyChallenges || []; syntaxList = data.syntaxList || []; listenHistory = data.listenHistory || []; studyLogs = data.studyLogs || []; yearlyPlan = data.yearlyPlan || yearlyPlan; examMistakes = data.examMistakes || []; calcMistakes = data.calcMistakes || []; otherMistakes = data.otherMistakes || []; subjectFolders = data.subjectFolders || [];
     Object.values(save).forEach(f => f());
     showToast('復元しました。再読み込みします。');
     setTimeout(() => location.reload(), 1500);
@@ -471,9 +565,9 @@ const cloudSync = async (m, isAuto = false) => {
       wordChunks.forEach((chunk, i) => { batch.set(c.doc(`words_chunk_${i}`), { data: JSON.stringify(chunk) }); });
       
       batch.set(c.doc('history'), { writingHistory: JSON.stringify(writingHistory.slice(0, 50)), listenHistory: JSON.stringify(listenHistory.slice(0, 50)), dailyChallenges: JSON.stringify(dailyChallenges.slice(0, 50)) });
-      batch.set(c.doc('qa'), { subjectSaved: JSON.stringify(subjectSaved.slice(0, 50)), subjectQuizzes: JSON.stringify(subjectQuizzes.slice(0, 50)) });
+      batch.set(c.doc('qa'), { subjectSaved: JSON.stringify(subjectSaved.slice(0, 50)), subjectQuizzes: JSON.stringify(subjectQuizzes.slice(0, 50)), subjectFolders: JSON.stringify(subjectFolders) });
       batch.set(c.doc('plans'), { plans: JSON.stringify(plans), events: JSON.stringify(events), studyLogs: JSON.stringify(studyLogs), textbooks: JSON.stringify(textbooks), yearlyPlan: JSON.stringify(yearlyPlan) });
-      batch.set(c.doc('misc'), { examScores: JSON.stringify(examScores), customDecks: JSON.stringify(customDecks), syntaxList: JSON.stringify(syntaxList), userProfile: JSON.stringify(userProfile), freezeLogs: JSON.stringify(freezeLogs), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      batch.set(c.doc('misc'), { examScores: JSON.stringify(examScores), customDecks: JSON.stringify(customDecks), syntaxList: JSON.stringify(syntaxList), userProfile: JSON.stringify(userProfile), freezeLogs: JSON.stringify(freezeLogs), examMistakes: JSON.stringify(examMistakes), calcMistakes: JSON.stringify(calcMistakes), otherMistakes: JSON.stringify(otherMistakes), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       
       await batch.commit();
       localStorage.setItem('study_last_sync_time', Date.now().toString());
@@ -506,6 +600,7 @@ const cloudSync = async (m, isAuto = false) => {
           if (r.dailyChallenges) dailyChallenges = mergeHistory(dailyChallenges, ps(r.dailyChallenges, []));
           if (r.subjectSaved) subjectSaved = mergeHistory(subjectSaved, ps(r.subjectSaved, [])); 
           if (r.subjectQuizzes) subjectQuizzes = mergeHistory(subjectQuizzes, ps(r.subjectQuizzes, []));
+          if (r.subjectFolders) subjectFolders = ps(r.subjectFolders, []);
           
           if (r.plans) plans = { ...plans, ...ps(r.plans, {}) }; 
           if (r.events) events = { ...events, ...ps(r.events, {}) }; 
@@ -523,6 +618,9 @@ const cloudSync = async (m, isAuto = false) => {
           if (r.syntaxList) syntaxList = mergeHistory(syntaxList, ps(r.syntaxList, [])); 
           if (r.userProfile) userProfile = { ...userProfile, ...ps(r.userProfile, {}) }; 
           if (r.freezeLogs) freezeLogs = [...new Set([...freezeLogs, ...ps(r.freezeLogs, [])])];
+          if (r.examMistakes) examMistakes = mergeHistory(examMistakes, ps(r.examMistakes, []));
+          if (r.calcMistakes) calcMistakes = mergeHistory(calcMistakes, ps(r.calcMistakes, []));
+          if (r.otherMistakes) otherMistakes = mergeHistory(otherMistakes, ps(r.otherMistakes, []));
         }
       }
       if (found) { 
@@ -573,6 +671,7 @@ const applyTheme = () => {
   
   if (currentTabIndex === 0) renderDashboard();
   if (currentTabIndex === 8 && planMode === 'score') renderScoreChart();
+  if (currentTabIndex === 9 && mistakeTab === 'exam') renderMistakeRadarChart();
 };
 const toggleDark = () => { darkThemeMode = darkThemeMode === 'auto' ? 'dark' : darkThemeMode === 'dark' ? 'light' : 'auto'; safeSet('study_dark_mode', darkThemeMode); applyTheme(); };
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (darkThemeMode === 'auto') applyTheme(); });
@@ -731,7 +830,7 @@ window.callGemini = async (msgs, maxT = 1000, sys = '', expectJson = false) => {
                .replace(/you are a/gi, '');
   };
 
-  const finalSys = sys || '挨拶や語りかけは一切不要です。客観的かつ簡潔な単語帳スタイルで出力してください。';
+  const finalSys = sys || '客観的かつ簡潔な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。';
   if (finalSys) contents.push({ role: 'user', parts: [{ text: finalSys }] }, { role: 'model', parts: [{ text: 'OK' }] });
   
   msgs.slice(-15).forEach(m => {
@@ -927,7 +1026,7 @@ const timerStartStop = () => {
       const remain = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
       timerTime = remain; updateTimerDisplay();
       if (remain <= 0) {
-        timerStartStop(); 
+        clearInterval(timerInt); timerRunning = false;
         if (navigator.vibrate) navigator.vibrate(1000);
         if (Notification.permission === 'granted') {
           new Notification('Study App', { body: isPomodoroBreak ? '休憩終了！学習を再開しましょう。' : '学習終了！お疲れ様でした。' });
@@ -940,22 +1039,30 @@ const timerStartStop = () => {
             save.logs();
             isPomodoroBreak = true; timerInitial = 5 * 60; timerTime = timerInitial; updateTimerDisplay();
             if ($('timer-pomodoro-auto') && $('timer-pomodoro-auto').checked) {
-              setTimeout(timerStartStop, 1500);
+              timerStartStop();
+            } else {
+              const s = $('timer-status'); if (s) s.textContent = customTexts['timer_status_break_stop'] || '休憩停止中';
+              const b = $('timer-start-btn'); if (b) b.textContent = customTexts['timer_btn_start'] || 'スタート';
             }
           } else {
             showToast('休憩終了！学習再開です');
             isPomodoroBreak = false; timerInitial = 25 * 60; timerTime = timerInitial; updateTimerDisplay();
             if ($('timer-pomodoro-auto') && $('timer-pomodoro-auto').checked) {
-              setTimeout(timerStartStop, 1500);
+              timerStartStop();
+            } else {
+              const s = $('timer-status'); if (s) s.textContent = customTexts['timer_status_stopped'] || '停止中';
+              const b = $('timer-start-btn'); if (b) b.textContent = customTexts['timer_btn_start'] || 'スタート';
             }
           }
         } else {
           showToast('終了');
           studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: timerInitial, ts: Date.now() });
           save.logs();
+          const s = $('timer-status'); if (s) s.textContent = customTexts['timer_status_stopped'] || '停止中';
+          const b = $('timer-start-btn'); if (b) b.textContent = customTexts['timer_btn_start'] || 'スタート';
         }
       }
-    }, 200);
+    }, 1000);
   }
 };
 
@@ -1090,6 +1197,9 @@ window.openWidgetSettingsModal = () => {
     </label>
   `).join('');
   
+  const colSelect = $('widget-column-select');
+  if (colSelect) colSelect.value = widgetColumnMode;
+  
   openModal('widget-settings-modal');
 };
 
@@ -1097,6 +1207,13 @@ window.saveWidgetSettings = () => {
   const cbs = document.querySelectorAll('.widget-toggle-cb');
   activeWidgets = Array.from(cbs).filter(cb => cb.checked).map(cb => cb.value);
   safeSet('study_active_widgets', activeWidgets);
+  
+  const colSelect = $('widget-column-select');
+  if (colSelect) {
+    widgetColumnMode = colSelect.value;
+    safeSet('study_widget_column_mode', widgetColumnMode);
+  }
+  
   closeModal('widget-settings-modal');
   renderDashboard();
   showToast('表示設定を保存しました');
@@ -1105,6 +1222,13 @@ window.saveWidgetSettings = () => {
 const applyWidgetVisibility = () => {
   const container = $('dashboard-widgets');
   if (!container) return;
+  
+  if (widgetColumnMode === '2') {
+    container.classList.add('widget-grid-2col');
+  } else {
+    container.classList.remove('widget-grid-2col');
+  }
+  
   Array.from(container.children).forEach(el => {
     const id = el.getAttribute('data-widget-id');
     if (id) {
@@ -1230,9 +1354,35 @@ const renderQuickCaptures = () => {
 };
 
 window.deleteQuickCapture = (id) => {
-  quickCaptures = quickCaptures.filter(qc => qc.id !== id);
+  const qc = quickCaptures.find(q => q.id === id);
+  if (!qc) return;
+  showUndoSnackbar('メモを削除しました', () => {
+    quickCaptures.unshift(qc);
+    safeSet('study_quick_captures', quickCaptures);
+    renderQuickCaptures();
+  }, () => {
+    quickCaptures = quickCaptures.filter(q => q.id !== id);
+    safeSet('study_quick_captures', quickCaptures);
+  });
+  quickCaptures = quickCaptures.filter(q => q.id !== id);
   safeSet('study_quick_captures', quickCaptures);
   renderQuickCaptures();
+};
+
+const renderChartSafe = (canvasId, renderFn) => {
+  const cv = $(canvasId);
+  if (!cv) return;
+  if (cv.offsetParent !== null) {
+    renderFn();
+  } else {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        renderFn();
+        observer.disconnect();
+      }
+    });
+    observer.observe(cv);
+  }
 };
 
 const renderDashboard = () => {
@@ -1277,90 +1427,111 @@ const renderDashboard = () => {
     } else ys.classList.add('hidden');
   }
 
-  const wCv = $('dash-weekly-chart');
-  if (wCv && wCv.offsetParent !== null && activeWidgets.includes('weekly-chart')) {
-    const now = new Date();
-    now.setDate(now.getDate() - (dashWeeklyOffset * 7));
-    const currentDay = now.getDay();
-    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMonday);
-    
-    const labels = ['月', '火', '水', '木', '金', '土', '日'];
-    const data = [0, 0, 0, 0, 0, 0, 0];
-    
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const logsForDay = studyLogs.filter(l => l.date === dStr);
-      const totalSec = logsForDay.reduce((sum, l) => sum + l.seconds, 0);
-      data[i] = Math.floor(totalSec / 60);
-    }
-    
-    const lbl = $('dash-weekly-label');
-    if (lbl) {
-      if (dashWeeklyOffset === 0) lbl.textContent = customTexts['dash_chart_weekly_this'] || '今週';
-      else if (dashWeeklyOffset === 1) lbl.textContent = '先週';
-      else lbl.textContent = `${dashWeeklyOffset}週前`;
-    }
+  if (activeWidgets.includes('weekly-chart')) {
+    renderChartSafe('dash-weekly-chart', () => {
+      const wCv = $('dash-weekly-chart');
+      const now = new Date();
+      now.setDate(now.getDate() - (dashWeeklyOffset * 7));
+      const currentDay = now.getDay();
+      const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      
+      const labels = ['月', '火', '水', '木', '金', '土', '日'];
+      const data = [0, 0, 0, 0, 0, 0, 0];
+      
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const logsForDay = studyLogs.filter(l => l.date === dStr);
+        const totalSec = logsForDay.reduce((sum, l) => sum + l.seconds, 0);
+        data[i] = Math.floor(totalSec / 60);
+      }
+      
+      const lbl = $('dash-weekly-label');
+      if (lbl) {
+        if (dashWeeklyOffset === 0) lbl.textContent = customTexts['dash_chart_weekly_this'] || '今週';
+        else if (dashWeeklyOffset === 1) lbl.textContent = '先週';
+        else lbl.textContent = `${dashWeeklyOffset}週前`;
+      }
 
-    if (dashWeeklyChart) dashWeeklyChart.destroy();
-    dashWeeklyChart = new Chart(wCv, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: '学習時間(分)', data, backgroundColor: '#2980B9', borderRadius: 4 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      if (dashWeeklyChart) dashWeeklyChart.destroy();
+      dashWeeklyChart = new Chart(wCv, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: '学習時間(分)', data, backgroundColor: '#2980B9', borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      });
     });
   }
 
   const subjTotals = {}; studyLogs.forEach(l => { subjTotals[l.subj] = (subjTotals[l.subj] || 0) + l.seconds; });
-  const cv = $('dash-subj-chart');
-  if (cv && cv.offsetParent !== null && activeWidgets.includes('subj-chart')) {
-    if (Object.keys(subjTotals).length === 0) $('dash-subj-chart-card').classList.add('hidden'); 
-    else {
-      $('dash-subj-chart-card').classList.remove('hidden');
-      const labels = Object.keys(subjTotals).map(k => SCORE_SUBJECTS[k]?.label || k), data = Object.values(subjTotals).map(v => Math.floor(v / 60));
-      if (dashSubjChart) dashSubjChart.destroy();
-      dashSubjChart = new Chart(cv, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: ['#E67E22', '#2980B9', '#2E7D52', '#8E44AD', '#C0392B', '#7F8C8D'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } } } });
-    }
+  
+  if (activeWidgets.includes('subj-chart')) {
+    renderChartSafe('dash-subj-chart', () => {
+      const cv = $('dash-subj-chart');
+      if (Object.keys(subjTotals).length === 0) {
+        $('dash-subj-chart-card').classList.add('hidden'); 
+      } else {
+        $('dash-subj-chart-card').classList.remove('hidden');
+        const labels = Object.keys(subjTotals).map(k => SCORE_SUBJECTS[k]?.label || k);
+        const data = Object.values(subjTotals).map(v => Math.floor(v / 60));
+        const goals = Object.keys(subjTotals).map(k => goalTimes[k] || 0);
+        
+        if (dashSubjChart) dashSubjChart.destroy();
+        dashSubjChart = new Chart(cv, { 
+          type: 'bar', 
+          data: { 
+            labels, 
+            datasets: [
+              { label: '学習時間(分)', data, backgroundColor: '#2980B9', borderRadius: 4 },
+              { label: '目標時間(分)', data: goals, type: 'line', borderColor: '#E67E22', backgroundColor: 'transparent', borderDash: [5, 5], pointRadius: 0 }
+            ] 
+          }, 
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } 
+        });
+      }
+    });
   }
 
-  const rCv = $('dash-radar-chart');
-  if (rCv && rCv.offsetParent !== null && activeWidgets.includes('radar-chart')) {
-    if (Object.keys(subjTotals).length === 0) $('dash-radar-chart-card').classList.add('hidden');
-    else {
-      $('dash-radar-chart-card').classList.remove('hidden');
-      const labels = ['英語', '数学', '国語', '理科', '社会', 'その他'];
-      const keys = ['english', 'math', 'japanese', 'science', 'social', 'other'];
-      const data = keys.map(k => Math.floor((subjTotals[k] || 0) / 60));
-      if (dashRadarChart) dashRadarChart.destroy();
-      dashRadarChart = new Chart(rCv, {
-        type: 'radar',
-        data: {
-          labels,
-          datasets: [{
-            label: '学習時間(分)',
-            data,
-            backgroundColor: 'rgba(45, 43, 39, 0.2)',
-            borderColor: '#2D2B27',
-            pointBackgroundColor: '#E67E22',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: '#E67E22'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { r: { angleLines: { display: true }, suggestedMin: 0 } }
-        }
-      });
-    }
+  if (activeWidgets.includes('radar-chart')) {
+    renderChartSafe('dash-radar-chart', () => {
+      const rCv = $('dash-radar-chart');
+      if (Object.keys(subjTotals).length === 0) {
+        $('dash-radar-chart-card').classList.add('hidden');
+      } else {
+        $('dash-radar-chart-card').classList.remove('hidden');
+        const labels = ['英語', '数学', '国語', '理科', '社会', 'その他'];
+        const keys = ['english', 'math', 'japanese', 'science', 'social', 'other'];
+        const data = keys.map(k => Math.floor((subjTotals[k] || 0) / 60));
+        if (dashRadarChart) dashRadarChart.destroy();
+        dashRadarChart = new Chart(rCv, {
+          type: 'radar',
+          data: {
+            labels,
+            datasets: [{
+              label: '学習時間(分)',
+              data,
+              backgroundColor: 'rgba(45, 43, 39, 0.2)',
+              borderColor: '#2D2B27',
+              pointBackgroundColor: '#E67E22',
+              pointBorderColor: '#fff',
+              pointHoverBackgroundColor: '#fff',
+              pointHoverBorderColor: '#E67E22'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { r: { angleLines: { display: true }, suggestedMin: 0 } }
+          }
+        });
+      }
+    });
   }
 
-  const srsCv = $('dash-srs-chart'), srsScatterCv = $('dash-srs-scatter'), stabCv = $('dash-stability-chart');
-  if (srsCv && srsCv.offsetParent !== null && Object.keys(srsData).length > 0) {
+  if (Object.keys(srsData).length > 0) {
     if(activeWidgets.includes('srs-chart')) $('dash-srs-chart-card').classList.remove('hidden'); 
     if(activeWidgets.includes('srs-scatter')) $('dash-srs-scatter-card').classList.remove('hidden');
     if(activeWidgets.includes('stability-chart') && $('dash-stability-chart-card')) $('dash-stability-chart-card').classList.remove('hidden');
@@ -1376,22 +1547,31 @@ const renderDashboard = () => {
     });
     
     if (activeWidgets.includes('srs-chart')) {
-      if (dashSrsChart) dashSrsChart.destroy();
-      dashSrsChart = new Chart(srsCv, { type: 'bar', data: { labels: ['今日', '1日後', '3日以内', '7日以内', '14日以上'], datasets: [{ label: '単語数', data: [buckets.today, buckets.d1, buckets.d3, buckets.d7, buckets.d14], backgroundColor: ['#C0392B', '#E67E22', '#F1C40F', '#2E7D52', '#2980B9'], borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } } } });
+      renderChartSafe('dash-srs-chart', () => {
+        const srsCv = $('dash-srs-chart');
+        if (dashSrsChart) dashSrsChart.destroy();
+        dashSrsChart = new Chart(srsCv, { type: 'bar', data: { labels: ['今日', '1日後', '3日以内', '7日以内', '14日以上'], datasets: [{ label: '単語数', data: [buckets.today, buckets.d1, buckets.d3, buckets.d7, buckets.d14], backgroundColor: ['#C0392B', '#E67E22', '#F1C40F', '#2E7D52', '#2980B9'], borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } } } });
+      });
     }
     
     if (activeWidgets.includes('srs-scatter')) {
-      if (dashSrsScatter) dashSrsScatter.destroy();
-      dashSrsScatter = new Chart(srsScatterCv, { type: 'scatter', data: { datasets: [{ label: '単語', data: scatterData, backgroundColor: 'rgba(41, 128, 185, 0.5)', pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Stability (定着度)' }, min: 0 }, y: { title: { display: true, text: 'Difficulty (難易度)' }, min: 1, max: 10 } } } });
+      renderChartSafe('dash-srs-scatter', () => {
+        const srsScatterCv = $('dash-srs-scatter');
+        if (dashSrsScatter) dashSrsScatter.destroy();
+        dashSrsScatter = new Chart(srsScatterCv, { type: 'scatter', data: { datasets: [{ label: '単語', data: scatterData, backgroundColor: 'rgba(41, 128, 185, 0.5)', pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Stability (定着度)' }, min: 0 }, y: { title: { display: true, text: 'Difficulty (難易度)' }, min: 1, max: 10 } } } });
+      });
     }
     
-    if (stabCv && stabCv.offsetParent !== null && activeWidgets.includes('stability-chart')) {
-      const avgStability = totalStability / Object.keys(srsData).length;
-      if (dashStabilityChart) dashStabilityChart.destroy();
-      dashStabilityChart = new Chart(stabCv, {
-        type: 'bar',
-        data: { labels: ['現在の平均定着度'], datasets: [{ label: 'Stability', data: [avgStability], backgroundColor: '#27AE60', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    if (activeWidgets.includes('stability-chart')) {
+      renderChartSafe('dash-stability-chart', () => {
+        const stabCv = $('dash-stability-chart');
+        const avgStability = totalStability / Object.keys(srsData).length;
+        if (dashStabilityChart) dashStabilityChart.destroy();
+        dashStabilityChart = new Chart(stabCv, {
+          type: 'bar',
+          data: { labels: ['現在の平均定着度'], datasets: [{ label: 'Stability', data: [avgStability], backgroundColor: '#27AE60', borderRadius: 4 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
       });
     }
   } else {
@@ -1505,7 +1685,7 @@ const renderWordOfTheDay = async () => {
   else {
     exBox.innerHTML = '<span class="loading-dots"></span>';
     try {
-      const rep = await callGemini([{ role: 'user', content: `英単語「${w.word}」のシンプルで分かりやすい英語の例文を1つと、その自然な和訳を生成してください。挨拶や語りかけは一切不要です。改行で区切ってテキストのみで出力。` }], 300);
+      const rep = await callGemini([{ role: 'user', content: `英単語「${w.word}」のシンプルで分かりやすい英語の例文を1つと、その自然な和訳を生成してください。客観的な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。改行で区切ってテキストのみで出力。` }], 300);
       const html = clean(rep.trim().replace(/\n/g, '<br>')); exBox.innerHTML = html; cachedWotd.exampleHtml = html; safeSet('study_wotd_cache', cachedWotd);
     } catch (e) { 
       const fallbackMeaning = await fetchFreeDictFallback(w.word);
@@ -1526,17 +1706,22 @@ const setWordProgress = (w, p) => { wordProgress[w.toLowerCase()] = p; save.prog
 const cycleWordProgress = (w, e) => { if (e) e.stopPropagation(); const o = ['new', 'learning', 'mastered']; setWordProgress(w, o[(o.indexOf(getWordProgress(w)) + 1) % o.length]); renderVocab(true); renderVocabStats(); };
 
 const deleteWord = w => {
-  if (!confirm(`「${w}」を削除しますか？`)) return;
-  ALL_WORDS = ALL_WORDS.filter(x => x.word.toLowerCase() !== w.toLowerCase());
-  savedWords = savedWords.filter(x => x.toLowerCase() !== w.toLowerCase());
-  delete srsData[w.toLowerCase()]; delete wordProgress[w.toLowerCase()]; delete vocabMeta[w.toLowerCase()];
+  const wordObj = ALL_WORDS.find(x => x.word.toLowerCase() === w.toLowerCase());
+  if (!wordObj) return;
   
-  customDecks.forEach(deck => {
-    deck.cards = deck.cards.filter(c => c.front.toLowerCase() !== w.toLowerCase());
+  showUndoSnackbar(`「${w}」を削除しました`, () => {
+    ALL_WORDS.unshift(wordObj);
+    save.words(); renderVocab(true); renderVocabStats(); initCards(); updateTagFilters();
+  }, () => {
+    ALL_WORDS = ALL_WORDS.filter(x => x.word.toLowerCase() !== w.toLowerCase());
+    savedWords = savedWords.filter(x => x.toLowerCase() !== w.toLowerCase());
+    delete srsData[w.toLowerCase()]; delete wordProgress[w.toLowerCase()]; delete vocabMeta[w.toLowerCase()];
+    customDecks.forEach(deck => { deck.cards = deck.cards.filter(c => c.front.toLowerCase() !== w.toLowerCase()); });
+    save.words(); save.saved(); save.srs(); save.prog(); save.meta(); save.decks();
   });
   
-  save.words(); save.saved(); save.srs(); save.prog(); save.meta(); save.decks();
-  showToast(`削除: ${w}`); const sr = $('search-result'); if (sr) sr.innerHTML = '';
+  ALL_WORDS = ALL_WORDS.filter(x => x.word.toLowerCase() !== w.toLowerCase());
+  const sr = $('search-result'); if (sr) sr.innerHTML = '';
   closeModal('detail-modal'); renderVocab(true); renderVocabStats(); initCards(); updateTagFilters();
 };
 
@@ -1724,8 +1909,19 @@ window.showWordModal = async (w, m) => {
       data: { labels, datasets: [{ label: '記憶保持率(%)', data, borderColor: '#2980B9', backgroundColor: '#2980B933', fill: true, tension: 0.4 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
     });
+    
+    // FSRS Manual Edit Fields
+    $('fsrs-edit-stability').value = r.stability.toFixed(2);
+    $('fsrs-edit-difficulty').value = r.difficulty.toFixed(2);
+    if (r.lastReview) {
+      const nextD = new Date(new Date(r.lastReview).getTime() + (r.interval || 1) * 86400000);
+      $('fsrs-edit-next').value = nextD.toISOString().split('T')[0];
+    }
   } else if (chartContainer) {
     chartContainer.classList.add('hidden');
+    $('fsrs-edit-stability').value = '';
+    $('fsrs-edit-difficulty').value = '';
+    $('fsrs-edit-next').value = '';
   }
   
   const mc = $('modal-detail-content');
@@ -1749,6 +1945,45 @@ window.showWordModal = async (w, m) => {
   if (imgContainer) {
     imgContainer.innerHTML = `<img src="https://source.unsplash.com/featured/300x150/?${encodeURIComponent(w)}" style="border-radius: 8px; max-width: 100%; opacity: 0.8;" onerror="this.style.display='none'">`;
   }
+};
+
+window.saveFsrsEdit = () => {
+  const titleEl = document.querySelector('#modal-body .result-word-title');
+  if (!titleEl) return;
+  const w = titleEl.textContent;
+  const s = parseFloat($('fsrs-edit-stability').value);
+  const d = parseFloat($('fsrs-edit-difficulty').value);
+  const n = $('fsrs-edit-next').value;
+  if (!w || isNaN(s) || isNaN(d) || !n) return showToast('入力が不正です');
+  
+  const r = srsData[w.toLowerCase()] || { interval: 1 };
+  const nextTime = new Date(n).getTime();
+  const lastTime = nextTime - (r.interval * 86400000);
+  
+  srsData[w.toLowerCase()] = {
+    ...r,
+    stability: s,
+    difficulty: d,
+    lastReview: new Date(lastTime).toISOString()
+  };
+  save.srs(); showToast('FSRSデータを更新しました'); renderVocab(true);
+};
+
+window.resetFsrsData = () => {
+  const titleEl = document.querySelector('#modal-body .result-word-title');
+  if (!titleEl) return;
+  const w = titleEl.textContent;
+  if (!confirm('この単語の学習履歴をリセットしますか？')) return;
+  delete srsData[w.toLowerCase()];
+  setWordProgress(w, 'new');
+  save.srs(); save.prog(); showToast('リセットしました');
+  closeModal('detail-modal'); renderVocab(true);
+};
+
+const highlightText = (text, query) => {
+  if (!query) return esc(text);
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return esc(text).replace(regex, '<mark style="background:rgba(230,126,34,0.3);color:inherit;padding:0 2px;border-radius:2px;">$1</mark>');
 };
 
 const setPosFilter = p => { vocabPosFilter = p; document.querySelectorAll('#pos-filters .filter-chip').forEach(b => b.classList.toggle('active', b.dataset.pos === p)); renderVocab(true); };
@@ -1792,6 +2027,8 @@ const renderVocabStats = () => {
   if (b) b.innerHTML = `<div class="vsb-item"><div class="vsb-num">${ALL_WORDS.length}</div><div class="vsb-label">Total</div></div><div class="vsb-item"><div class="vsb-num text-green">${m}</div><div class="vsb-label">${customTexts['vocab_filter_prog_mastered'] || '習得済'}</div></div><div class="vsb-item"><div class="vsb-num text-streak">${l}</div><div class="vsb-label">${customTexts['vocab_filter_prog_learning'] || '学習中'}</div></div>`;
 };
 
+let currentFilteredWords = [];
+
 const renderVocab = (reset = false) => {
   const vi = $('vocab-search'); const q = vi ? vi.value.toLowerCase() : '';
   const sortMode = $('vocab-sort-select') ? $('vocab-sort-select').value : 'newest';
@@ -1820,8 +2057,15 @@ const renderVocab = (reset = false) => {
     });
   }
   
-  const vc = $('vocab-count'), vg = $('vocab-grid'), btn = $('vocab-load-more-btn');
+  currentFilteredWords = ls;
+  
+  const vc = $('vocab-count'), vg = $('vocab-grid'), btn = $('vocab-load-more-btn'), bulk = $('vocab-bulk-actions');
   if (vc) vc.textContent = `${ls.length} / ${ALL_WORDS.length} 語`;
+  if (bulk) {
+    if (ls.length > 0 && ls.length < ALL_WORDS.length) bulk.classList.remove('hidden');
+    else bulk.classList.add('hidden');
+  }
+  
   if (!vg) return;
   if (reset) { vocabPage = 1; vg.innerHTML = ''; }
   if (!ALL_WORDS.length) { vg.innerHTML = '<div class="vocab-empty">空です</div>'; if(btn) btn.classList.add('hidden'); return; }
@@ -1835,7 +2079,11 @@ const renderVocab = (reset = false) => {
     const pb = m ? `<span class="pos-badge" style="background:var(--bg2);color:var(--text-muted);font-size:10px;padding:2px 4px;border-radius:4px;">${posL[m.pos] || '他'}</span>` : '';
     const p = getWordProgress(w.word);
     const div = document.createElement('div'); div.className = 'vocab-item'; div.setAttribute('role', 'button'); div.tabIndex = 0; div.onclick = () => showWordModal(w.word, w.meaning || '');
-    div.innerHTML = `<div class="vi-left"><button class="vocab-speak audio-btn p-8" onclick="speakWord('${escJS(w.word)}',event)">発音</button>${pb}<span class="vi-word">${esc(w.word)}</span></div><div class="vi-right"><span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w.word)}',event)">${p}</span><span class="vi-mean">${esc(w.meaning || '')}</span></div>`;
+    
+    const displayWord = highlightText(w.word, q);
+    const displayMeaning = highlightText(w.meaning || '', q);
+    
+    div.innerHTML = `<div class="vi-left"><button class="vocab-speak audio-btn p-8" onclick="speakWord('${escJS(w.word)}',event)">発音</button>${pb}<span class="vi-word">${displayWord}</span></div><div class="vi-right"><span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w.word)}',event)">${p}</span><span class="vi-mean">${displayMeaning}</span></div>`;
     fragment.appendChild(div);
   });
   vg.appendChild(fragment);
@@ -1843,6 +2091,41 @@ const renderVocab = (reset = false) => {
   applyCustomTexts();
 };
 const loadMoreVocab = () => { vocabPage++; renderVocab(false); };
+
+window.bulkTagWords = () => {
+  if (!currentFilteredWords.length) return;
+  const tag = prompt(`現在表示されている ${currentFilteredWords.length} 語に付与するタグを入力してください:`);
+  if (!tag || !tag.trim()) return;
+  const t = tag.trim();
+  currentFilteredWords.forEach(w => {
+    if (!w.tags) w.tags = [];
+    if (!w.tags.includes(t)) w.tags.push(t);
+  });
+  save.words(); updateTagFilters(); renderVocab(true); showToast('一括タグ付け完了');
+};
+
+window.bulkResetProgress = () => {
+  if (!currentFilteredWords.length) return;
+  if (!confirm(`現在表示されている ${currentFilteredWords.length} 語の学習進捗(FSRS)をリセットしますか？`)) return;
+  currentFilteredWords.forEach(w => {
+    delete srsData[w.word.toLowerCase()];
+    setWordProgress(w.word, 'new');
+  });
+  save.srs(); save.prog(); renderVocab(true); renderVocabStats(); showToast('進捗をリセットしました');
+};
+
+window.bulkDeleteWords = () => {
+  if (!currentFilteredWords.length) return;
+  if (!confirm(`現在表示されている ${currentFilteredWords.length} 語を完全に削除しますか？この操作は元に戻せません。`)) return;
+  const wordsToDelete = new Set(currentFilteredWords.map(w => w.word.toLowerCase()));
+  ALL_WORDS = ALL_WORDS.filter(w => !wordsToDelete.has(w.word.toLowerCase()));
+  wordsToDelete.forEach(w => {
+    savedWords = savedWords.filter(x => x.toLowerCase() !== w);
+    delete srsData[w]; delete wordProgress[w]; delete vocabMeta[w];
+  });
+  save.words(); save.saved(); save.srs(); save.prog(); save.meta();
+  renderVocab(true); renderVocabStats(); updateTagFilters(); showToast('一括削除完了');
+};
 
 const printWordTest = () => {
   const targets = ALL_WORDS.filter(w => getWordProgress(w.word) !== 'mastered'); if (!targets.length) return showToast('要復習なし');
@@ -1913,10 +2196,27 @@ const renderCard = () => {
     if (sb) sb.classList.add('hidden'); if (imgC) imgC.innerHTML = ''; return;
   }
   const c = cardList[currentCardIdx];
-  if (cw) cw.textContent = c.word; if (cm) cm.textContent = c.meaning || '—'; if (ci) ci.textContent = currentCardIdx + 1; if (ct) ct.textContent = cardList.length;
+  if (cw) cw.textContent = c.word; 
+  
+  let backHtml = '';
+  if (c.meaning) backHtml += `<div class="flip-meaning">${esc(c.meaning)}</div>`;
+  
+  const showEx = $('card-show-example') && $('card-show-example').checked;
+  const showImg = $('card-show-image') && $('card-show-image').checked;
+  const showNote = $('card-show-note') && $('card-show-note').checked;
+  
+  if (showEx && c.example) backHtml += `<div class="text-sm text-muted italic mt-2">${esc(c.example)}</div>`;
+  if (showNote && c.note) backHtml += `<div class="text-xs text-sub mt-2 pt-2 border-top border-dashed">${esc(c.note)}</div>`;
+  
+  if (cm) cm.innerHTML = backHtml || '—';
+  if (ci) ci.textContent = currentCardIdx + 1; if (ct) ct.textContent = cardList.length;
   
   if (imgC) {
-    imgC.innerHTML = `<img src="https://source.unsplash.com/featured/300x150/?${encodeURIComponent(c.word)}" style="width:100%; height:auto; border-radius:8px; opacity:0.8;" onerror="this.style.display='none'">`;
+    if (showImg) {
+      imgC.innerHTML = `<img src="https://source.unsplash.com/featured/300x150/?${encodeURIComponent(c.word)}" style="width:100%; height:auto; border-radius:8px; opacity:0.8;" onerror="this.style.display='none'">`;
+    } else {
+      imgC.innerHTML = '';
+    }
   }
 
   if (sb) { if (cardsMode === 'srs' || cardsMode === 'weak') sb.classList.remove('hidden'); else sb.classList.add('hidden'); }
@@ -2044,13 +2344,15 @@ const switchWritingTab = t => {
 
 const setWritingInputMode = m => { wInputMode = m; ['text', 'file', 'photo'].forEach(x => { const btn = $('wmode-' + x), area = $('w-' + x + '-area'); if (btn) { if (x === m) btn.classList.add('active'); else btn.classList.remove('active'); } if (area) { if (x === m) area.classList.remove('hidden'); else area.classList.add('hidden'); } }); };
 const handleWritingFile = e => { const f = e.target.files[0]; if (!f) return; const fn = $('writing-file-name'), ft = $('writing-file-text'); if (fn) fn.textContent = f.name; const r = new FileReader(); r.onload = ev => { if (ft) ft.value = ev.target.result; }; r.readAsText(f); };
-const handleWritingPhoto = async e => { 
+const handleWritingPhoto = e => { 
   const f = e.target.files[0]; if (!f) return; 
-  wPhotoData = await resizeImage(f); 
-  const wp = $('writing-photo-preview'); 
-  if (wp) wp.innerHTML = `<img src="${wPhotoData}" style="max-width:100%;border-radius:10px">`; 
-  const qb = $('writing-photo-quiz-btn');
-  if (qb) qb.classList.remove('hidden');
+  openImageCropper(f, (croppedDataUrl) => {
+    wPhotoData = croppedDataUrl;
+    const wp = $('writing-photo-preview'); 
+    if (wp) wp.innerHTML = `<img src="${wPhotoData}" style="max-width:100%;border-radius:10px">`; 
+    const qb = $('writing-photo-quiz-btn');
+    if (qb) qb.classList.remove('hidden');
+  });
 };
 
 window.generateQuizFromPhoto = async () => {
@@ -2060,7 +2362,7 @@ window.generateQuizFromPhoto = async () => {
   if (ld) ld.classList.remove('hidden');
   if (rs) rs.innerHTML = '';
   try {
-    const rep = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: 'この画像内の英文や内容から、内容理解を問う4択クイズを3問作成し、HTMLで出力してください。解答と解説も必ず含めてください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。' }] }], 2000);
+    const rep = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: 'この画像内の英文や内容から、内容理解を問う4択クイズを3問作成し、HTMLで出力してください。解答と解説も必ず含めてください。客観的な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。' }] }], 2000);
     if (rs) rs.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch (e) { if (rs) handleApiError(e, 'writing-result'); }
   finally { if (ld) ld.classList.add('hidden'); }
@@ -2071,9 +2373,16 @@ const extractSyntaxFromHistory = async id => { const h = writingHistory.find(x =
 
 const submitWriting = async type => {
   let c = [], histTxt = '';
+  let imageId = null;
   if (wInputMode === 'text') { const t = $('writing-text-input')?.value.trim(); if (!t) return; histTxt = t; c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${t}` : type === 'paraphrase' ? `言い換え:\n${t}` : type === 'essay' ? `エッセイ評価:\n${t}` : `添削:\n${t}` }]; }
   else if (wInputMode === 'file') { const t = $('writing-file-text')?.value.trim(); if (!t) return; histTxt = t; c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${t}` : type === 'paraphrase' ? `言い換え:\n${t}` : type === 'essay' ? `エッセイ評価:\n${t}` : `添削:\n${t}` }]; }
-  else if (wInputMode === 'photo') { if (!wPhotoData) return; const b = wPhotoData.split(',')[1], m = wPhotoData.match(/data:([^;]+)/)[1]; histTxt = '（写真）'; c = [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: type === 'analyze' ? '画像内の英文を構文解析・和訳' : type === 'paraphrase' ? '画像内の英文を言い換え' : type === 'essay' ? '画像内のエッセイを評価' : '画像内の英文添削' }]; }
+  else if (wInputMode === 'photo') { 
+    if (!wPhotoData) return; 
+    const b = wPhotoData.split(',')[1], m = wPhotoData.match(/data:([^;]+)/)[1]; 
+    histTxt = '（写真）'; 
+    imageId = await saveImageToDB(wPhotoData);
+    c = [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: type === 'analyze' ? '画像内の英文を構文解析・和訳' : type === 'paraphrase' ? '画像内の英文を言い換え' : type === 'essay' ? '画像内のエッセイを評価' : '画像内の英文添削' }]; 
+  }
   const sb = $('writing-submit-btn'), ab = $('writing-analyze-btn'), pb = $('writing-paraphrase-btn'), eb = $('writing-essay-btn'), ld = $('writing-loading'), rs = $('writing-result');
   if (sb) sb.classList.add('hidden'); if (ab) ab.classList.add('hidden'); if (pb) pb.classList.add('hidden'); if (eb) eb.classList.add('hidden'); if (ld) ld.classList.remove('hidden'); if (rs) rs.innerHTML = '';
   try {
@@ -2083,21 +2392,62 @@ const submitWriting = async type => {
     else if (type === 'essay') sys = '提出されたエッセイを「論理性」「語彙」「文法」の観点から客観的に評価し、HTMLで出力してください。挨拶不要。改善案と100点満点のスコアを含めてください。';
     
     const rep = await callGemini([{ role: 'user', content: c }], 2000, sys), ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '')), newId = generateId();
-    writingHistory.unshift({ id: newId, type, date: new Date().toLocaleString('ja-JP'), original: histTxt.substring(0, 100), fullOriginal: histTxt, result: ht, score: (type === 'correct' || type === 'essay') ? (ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null) : null });
+    writingHistory.unshift({ id: newId, type, date: new Date().toLocaleString('ja-JP'), original: histTxt.substring(0, 100), fullOriginal: histTxt, result: ht, score: (type === 'correct' || type === 'essay') ? (ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null) : null, imageId });
     save.writing();
     if (rs) { if (type === 'analyze') rs.innerHTML = `<div class="card"><div class="text-xs font-bold text-muted mb-2">白文テスト</div><div class="text-base mb-3" style="line-height:1.6;">${esc(histTxt).replace(/\n/g, '<br>')}</div><button class="action-btn mb-0 bg-accent" onclick="document.getElementById('res-analyzed-${newId}').classList.remove('hidden');this.classList.add('hidden');">正解を見る</button><div id="res-analyzed-${newId}" class="hidden mt-14"><div class="correction-box mt-0">${ht}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button></div></div>`; else rs.innerHTML = `<div class="correction-box">${ht}</div>${(type === 'correct' || type === 'essay') ? `<button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button>` : ''}`; }
   } catch (e) { handleApiError(e, 'writing-result'); } finally { if (ld) ld.classList.add('hidden'); if (sb) sb.classList.remove('hidden'); if (ab) ab.classList.remove('hidden'); if (pb) pb.classList.remove('hidden'); if (eb) eb.classList.remove('hidden'); }
 };
 
-const renderWritingHistory = () => { const c = $('writing-history-list'); if (c) c.innerHTML = writingHistory.length ? writingHistory.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showWritingHistoryDetail('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''} (${h.type === 'analyze' ? '解析' : h.type === 'paraphrase' ? '言換' : h.type === 'essay' ? 'エッセイ' : '添削'})</div><div class="text-sm text-sub">${esc(h.original)}</div></div>`).join('') : '<div class="vocab-empty">履歴なし</div>'; };
+const renderWritingHistory = () => { 
+  const c = $('writing-history-list'); 
+  if (!c) return; 
+  
+  const filterDate = $('history-filter-date')?.value;
+  const filterType = $('history-filter-type')?.value || 'all';
+  const filterScore = $('history-filter-score')?.value || 'all';
+  
+  let filtered = writingHistory;
+  if (filterDate) {
+    const dStr = new Date(filterDate).toLocaleDateString('ja-JP');
+    filtered = filtered.filter(h => h.date.startsWith(dStr));
+  }
+  if (filterType !== 'all') {
+    filtered = filtered.filter(h => h.type === filterType);
+  }
+  if (filterScore === 'under80') {
+    filtered = filtered.filter(h => h.score !== null && h.score <= 80);
+  }
+  
+  c.innerHTML = filtered.length ? filtered.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showWritingHistoryDetail('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''} (${h.type === 'analyze' ? '解析' : h.type === 'paraphrase' ? '言換' : h.type === 'essay' ? 'エッセイ' : '添削'})</div><div class="text-sm text-sub">${esc(h.original)}</div></div>`).join('') : '<div class="vocab-empty">履歴なし</div>'; 
+};
+
+$('history-filter-date')?.addEventListener('change', renderWritingHistory);
+$('history-filter-type')?.addEventListener('change', renderWritingHistory);
+$('history-filter-score')?.addEventListener('change', renderWritingHistory);
+
 const showWritingHistoryDetail = id => {
   const h = writingHistory.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return;
   let html = '';
-  if (h.type === 'analyze' || (!h.type && h.score === null)) { html = `<div class="text-xs font-bold text-muted mb-2">白文テスト</div><div class="text-base mb-3 p-14 bg-main radius-sm line-height-16">${esc(h.fullOriginal || h.original).replace(/\n/g, '<br>')}</div><button class="action-btn mb-0 bg-accent" onclick="document.getElementById('hist-analyzed-${id}').classList.remove('hidden');this.classList.add('hidden');">正解を見る</button><div id="hist-analyzed-${id}" class="hidden mt-14"><div class="correction-box mt-0">${h.result}</div></div>`; } else html = `<div class="correction-box">${h.result}</div>`;
+  if (h.imageId) {
+    html += `<div class="mb-3"><button class="btn-text-muted" onclick="showSavedImage('${h.imageId}')">元の画像を表示</button><div id="saved-img-${h.imageId}" class="mt-1"></div></div>`;
+  }
+  if (h.type === 'analyze' || (!h.type && h.score === null)) { html += `<div class="text-xs font-bold text-muted mb-2">白文テスト</div><div class="text-base mb-3 p-14 bg-main radius-sm line-height-16">${esc(h.fullOriginal || h.original).replace(/\n/g, '<br>')}</div><button class="action-btn mb-0 bg-accent" onclick="document.getElementById('hist-analyzed-${id}').classList.remove('hidden');this.classList.add('hidden');">正解を見る</button><div id="hist-analyzed-${id}" class="hidden mt-14"><div class="correction-box mt-0">${h.result}</div></div>`; } else html += `<div class="correction-box">${h.result}</div>`;
   html += `<button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteWritingHistory('${id}')">この履歴を削除</button>`;
   mb.innerHTML = html; openModal('writing-history-modal');
 };
-const deleteWritingHistory = id => { if (!confirm('削除しますか？')) return; writingHistory = writingHistory.filter(x => String(x.id) !== String(id)); save.writing(); renderWritingHistory(); closeModal('writing-history-modal'); };
+const deleteWritingHistory = id => { 
+  const h = writingHistory.find(x => String(x.id) === String(id));
+  if (!h) return;
+  showUndoSnackbar('履歴を削除しました', () => {
+    writingHistory.unshift(h);
+    save.writing(); renderWritingHistory();
+  }, () => {
+    writingHistory = writingHistory.filter(x => String(x.id) !== String(id));
+    save.writing();
+  });
+  writingHistory = writingHistory.filter(x => String(x.id) !== String(id));
+  save.writing(); renderWritingHistory(); closeModal('writing-history-modal'); 
+};
 
 const switchDailyTab = t => {
   currentDailyTab = t;
@@ -2112,6 +2462,11 @@ const switchDailyTab = t => {
 };
 const extractSyntaxFromDaily = async id => { const d = dailyChallenges.find(x => String(x.id) === String(id)); if (d) await extractSyntaxFromText(d.question.replace(/<[^>]+>/g, '') + '\n' + d.feedback.replace(/<[^>]+>/g, '')); };
 
+window.toggleReadingTranslation = (id) => {
+  const el = $(id);
+  if(el) el.classList.toggle('hidden');
+};
+
 const renderDaily = () => {
   const ts = new Date().toLocaleDateString('ja-JP');
   if (currentDailyTab === 'comp' || currentDailyTab === 'parse' || currentDailyTab === 'reading') {
@@ -2119,7 +2474,19 @@ const renderDaily = () => {
     const tasks = dailyChallenges.filter(d => d.date === ts && d.taskType === currentDailyTab); let html = '';
     
     if (!tasks.length) html += `<div class="card text-center p-36"><button class="action-btn mb-0 btn-auto-width btn-lg-pad" onclick="generateDailyTask('${currentDailyTab}')">問題を作成</button></div>`;
-    else { html += tasks.map(task => { if (!task.answer) return `<div class="card"><p class="text-xs font-bold text-muted mb-3">問題 (${task.date})</p><div class="text-base mb-4 line-height-16">${task.question}</div><textarea id="daily-ans-${task.id}" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="daily-submit-${task.id}" onclick="submitDailyAnswer('${task.id}')">解答・添削</button><div id="daily-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div></div>`; else return `<div class="card"><p class="text-xs font-bold text-green mb-3">完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${task.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(task.answer)}</div><div class="correction-box mt-0">${task.feedback}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromDaily('${task.id}')">重要構文抽出</button></div>`; }).join(''); html += `<div class="text-center mt-4"><button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyTask('${currentDailyTab}')">＋ 追加作成</button></div>`; }
+    else { 
+      html += tasks.map(task => { 
+        let qHtml = task.question;
+        if (currentDailyTab === 'reading') {
+          // 段落ごとに和訳を隠す処理 (AIが <div class="translation hidden"> を出力する前提)
+          qHtml = qHtml.replace(/<div class="translation hidden" id="([^"]+)">/g, '<button class="btn-text-muted mt-1 mb-2" onclick="toggleReadingTranslation(\'$1\')">和訳を表示</button><div class="translation hidden text-sm text-sub bg-main p-10 radius-sm mb-3" id="$1">');
+        }
+        
+        if (!task.answer) return `<div class="card"><p class="text-xs font-bold text-muted mb-3">問題 (${task.date})</p><div class="text-base mb-4 line-height-16">${qHtml}</div><textarea id="daily-ans-${task.id}" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="daily-submit-${task.id}" onclick="submitDailyAnswer('${task.id}')">解答・添削</button><div id="daily-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div></div>`; 
+        else return `<div class="card"><p class="text-xs font-bold text-green mb-3">完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${qHtml}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(task.answer)}</div><div class="correction-box mt-0">${task.feedback}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromDaily('${task.id}')">重要構文抽出</button></div>`; 
+      }).join(''); 
+      html += `<div class="text-center mt-4"><button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyTask('${currentDailyTab}')">＋ 追加作成</button></div>`; 
+    }
     const hist = dailyChallenges.filter(d => d.date !== ts && d.taskType === currentDailyTab);
     if (hist.length) html += `<div class="mt-4 pt-3 border-top"><p class="section-note">過去の問題</p>${hist.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showDailyHistoryDetail('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''}</div><div class="text-sm">${h.question.replace(/<[^>]+>/g, '').substring(0, 60)}...</div></div>`).join('')}</div>`;
     area.innerHTML = html;
@@ -2131,16 +2498,16 @@ const renderDaily = () => {
 const generateDailyTask = async type => {
   const a = $('daily-area-' + type); if (!a) return; a.innerHTML = '<div class="text-center p-36"><span class="loading-dots"></span></div>';
   const diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
-  let diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（京都大学満点レベル）の極めて高度な' : '中級（京都大学合格レベル）の';
+  let diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
   let sys = '';
   
   if (type === 'reading') {
     const interests = userProfile.courses || '一般的な話題';
-    sys = `生徒の興味（${interests}）に合わせた、高校生向けの${diffText}英語長文（${diff === 'basic' ? '150' : diff === 'advanced' ? '500' : '300'}語程度）と、内容説明の記述式問題を1題出題してください。HTMLのみ。h4で「本日の長文読解」、pで本文と設問。解答や解説は絶対に含めないでください。挨拶や語りかけは一切不要です。客観的な問題形式で出力してください。`;
+    sys = `生徒の興味（${interests}）に合わせた、高校生向けの${diffText}英語長文（${diff === 'basic' ? '150' : diff === 'advanced' ? '500' : '300'}語程度）と、内容説明の記述式問題を1題出題してください。HTMLのみ。h4で「本日の長文読解」、pで本文。段落ごとに和訳を <div class="translation hidden" id="trans_ランダムID">和訳</div> の形式で埋め込んでください。解答や解説は絶対に含めないでください。客観的な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。`;
   } else if (type === 'comp') {
-    sys = `高校生向けの${diffText}和文英訳問題を1題出題してください。HTMLのみ。h4で「本日の英作文」、pで日本語問題文。解答や解説は絶対に含めないでください。挨拶や語りかけは一切不要です。客観的な問題形式で出力してください。`;
+    sys = `高校生向けの${diffText}和文英訳問題を1題出題してください。HTMLのみ。h4で「本日の英作文」、pで日本語問題文。解答や解説は絶対に含めないでください。客観的な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。`;
   } else if (type === 'parse') {
-    sys = `高校生向けの${diffText}英文解釈（和訳）問題を1題出題してください。HTMLのみ。h4で「本日の英文解釈」、pで英文。解答や解説は絶対に含めないでください。挨拶や語りかけは一切不要です。客観的な問題形式で出力してください。`;
+    sys = `高校生向けの${diffText}英文解釈（和訳）問題を1題出題してください。HTMLのみ。h4で「本日の英文解釈」、pで英文。解答や解説は絶対に含めないでください。客観的な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。`;
   }
   
   try { const rep = await callGemini([{ role: 'user', content: '問題作成' }], 1500, sys); const ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); const ts = new Date().toLocaleDateString('ja-JP'); dailyChallenges.unshift({ id: 'daily_' + generateId(), date: ts, taskType: type, question: ht, answer: '', feedback: '', score: null }); save.daily(); renderDaily(); } catch (e) { handleApiError(e, a.id); setTimeout(renderDaily, 2000); }
@@ -2163,7 +2530,19 @@ const showDailyHistoryDetail = id => {
   html += `<button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteDailyChallenge('${id}')">この問題を削除</button>`;
   mb.innerHTML = html; openModal('writing-history-modal');
 };
-const deleteDailyChallenge = id => { if (!confirm('削除しますか？')) return; dailyChallenges = dailyChallenges.filter(x => String(x.id) !== String(id)); save.daily(); renderDaily(); closeModal('writing-history-modal'); };
+const deleteDailyChallenge = id => { 
+  const d = dailyChallenges.find(x => String(x.id) === String(id));
+  if (!d) return;
+  showUndoSnackbar('問題を削除しました', () => {
+    dailyChallenges.unshift(d);
+    save.daily(); renderDaily();
+  }, () => {
+    dailyChallenges = dailyChallenges.filter(x => String(x.id) !== String(id));
+    save.daily();
+  });
+  dailyChallenges = dailyChallenges.filter(x => String(x.id) !== String(id));
+  save.daily(); renderDaily(); closeModal('writing-history-modal'); 
+};
 
 const generateWeaknessDrill = async () => {
   const btn = $('generate-weakness-drill-btn'), ld = $('drill-loading'), area = $('drill-content-area');
@@ -2176,7 +2555,7 @@ const generateWeaknessDrill = async () => {
   const context = `【過去の添削ミス】\n${mistakes.join('\n')}\n【過去の問題ミス】\n${dailyMistakes.join('\n')}\n【苦手単語】\n${weakWords.join(', ')}`;
   
   try {
-    const sys = `生徒の過去のミス傾向と苦手単語を分析し、それらを克服するための「弱点特化ドリル（文法・語法・単語の穴埋め問題など）」を3問作成してください。客観的な問題形式で出力し、挨拶や語りかけは一切不要です。HTMLのみで出力。解答解説も必ず含めてください。`;
+    const sys = `生徒の過去のミス傾向と苦手単語を分析し、それらを克服するための「弱点特化ドリル（文法・語法・単語の穴埋め問題など）」を3問作成してください。客観的な参考書スタイルで出力し、挨拶や語りかけは一切不要です。HTMLのみで出力。解答解説も必ず含めてください。`;
     const rep = await callGemini([{ role: 'user', content: context }], 2000, sys);
     const html = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
     if (area) area.innerHTML = `<div class="card">${html}</div><div class="text-center mt-3"><button class="action-btn btn-secondary btn-auto-width" onclick="generateWeaknessDrill()">もう一度生成</button></div>`;
@@ -2209,6 +2588,13 @@ const setListenMode = m => {
   renderListenArea();
 };
 
+window.showDictationHint = (id) => {
+  const task = listenHistory.find(x => String(x.id) === String(id));
+  if(!task) return;
+  const hint = task.transcript.replace(/[a-zA-Z]/g, '_ ');
+  showToast(hint);
+};
+
 const renderListenArea = () => {
   const ts = new Date().toLocaleDateString('ja-JP');
   if (currentListenMode === 'mc') {
@@ -2236,7 +2622,7 @@ const renderListenArea = () => {
       html += tasks.map(task => {
         const isDone = task.userAnswer !== undefined;
         let card = `<div class="card mb-3"><div class="flex-between align-center mb-3"><span class="text-xs font-bold text-muted">DICTATION — ${ACCENT_LABELS[task.accent] || task.accent}</span><span class="text-xs text-muted">${task.date}</span></div><div class="flex-center gap-2 mb-4"><button onclick="playListenAudioById('${task.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">標準再生</button><button onclick="playListenAudioById('${task.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">スロー再生</button></div>`;
-        if (!isDone) { card += `<textarea id="dict-ans-${task.id}" class="writing-textarea" placeholder="聞き取った英語を入力してください..."></textarea><button class="action-btn mb-0" id="dict-submit-${task.id}" onclick="submitDailyDictation('${task.id}')">採点する</button><div id="dict-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div>`; } 
+        if (!isDone) { card += `<textarea id="dict-ans-${task.id}" class="writing-textarea" placeholder="聞き取った英語を入力してください..."></textarea><div class="flex-gap-8"><button class="action-btn mb-0 flex-1" id="dict-submit-${task.id}" onclick="submitDailyDictation('${task.id}')">採点する</button><button class="action-btn mb-0 btn-secondary w-auto" onclick="showDictationHint('${task.id}')">ヒント</button></div><div id="dict-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div>`; } 
         else { card += `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>あなたの解答:</b><br>${esc(task.userAnswer)}</div><div class="correction-box mt-0">${task.feedback}</div>`; }
         return card + `</div>`;
       }).join('');
@@ -2251,7 +2637,7 @@ const renderListenArea = () => {
 const generateDailyListen = async () => {
   const a = $('listen-mc-area'); if (!a) return; a.innerHTML = '<div class="text-center p-40"><span class="loading-dots"></span></div>';
   const ac = ACCENTS[Math.floor(Math.random() * ACCENTS.length)], diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
-  const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（京都大学満点レベル）の極めて高度な' : '中級（京都大学合格レベル）の';
+  const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
   try {
     const sys = `高校生向けの英語リスニング問題を作成してください。難易度は「${diffText}」レベル。日常的な対話（2人の会話）や短いアナウンス（100〜150語程度）をスクリプトとし、その内容に関する4択問題を作成してください。挨拶や語りかけは一切不要です。JSONのみ:{"transcript":"英文スクリプト","question":"内容を問う設問","options":["1","2","3","4"],"answer":0,"explanation":"正解の根拠となる聞き取るべきキーワードと詳しい解説"}`;
     const rep = await callGemini([{ role: 'user', content: '作成' }], 2000, sys, true);
@@ -2265,7 +2651,7 @@ const submitDailyListenAnswer = (id, idx) => { const t = listenHistory.find(x =>
 const generateDailyDictation = async () => {
   const a = $('listen-dict-area'); if (!a) return; a.innerHTML = '<div class="text-center p-40"><span class="loading-dots"></span></div>';
   const ac = ACCENTS[Math.floor(Math.random() * ACCENTS.length)], diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
-  const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（京都大学満点レベル）の極めて高度な' : '中級（京都大学合格レベル）の';
+  const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
   try {
     const sys = `高校生向けのディクテーション（書き取り）用の自然な英語パッセージを作成してください。難易度は「${diffText}」レベル。長さは2〜3文（30〜40語程度）。ネイティブの自然な発音（音の連結や脱落など）を意識した実践的な英文にしてください。挨拶や語りかけは一切不要です。JSONのみ:{"transcript":"英文","translation":"和訳","explanation":"日本人が聞き取りにくい音声変化のポイントや文法の解説"}`;
     const rep = await callGemini([{ role: 'user', content: '作成' }], 1000, sys, true);
@@ -2334,7 +2720,19 @@ const showListenHistoryDetail = id => {
   ht += `<div class="mt-4 pt-3 border-top"><p class="text-xs font-bold mb-2">理解度 (FSRS)</p><div class="flex-gap-8"><button onclick="srsReviewItem('${sK}',0);showListenHistoryDetail('${h.id}')" class="btn-srs bg-danger">忘</button><button onclick="srsReviewItem('${sK}',1);showListenHistoryDetail('${h.id}')" class="btn-srs bg-streak">難</button><button onclick="srsReviewItem('${sK}',2);showListenHistoryDetail('${h.id}')" class="btn-srs bg-green">覚</button><button onclick="srsReviewItem('${sK}',3);showListenHistoryDetail('${h.id}')" class="btn-srs bg-blue">完</button></div><p class="text-xs text-muted text-center mt-2">${sT}</p></div><button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteListenHistory('${h.id}')">この問題を削除</button>`;
   mb.innerHTML = ht; openModal('writing-history-modal');
 };
-const deleteListenHistory = id => { if (!confirm('削除しますか？')) return; listenHistory = listenHistory.filter(x => String(x.id) !== String(id)); save.listen(); renderDaily(); closeModal('writing-history-modal'); };
+const deleteListenHistory = id => { 
+  const h = listenHistory.find(x => String(x.id) === String(id));
+  if (!h) return;
+  showUndoSnackbar('問題を削除しました', () => {
+    listenHistory.unshift(h);
+    save.listen(); renderDaily();
+  }, () => {
+    listenHistory = listenHistory.filter(x => String(x.id) !== String(id));
+    save.listen();
+  });
+  listenHistory = listenHistory.filter(x => String(x.id) !== String(id));
+  save.listen(); renderDaily(); closeModal('writing-history-modal'); 
+};
 
 const generateWordQuiz = async () => {
   const range = $('quiz-range').value, count = parseInt($('quiz-count').value), loading = $('word-quiz-loading'), area = $('word-quiz-area'), btn = $('generate-quiz-btn');
@@ -2409,17 +2807,25 @@ window.generateYouTubeLesson = async () => {
   const ld = $('media-loading'), area = $('media-result-area');
   ld.classList.remove('hidden'); area.innerHTML = '';
   try {
-    const rep = await callGemini([{role:'user', content:`以下のYouTube動画URLの内容を推測・取得し、英語学習用の「要約」「重要単語」「内容理解クイズ」をHTMLで作成してください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。URL: ${url}`}], 2000);
+    const rep = await callGemini([{role:'user', content:`以下のYouTube動画URLの内容を推測・取得し、英語学習用の「要約」「重要単語」「内容理解クイズ」をHTMLで作成してください。挨拶や語りかけは一切不要です。客観的な参考書スタイルで出力してください。URL: ${url}`}], 2000);
     area.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch(e) { area.innerHTML = '<p class="text-danger">生成失敗</p>'; }
   finally { ld.classList.add('hidden'); }
 };
 
+let pdfHighlightMode = false;
 window.openPdfReaderModal = () => { openModal('pdf-reader-modal'); };
 window.loadPdfFile = (e) => {
   const f = e.target.files[0]; if(!f) return;
   const url = URL.createObjectURL(f);
   $('pdf-reader-container').innerHTML = `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`;
+};
+window.togglePdfHighlightMode = () => {
+  pdfHighlightMode = !pdfHighlightMode;
+  showToast(pdfHighlightMode ? 'ハイライトモードON' : 'ハイライトモードOFF');
+};
+window.addPdfNote = () => {
+  showToast('PDFへのメモ機能は現在開発中です');
 };
 
 window.openShadowingModal = () => { openModal('shadowing-modal'); };
@@ -2487,7 +2893,19 @@ const drawRealWaveform = (id, color) => {
 
 const renderSyntax = () => { const c = $('syntax-list'); if (!c) return; if (!syntaxList.length) { c.innerHTML = '<div class="vocab-empty">構文なし</div>'; return; } c.innerHTML = syntaxList.map(s => { const sK = "syntax_" + s.id, r = srsData[sK.toLowerCase()], sT = r ? `次回: ${srsDaysDiff(srsNextDate(r)) <= 0 ? '今日' : srsDaysDiff(srsNextDate(r)) + '日後'}` : '未登録'; return `<div class="card mb-2 p-14"><div class="flex-between align-center mb-2"><div class="text-base font-bold line-height-15" style="font-family:var(--font-block);">${esc(s.syntax)}</div><button onclick="deleteSyntax('${s.id}')" class="btn-clear text-danger">✕</button></div><div class="text-sm text-sub mb-1">${esc(s.meaning || '')}</div>${s.note ? `<div class="text-xs text-muted mt-2 pt-2 border-top border-dashed">${esc(s.note)}</div>` : ''}<div class="flex align-center gap-1 mt-3"><button onclick="srsReviewItem('${sK}',0);renderSyntax()" class="btn-srs bg-danger btn-pill">忘</button><button onclick="srsReviewItem('${sK}',1);renderSyntax()" class="btn-srs bg-streak btn-pill">難</button><button onclick="srsReviewItem('${sK}',2);renderSyntax()" class="btn-srs bg-green btn-pill">覚</button><button onclick="srsReviewItem('${sK}',3);renderSyntax()" class="btn-srs bg-blue btn-pill">完</button><span class="text-xs text-muted ml-2 whitespace-nowrap">${sT}</span></div></div>`; }).join(''); };
 const addSyntaxManual = () => { const nt = $('syntax-new-text'), nm = $('syntax-new-meaning'), nn = $('syntax-new-note'); if (!nt || !nt.value.trim()) return; syntaxList.unshift({ id: generateId(), syntax: nt.value.trim(), meaning: nm ? nm.value.trim() : '', note: nn ? nn.value.trim() : '', date: new Date().toLocaleDateString('ja-JP') }); save.syntax(); renderSyntax(); nt.value = ''; if (nm) nm.value = ''; if (nn) nn.value = ''; showToast('追加'); };
-const deleteSyntax = id => { syntaxList = syntaxList.filter(s => String(s.id) !== String(id)); save.syntax(); renderSyntax(); };
+const deleteSyntax = id => { 
+  const s = syntaxList.find(x => String(x.id) === String(id));
+  if (!s) return;
+  showUndoSnackbar('構文を削除しました', () => {
+    syntaxList.unshift(s);
+    save.syntax(); renderSyntax();
+  }, () => {
+    syntaxList = syntaxList.filter(x => String(x.id) !== String(id));
+    save.syntax();
+  });
+  syntaxList = syntaxList.filter(x => String(x.id) !== String(id));
+  save.syntax(); renderSyntax(); 
+};
 const exportSyntaxPDF = () => {
   if (!syntaxList.length) return showToast('構文がありません');
   const html = `<!DOCTYPE html><html lang="ja"><head><title>構文リスト</title><style>body{font-family:sans-serif;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f5f5f5}.btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#2D2B27;color:#fff;border-radius:50px;cursor:pointer}@media print{.btn{display:none}}</style></head><body><button class="btn" onclick="window.print()">印刷</button><h1>構文リスト（${syntaxList.length}件）</h1><table><tr><th>構文</th><th>意味</th><th>メモ</th></tr>${syntaxList.map(s => `<tr><td><b>${esc(s.syntax)}</b></td><td>${esc(s.meaning || '')}</td><td>${esc(s.note || '')}</td></tr>`).join('')}</table></body></html>`;
@@ -2534,7 +2952,14 @@ const ccDeleteCard = i => { const d = customDecks.find(x => x.id === ccDeckId); 
 
 const setCCAiMode = m => { ccAiMode = m; ['text', 'file', 'photo'].forEach(x => { const btn = $('cc-ai-mode-' + x), area = $('cc-ai-' + x + '-area'); if (btn) { if (x === m) btn.classList.add('active'); else btn.classList.remove('active'); } if (area) { if (x === m) area.classList.remove('hidden'); else area.classList.add('hidden'); } }); };
 const handleCCAiFile = e => { const f = e.target.files[0]; if (!f) return; const fn = $('cc-ai-file-name'); if (fn) fn.textContent = f.name; const r = new FileReader(); r.onload = ev => { ccAiFileData = ev.target.result; }; r.readAsText(f); };
-const handleCCAiPhoto = async e => { const f = e.target.files[0]; if (!f) return; ccAiPhotoData = await resizeImage(f); const pv = $('cc-ai-photo-preview'); if (pv) pv.innerHTML = `<img src="${ccAiPhotoData}" style="max-width:100%;border-radius:10px">`; };
+const handleCCAiPhoto = e => { 
+  const f = e.target.files[0]; if (!f) return; 
+  openImageCropper(f, (croppedDataUrl) => {
+    ccAiPhotoData = croppedDataUrl;
+    const pv = $('cc-ai-photo-preview'); 
+    if (pv) pv.innerHTML = `<img src="${ccAiPhotoData}" style="max-width:100%;border-radius:10px">`; 
+  });
+};
 const ccGenerateCardsAI = async () => {
   const d = customDecks.find(x => x.id === ccDeckId); if (!d) return showToast('デッキ未選択'); let c = [];
   if (ccAiMode === 'text') { const p = $('cc-ai-prompt')?.value.trim(); if (!p) return showToast('テーマ入力必須'); c = [{ role: 'user', content: `「${p}」に関連するフラッシュカードのペア生成` }]; } 
@@ -2573,7 +2998,14 @@ const setSubject = s => {
 const switchSubjectView = v => { ['chat', 'history', 'quiz'].forEach(x => { const el = $('sview-' + x), _v = $('subject-' + x + '-view'); if (el) { if (x === v) el.classList.add('active'); else el.classList.remove('active'); } if (_v) { if (x === v) _v.classList.remove('hidden'); else _v.classList.add('hidden'); } }); if (v === 'history') renderSubjectSaved(); if (v === 'quiz') renderSubjectQuiz(); };
 const setSubjectInputMode = m => { sqMode = m; ['text', 'file', 'photo'].forEach(x => { const el = $('sqmode-' + x), a = $('sq-' + x + '-area'); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } if (a) { if (x === m) a.classList.remove('hidden'); else a.classList.add('hidden'); } }); };
 const handleSubjectFile = e => { const f = e.target.files[0], fn = $('subject-file-name'); if (!f) return; if (fn) fn.textContent = f.name; const r = new FileReader(); r.onload = ev => sqFileData = ev.target.result; r.readAsText(f); };
-const handleSubjectPhoto = async e => { const f = e.target.files[0], pp = $('subject-photo-preview'); if (!f) return; sqPhotoData = await resizeImage(f); if (pp) pp.innerHTML = `<img src="${sqPhotoData}" style="max-width:100%;border-radius:10px">`; };
+const handleSubjectPhoto = e => { 
+  const f = e.target.files[0]; if (!f) return; 
+  openImageCropper(f, (croppedDataUrl) => {
+    sqPhotoData = croppedDataUrl;
+    const pp = $('subject-photo-preview');
+    if (pp) pp.innerHTML = `<img src="${sqPhotoData}" style="max-width:100%;border-radius:10px">`;
+  });
+};
 
 const _sendSubj = async (c, dt) => {
   if (!subjHist[curSubj]) subjHist[curSubj] = [];
@@ -2581,9 +3013,10 @@ const _sendSubj = async (c, dt) => {
   const ct = $('subject-chat'); if (!ct) return;
   ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble user">${esc(dt)}</div><div class="chat-bubble ai" id="sq-load"><span class="loading-dots"></span></div>`); ct.scrollTop = ct.scrollHeight;
   try {
-    const rep = await callGemini(subjHist[curSubj].slice(0, -1).concat([{ role: 'user', content: c }]), 1500, '客観的かつ簡潔に解説してください。挨拶や語りかけは一切不要です。');
+    const rep = await callGemini(subjHist[curSubj].slice(0, -1).concat([{ role: 'user', content: c }]), 1500, '客観的かつ簡潔な参考書スタイルで解説してください。挨拶や語りかけは一切不要です。');
     const cleanRep = clean(rep); subjHist[curSubj].push({ role: 'assistant', content: cleanRep }); const ld = $('sq-load'); if (ld) ld.remove();
     ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')} <button class="copy-btn mt-2" onclick="saveLastSubjectQA(this,'${curSubj}')">保存</button></div>`);
+    renderMath(ct.lastElementChild);
   } catch (e) { const ld = $('sq-load'); if (ld) ld.remove(); ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai text-danger">通信エラー</div>`); subjHist[curSubj].pop(); }
   ct.scrollTop = ct.scrollHeight;
 };
@@ -2602,7 +3035,15 @@ const sendSubjectPhotoMessage = () => {
   } 
 };
 
-const renderSubjectChat = () => { const c = $('subject-chat'); if (!c) return; c.innerHTML = ''; (subjHist[curSubj] || []).forEach(m => { c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ${m.role === 'user' ? 'user' : 'ai'}">${m.role === 'user' ? esc(m.content) : String(m.content).replace(/\n/g, '<br>')}</div>`); }); c.scrollTop = c.scrollHeight; };
+const renderSubjectChat = () => { 
+  const c = $('subject-chat'); if (!c) return; 
+  c.innerHTML = ''; 
+  (subjHist[curSubj] || []).forEach(m => { 
+    c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ${m.role === 'user' ? 'user' : 'ai'}">${m.role === 'user' ? esc(m.content) : String(m.content).replace(/\n/g, '<br>')}</div>`); 
+    if (m.role === 'assistant') renderMath(c.lastElementChild);
+  }); 
+  c.scrollTop = c.scrollHeight; 
+};
 const clearSubjectChat = () => { subjHist[curSubj] = []; renderSubjectChat(); };
 const saveLastSubjectQA = async (btn, subj) => {
   const hist = subjHist[subj]; if (!hist || hist.length < 2) return;
@@ -2622,21 +3063,51 @@ const saveLastSubjectQA = async (btn, subj) => {
     }
   }
   
-  subjectSaved.unshift({ id: generateId(), subject: subj, subjectLabel: subjConf[subj], date: new Date().toLocaleString(), question: qStr, answer: hist[hist.length - 1].content, imageId });
+  const folderId = $('subject-folder-select') ? $('subject-folder-select').value : 'uncategorized';
+  
+  subjectSaved.unshift({ id: generateId(), subject: subj, subjectLabel: subjConf[subj], date: new Date().toLocaleString(), question: qStr, answer: hist[hist.length - 1].content, imageId, folderId });
   save.subSaved(); showToast('保存済'); if (btn) { btn.textContent = '保存済'; btn.disabled = true; }
 };
 const generateSimilarSubject = async id => {
   const x = subjectSaved.find(s => String(s.id) === String(id)); if (!x) return; showToast('類題生成中...');
   try {
-    const rep = await callGemini([{ role: 'user', content: `以下の問題と解答を参考にして、状況や数値を変えた類題を1つ出題し、その解答解説も出力して。JSONのみ: {"question":"...","answer":"..."}\nQ: ${x.question}\nA: ${x.answer}` }], 1500, '挨拶不要。客観的なトーンで出力。', true);
-    const json = extractJSON(rep); subjectSaved.unshift({ id: generateId(), subject: x.subject, subjectLabel: x.subjectLabel, date: new Date().toLocaleString(), question: json.question, answer: clean(json.answer) });
+    const rep = await callGemini([{ role: 'user', content: `以下の問題と解答を参考にして、状況や数値を変えた類題を1つ出題し、その解答解説も出力して。JSONのみ: {"question":"...","answer":"..."}\nQ: ${x.question}\nA: ${x.answer}` }], 1500, '挨拶不要。客観的な参考書スタイルで出力。', true);
+    const json = extractJSON(rep); subjectSaved.unshift({ id: generateId(), subject: x.subject, subjectLabel: x.subjectLabel, date: new Date().toLocaleString(), question: json.question, answer: clean(json.answer), folderId: x.folderId });
     save.subSaved(); renderSubjectSaved(); showToast('類題追加');
   } catch (e) { showToast('通信エラー'); }
 };
-const renderSubjectSaved = () => { 
-  const ls = subjectSaved.filter(x => x.subject === curSubj), sl = $('subject-saved-list'); if (!sl) return; 
-  sl.innerHTML = ls.length ? ls.map(x => `<div class="card mb-2"><div class="text-xs text-muted mb-1">${x.date}</div><div class="text-sm font-bold mb-1">${esc(x.question)}</div>${x.imageId ? `<div class="mb-2"><button class="btn-text-muted" onclick="showSavedImage('${x.imageId}')">画像を表示</button><div id="saved-img-${x.imageId}" class="mt-1"></div></div>` : ''}<div class="text-xs text-sub">${esc(x.answer)}</div><div class="flex-gap-8 mt-2"><button class="copy-btn" onclick="generateSimilarSubject('${x.id}')">類題生成</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteSubjectSaved('${x.id}')">削除</button></div></div>`).join('') : '<div class="vocab-empty">空</div>'; 
+
+window.createNewFolder = () => {
+  const name = prompt('新しいフォルダ名を入力してください:');
+  if (!name || !name.trim()) return;
+  subjectFolders.push({ id: 'folder_' + generateId(), name: name.trim() });
+  save.subjectFolders();
+  renderSubjectSaved();
 };
+
+const renderSubjectSaved = () => { 
+  const sl = $('subject-saved-list'); if (!sl) return; 
+  const folderSel = $('subject-folder-select');
+  if (folderSel) {
+    const currentVal = folderSel.value;
+    folderSel.innerHTML = `<option value="all">すべてのフォルダ</option><option value="uncategorized">未分類</option>` + subjectFolders.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
+    folderSel.value = currentVal || 'all';
+  }
+  
+  const filterFolder = folderSel ? folderSel.value : 'all';
+  let ls = subjectSaved.filter(x => x.subject === curSubj);
+  if (filterFolder !== 'all') {
+    ls = ls.filter(x => (x.folderId || 'uncategorized') === filterFolder);
+  }
+  
+  sl.innerHTML = ls.length ? ls.map(x => `<div class="card mb-2"><div class="text-xs text-muted mb-1">${x.date}</div><div class="text-sm font-bold mb-1">${esc(x.question)}</div>${x.imageId ? `<div class="mb-2"><button class="btn-text-muted" onclick="showSavedImage('${x.imageId}')">画像を表示</button><div id="saved-img-${x.imageId}" class="mt-1"></div></div>` : ''}<div class="text-xs text-sub">${esc(x.answer)}</div><div class="flex-gap-8 mt-2"><button class="copy-btn" onclick="generateSimilarSubject('${x.id}')">類題生成</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteSubjectSaved('${x.id}')">削除</button></div></div>`).join('') : '<div class="vocab-empty">空</div>'; 
+  
+  // Render MathJax/KaTeX for saved items
+  sl.querySelectorAll('.text-sub').forEach(el => renderMath(el));
+};
+
+$('subject-folder-select')?.addEventListener('change', renderSubjectSaved);
+
 window.showSavedImage = async (id) => {
   const container = $(`saved-img-${id}`);
   if (!container) return;
@@ -2644,7 +3115,19 @@ window.showSavedImage = async (id) => {
   const data = await getImageFromDB(id);
   if (data) container.innerHTML = `<img src="${data}" style="max-width:100%; border-radius:8px;">`;
 };
-const deleteSubjectSaved = id => { subjectSaved = subjectSaved.filter(x => String(x.id) !== String(id)); save.subSaved(); renderSubjectSaved(); };
+const deleteSubjectSaved = id => { 
+  const s = subjectSaved.find(x => String(x.id) === String(id));
+  if (!s) return;
+  showUndoSnackbar('QA履歴を削除しました', () => {
+    subjectSaved.unshift(s);
+    save.subSaved(); renderSubjectSaved();
+  }, () => {
+    subjectSaved = subjectSaved.filter(x => String(x.id) !== String(id));
+    save.subSaved();
+  });
+  subjectSaved = subjectSaved.filter(x => String(x.id) !== String(id));
+  save.subSaved(); renderSubjectSaved(); 
+};
 
 const renderSubjectQuiz = () => { const sqs = $('subject-quiz-start'), sqa = $('subject-quiz-area'); if (!sqs || !sqa) return; const pendingQuiz = subjectQuizzes.find(q => q.subject === curSubj && !q.answer); if (pendingQuiz) { sqs.classList.add('hidden'); sqa.classList.remove('hidden'); renderSubjectQuizActive(pendingQuiz); } else { sqs.classList.remove('hidden'); sqa.classList.add('hidden'); const hist = subjectQuizzes.filter(q => q.subject === curSubj && q.answer), hl = $('subject-quiz-history-list'); if (hl) hl.innerHTML = hist.length ? `<p class="section-note">過去の復習問題</p>` + hist.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showSubjectQuizHistory('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''}</div><div class="text-sm">${h.question.replace(/<[^>]+>/g, '').substring(0, 60)}...</div></div>`).join('') : ''; } };
 const generateSubjectQuiz = async () => {
@@ -2652,23 +3135,23 @@ const generateSubjectQuiz = async () => {
   const qas = ls.slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n'), sqs = $('subject-quiz-start'), sqa = $('subject-quiz-area');
   if (sqs) sqs.classList.add('hidden'); if (sqa) { sqa.classList.remove('hidden'); sqa.innerHTML = '<div class="card text-center p-36"><span class="loading-dots"></span></div>'; }
   try {
-    const rep = await callGemini([{ role: 'user', content: `【QA履歴】\n${qas}\n\n復習問題を作成` }], 1000, `QA履歴から極めて難関な復習問題を1問作成。HTML(h4+p)のみ。解答解説なし。挨拶不要。`);
+    const rep = await callGemini([{ role: 'user', content: `【QA履歴】\n${qas}\n\n復習問題を作成` }], 1000, `QA履歴から極めて難関な復習問題を1問作成。HTML(h4+p)のみ。解答解説なし。挨拶不要。客観的な参考書スタイルで出力。`);
     const html = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()), newQuiz = { id: 'squiz_' + generateId(), subject: curSubj, date: new Date().toLocaleDateString('ja-JP'), question: html, answer: '', feedback: '', score: null };
     subjectQuizzes.unshift(newQuiz); save.subQuiz(); renderSubjectQuizActive(newQuiz);
   } catch (e) { if (sqa) handleApiError(e, sqa.id); }
 };
-const renderSubjectQuizActive = quiz => { const sqa = $('subject-quiz-area'); if (!sqa) return; if (!quiz.answer) sqa.innerHTML = `<div class="card"><p class="text-xs font-bold text-muted mb-3">復習問題</p><div class="text-base mb-4 line-height-16">${quiz.question}</div><textarea id="subquiz-answer-input" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="subquiz-submit-btn" onclick="submitSubjectQuiz('${quiz.id}')">添削</button><div id="subquiz-loading" class="hidden text-center"><span class="loading-dots"></span></div></div>`; else sqa.innerHTML = `<div class="card"><p class="text-xs font-bold text-green mb-3">添削完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${quiz.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(quiz.answer)}</div><div class="correction-box mt-0">${quiz.feedback}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="renderSubjectQuiz()">戻る</button></div>`; };
+const renderSubjectQuizActive = quiz => { const sqa = $('subject-quiz-area'); if (!sqa) return; if (!quiz.answer) sqa.innerHTML = `<div class="card"><p class="text-xs font-bold text-muted mb-3">復習問題</p><div class="text-base mb-4 line-height-16">${quiz.question}</div><textarea id="subquiz-answer-input" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="subquiz-submit-btn" onclick="submitSubjectQuiz('${quiz.id}')">添削</button><div id="subquiz-loading" class="hidden text-center"><span class="loading-dots"></span></div></div>`; else sqa.innerHTML = `<div class="card"><p class="text-xs font-bold text-green mb-3">添削完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${quiz.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(quiz.answer)}</div><div class="correction-box mt-0">${quiz.feedback}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="renderSubjectQuiz()">戻る</button></div>`; renderMath(sqa); };
 const submitSubjectQuiz = async id => {
   const i = $('subquiz-answer-input'); if (!i || !i.value.trim()) return; const ans = i.value.trim(), quiz = subjectQuizzes.find(q => String(q.id) === String(id)), sb = $('subquiz-submit-btn'), ld = $('subquiz-loading');
   if (!quiz) return; if (sb) sb.classList.add('hidden'); if (ld) ld.classList.remove('hidden');
   const ls = subjectSaved.filter(x => x.subject === curSubj).slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n');
   try {
-    const rep = await callGemini([{ role: 'user', content: `問題:\n${quiz.question}\n解答:\n${ans}` }], 2000, `非常に丁寧な添削と解説をHTML出力。100点満点スコア。挨拶不要。参考:\n${ls}`);
+    const rep = await callGemini([{ role: 'user', content: `問題:\n${quiz.question}\n解答:\n${ans}` }], 2000, `非常に丁寧な添削と解説をHTML出力。100点満点スコア。挨拶不要。客観的な参考書スタイルで出力。参考:\n${ls}`);
     const html = clean(rep.replace(/```html?/g, '').replace(/```/g, '')); quiz.answer = ans; quiz.feedback = html; quiz.score = html.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null;
     save.subQuiz(); renderSubjectQuizActive(quiz);
   } catch (e) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); if (sb) sb.classList.remove('hidden'); }
 };
-const showSubjectQuizHistory = id => { const h = subjectQuizzes.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return; let html = `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${h.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(h.answer)}</div><div class="correction-box mt-0">${h.feedback}</div><button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteSubjectQuizHistory('${id}')">この問題を削除</button>`; mb.innerHTML = html; openModal('writing-history-modal'); };
+const showSubjectQuizHistory = id => { const h = subjectQuizzes.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return; let html = `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${h.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(h.answer)}</div><div class="correction-box mt-0">${h.feedback}</div><button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteSubjectQuizHistory('${id}')">この問題を削除</button>`; mb.innerHTML = html; openModal('writing-history-modal'); renderMath(mb); };
 const deleteSubjectQuizHistory = id => { if (!confirm('削除しますか？')) return; subjectQuizzes = subjectQuizzes.filter(x => String(x.id) !== String(id)); save.subQuiz(); renderSubjectQuiz(); closeModal('writing-history-modal'); };
 
 // ============================================================
@@ -2714,11 +3197,75 @@ const renderPlanDateList = () => {
   const plL = $('plan-content'), lsP = plans[selectedPlanDate] || []; if (plL) plL.innerHTML = lsP.length ? lsP.map((p, i) => `<div class="plan-item-row"><input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePlanDatePlan(${i})"><div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:14px;">${esc(p.text)}</div>${p.time ? `<div class="pi-time" style="font-size:11px;color:var(--text-muted);">${esc(p.time)}</div>` : ''}</div><button class="plan-del" onclick="deletePlanDatePlan(${i})">✕</button></div>`).join('') : '<p class="text-center text-xs text-muted p-10">予定なし</p>';
 };
 
+window.toggleRoutineDays = val => {
+  const sel = $('routine-days-selector');
+  if(sel) {
+    if(val === 'weekly') sel.classList.remove('hidden');
+    else sel.classList.add('hidden');
+  }
+};
+
 const addPlanEvent = () => { const i = $('plan-event-input'); if (!i || !i.value.trim()) return; if (!events[selectedPlanDate]) events[selectedPlanDate] = []; events[selectedPlanDate].push({ text: i.value.trim() }); save.events(); i.value = ''; renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 const deletePlanEvent = i => { if (events[selectedPlanDate]) { events[selectedPlanDate].splice(i, 1); if (events[selectedPlanDate].length === 0) delete events[selectedPlanDate]; save.events(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
-const addPlanDatePlan = () => { const i = $('new-plan-input'), t = $('new-plan-time'); if (!i || !i.value.trim()) return; if (!plans[selectedPlanDate]) plans[selectedPlanDate] = []; plans[selectedPlanDate].push({ text: i.value.trim(), done: false, time: t ? t.value.trim() : '' }); save.plans(); i.value = ''; if (t) t.value = ''; renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
+
+const addPlanDatePlan = () => { 
+  const i = $('new-plan-input'), t = $('new-plan-time'), r = $('new-plan-routine'); 
+  if (!i || !i.value.trim()) return; 
+  
+  const text = i.value.trim();
+  const time = t ? t.value.trim() : '';
+  const routine = r ? r.value : 'none';
+  
+  if (routine === 'none') {
+    if (!plans[selectedPlanDate]) plans[selectedPlanDate] = []; 
+    plans[selectedPlanDate].push({ text, done: false, time }); 
+  } else {
+    const startDate = new Date(selectedPlanDate);
+    for (let j = 0; j < 90; j++) { // 90日先まで生成
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + j);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      
+      let shouldAdd = false;
+      if (routine === 'daily') shouldAdd = true;
+      else if (routine === 'weekly') {
+        const checkedDays = Array.from(document.querySelectorAll('#routine-days-selector input:checked')).map(cb => parseInt(cb.value));
+        if (checkedDays.includes(d.getDay())) shouldAdd = true;
+      }
+      else if (routine === 'monthly') {
+        if (d.getDate() === startDate.getDate()) shouldAdd = true;
+      }
+      
+      if (shouldAdd) {
+        if (!plans[ds]) plans[ds] = [];
+        plans[ds].push({ text, done: false, time });
+      }
+    }
+  }
+  
+  save.plans(); i.value = ''; if (t) t.value = ''; 
+  renderPlanCalendar(); renderPlanDateList(); 
+  if ($('Dashboard').classList.contains('active')) renderDashboard(); 
+};
+
 const togglePlanDatePlan = i => { if (plans[selectedPlanDate] && plans[selectedPlanDate][i]) { plans[selectedPlanDate][i].done = !plans[selectedPlanDate][i].done; save.plans(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
-const deletePlanDatePlan = i => { if (plans[selectedPlanDate]) { plans[selectedPlanDate].splice(i, 1); if (plans[selectedPlanDate].length === 0) delete plans[selectedPlanDate]; save.plans(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
+const deletePlanDatePlan = i => { 
+  if (plans[selectedPlanDate]) { 
+    const p = plans[selectedPlanDate][i];
+    showUndoSnackbar('予定を削除しました', () => {
+      if (!plans[selectedPlanDate]) plans[selectedPlanDate] = [];
+      plans[selectedPlanDate].splice(i, 0, p);
+      save.plans(); renderPlanCalendar(); renderPlanDateList();
+    }, () => {
+      plans[selectedPlanDate].splice(i, 1); 
+      if (plans[selectedPlanDate].length === 0) delete plans[selectedPlanDate]; 
+      save.plans();
+    });
+    plans[selectedPlanDate].splice(i, 1); 
+    if (plans[selectedPlanDate].length === 0) delete plans[selectedPlanDate]; 
+    save.plans(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); 
+  } 
+};
 
 window.rebuildScheduleAI = async () => {
   if(!confirm('過去の未完了の予定を今日以降に自動で再配置しますか？')) return;
@@ -2744,7 +3291,7 @@ window.rebuildScheduleAI = async () => {
 
   showToast('AIがスケジュールを再構築中...');
   try {
-    const rep = await callGemini([{role:'user', content:prompt}], 1500, '挨拶不要。客観的なトーンで出力。', true);
+    const rep = await callGemini([{role:'user', content:prompt}], 1500, '客観的な参考書スタイルで出力。挨拶不要。', true);
     const arr = extractJSON(rep);
     if(arr && arr.length) {
       arr.forEach(d => {
@@ -2787,7 +3334,7 @@ window.generateMilestonesAI = async () => {
   if(!goal) return showToast('年間大目標を入力してください');
   showToast('AIがマイルストーンを生成中...');
   try {
-    const rep = await callGemini([{role:'user', content:`目標「${goal}」を達成するための月別マイルストーンをJSONで出力。形式: {"4":"...", "5":"..."}`}], 1000, '挨拶不要。客観的なトーンで出力。', true);
+    const rep = await callGemini([{role:'user', content:`目標「${goal}」を達成するための月別マイルストーンをJSONで出力。形式: {"4":"...", "5":"..."}`}], 1000, '客観的な参考書スタイルで出力。挨拶不要。', true);
     const json = extractJSON(rep);
     if(json) {
       Object.keys(json).forEach(m => {
@@ -2796,6 +3343,10 @@ window.generateMilestonesAI = async () => {
       save.yearly(); renderYearlyPlan(); showToast('生成完了');
     }
   } catch(e) { showToast('生成失敗'); }
+};
+
+window.slideGanttSchedule = () => {
+  showToast('開発中です');
 };
 
 const generateGanttSchedule = async () => {
@@ -2817,7 +3368,7 @@ const generateGanttSchedule = async () => {
 出力形式: [{"date": "YYYY-MM-DD", "tasks": ["やること1", "やること2"]}]`;
 
   try {
-    const rep = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的なトーンで出力。', true);
+    const rep = await callGemini([{ role: 'user', content: prompt }], 2000, '客観的な参考書スタイルで出力。挨拶不要。', true);
     const planArr = extractJSON(rep);
     if (!planArr || !Array.isArray(planArr)) throw new Error('Invalid JSON');
     
@@ -2870,21 +3421,21 @@ const sendPlanAiMessage = async () => {
   c.insertAdjacentHTML('beforeend', `<div class="chat-bubble user">${esc(txt)}</div><div class="chat-bubble ai" id="pai-load"><span class="loading-dots"></span></div>`);
   planAiHistory.push({ role: 'user', content: txt }); c.scrollTop = c.scrollHeight;
   try {
-    const rep = await callGemini(planAiHistory.slice(), 1000, `プロ学習コーチ。プロフ:${userProfile.targetUniv},${userProfile.grade}${buildScoreContext()}。客観的かつ簡潔に回答。挨拶不要。`);
+    const rep = await callGemini(planAiHistory.slice(), 1000, `客観的な学習アドバイザーとして。プロフ:${userProfile.targetUniv},${userProfile.grade}${buildScoreContext()}。客観的かつ簡潔に回答。挨拶不要。`);
     const cleanRep = clean(rep); planAiHistory.push({ role: 'assistant', content: cleanRep }); const ld = $('pai-load'); if (ld) ld.remove();
     c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')}</div>`);
   } catch (e) { const ld = $('pai-load'); if (ld) ld.remove(); c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai text-danger">通信エラー</div>`); planAiHistory.pop(); }
   finally { if (sbtn) sbtn.disabled = false; c.scrollTop = c.scrollHeight; }
 };
 
-const generateRoadmapReport = async () => { const r = $('ai-weakness-report'); if (!r) return; r.innerHTML = '<div class="text-center"><span class="loading-dots">作成中</span></div>'; try { const rep = await callGemini([{ role: 'user', content: '合格ロードマップを作成' }], 2000, `プロ進路指導。プロフ(${JSON.stringify(userProfile)})と成績(${JSON.stringify(examScores.slice(0, 3))})からHTMLで。挨拶不要。客観的なトーンで出力。`); r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`; } catch (e) { handleApiError(e, 'ai-weakness-report'); } };
+const generateRoadmapReport = async () => { const r = $('ai-weakness-report'); if (!r) return; r.innerHTML = '<div class="text-center"><span class="loading-dots">作成中</span></div>'; try { const rep = await callGemini([{ role: 'user', content: '合格ロードマップを作成' }], 2000, `客観的なデータ分析に基づき。プロフ(${JSON.stringify(userProfile)})と成績(${JSON.stringify(examScores.slice(0, 3))})からHTMLで。挨拶不要。客観的な参考書スタイルで出力。`); r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`; } catch (e) { handleApiError(e, 'ai-weakness-report'); } };
 const generatePersonalizedExam = async () => {
   const r = $('ai-weakness-report'); if (!r) return; r.innerHTML = '<div class="text-center"><span class="loading-dots">作成中</span></div>';
   const weakWords = Object.entries(srsData).sort((a, b) => a[1].stability - b[1].stability).slice(0, 15).map(x => x[0]).join(', ');
   const recentMistakes = dailyChallenges.filter(d => d.score !== null && d.score < 80).slice(0, 3).map(d => d.question).join('\n');
   const pastExams = examScores.slice(0, 2).map(s => s.subjects.map(x => `${x.detail}:${x.dev}`).join(', ')).join('\n');
   const prompt = `以下の生徒の過去の学習データから、完全カスタマイズされた模試問題（英語長文または和文英訳などを1題）を作成し、HTMLで出力してください。\n【弱点単語】${weakWords}\n【最近の誤答傾向】${recentMistakes}\n【過去の成績】${pastExams}`;
-  try { const rep = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的なトーンで出力。'); r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`; } catch (e) { handleApiError(e, 'ai-weakness-report'); }
+  try { const rep = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的な参考書スタイルで出力。'); r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`; } catch (e) { handleApiError(e, 'ai-weakness-report'); }
 };
 
 const ocrScore = async e => {
@@ -2996,8 +3547,17 @@ const renderLogListModal = () => {
   `).join('');
 };
 const deleteStudyLogFromList = ts => {
-  if (!confirm('この記録を削除しますか？')) return;
-  studyLogs = studyLogs.filter(l => l.ts !== ts);
+  const l = studyLogs.find(x => x.ts === ts);
+  if (!l) return;
+  showUndoSnackbar('記録を削除しました', () => {
+    studyLogs.push(l);
+    save.logs(); renderLogListModal();
+    if ($('Dashboard').classList.contains('active')) renderDashboard();
+  }, () => {
+    studyLogs = studyLogs.filter(x => x.ts !== ts);
+    save.logs();
+  });
+  studyLogs = studyLogs.filter(x => x.ts !== ts);
   save.logs(); renderLogListModal();
   if ($('Dashboard').classList.contains('active')) renderDashboard();
 };
@@ -3016,7 +3576,19 @@ window.saveEditedLog = () => {
   const ts = parseInt($('edit-log-ts').value);
   const date = $('edit-log-date').value;
   const subj = $('edit-log-subj').value;
-  const min = parseInt($('edit-log-min').value) || 0;
+  
+  const st = $('edit-log-start-time')?.value;
+  const et = $('edit-log-end-time')?.value;
+  let min = parseInt($('edit-log-min').value) || 0;
+  
+  if (st && et) {
+    const [sh, sm] = st.split(':').map(Number);
+    const [eh, em] = et.split(':').map(Number);
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff < 0) diff += 24 * 60;
+    min = diff;
+  }
+  
   if (!date || min <= 0) return showToast('正しく入力してください');
   const log = studyLogs.find(l => l.ts === ts);
   if (log) {
@@ -3042,8 +3614,20 @@ const deleteDailyPlanFromModal = i => { if (plans[currentLogDate]) { plans[curre
 const renderLogModalList = () => { const c = $('log-modal-list'), ls = studyLogs.filter(l => l.date === currentLogDate); if (c) c.innerHTML = ls.length ? ls.map(l => `<div class="card flex-between mb-2 p-14"><div><span class="sli-subj">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span> <span class="font-bold ml-2">${Math.floor(l.seconds / 60)}分</span></div><button onclick="deleteStudyLog(${l.ts})" class="btn-clear text-danger">✕</button></div>`).join('') : '<div class="vocab-empty p-20">記録なし</div>'; };
 const addStudyLogManual = () => { 
   const si = $('log-modal-subj'), mi = $('log-modal-min'); 
-  if (!si || !mi) return; 
-  const m = parseInt(mi.value) || 0; 
+  const st = $('log-modal-start-time')?.value;
+  const et = $('log-modal-end-time')?.value;
+  
+  if (!si) return; 
+  let m = parseInt(mi?.value) || 0; 
+  
+  if (st && et) {
+    const [sh, sm] = st.split(':').map(Number);
+    const [eh, em] = et.split(':').map(Number);
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff < 0) diff += 24 * 60;
+    m = diff;
+  }
+  
   if (m <= 0) return showToast('1分以上を入力してください'); 
   studyLogs.push({ date: currentLogDate, subj: si.value, seconds: m * 60, ts: Date.now() }); 
   const cut = new Date(); cut.setDate(cut.getDate() - 365); 
@@ -3051,12 +3635,280 @@ const addStudyLogManual = () => {
   save.logs(); 
   renderLogModalList(); 
   if ($('Dashboard').classList.contains('active')) renderDashboard(); 
-  mi.value = ''; 
+  if(mi) mi.value = ''; 
+  if($('log-modal-start-time')) $('log-modal-start-time').value = '';
+  if($('log-modal-end-time')) $('log-modal-end-time').value = '';
 };
 const deleteStudyLog = ts => { studyLogs = studyLogs.filter(l => l.ts !== ts); save.logs(); renderLogModalList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 
 // ============================================================
-// [15] IMPORT
+// [15] MISTAKES
+// ============================================================
+window.switchMistakeTab = t => {
+  mistakeTab = t;
+  ['saved', 'exam', 'calc', 'other'].forEach(x => {
+    const tb = $('mistake-tab-' + x), pn = $('mistake-area-' + x);
+    if (tb) { if (x === t) tb.classList.add('active'); else tb.classList.remove('active'); }
+    if (pn) { if (x === t) pn.classList.remove('hidden'); else pn.classList.add('hidden'); }
+  });
+  if (t === 'saved') renderSubjectSaved(); // Reusing Subject Saved for Calculation/Saved
+  if (t === 'exam') { renderExamMistakes(); renderMistakeRadarChart(); }
+  if (t === 'calc') renderCalcMistakes();
+  if (t === 'other') renderOtherMistakes();
+};
+
+window.addExamMistake = () => {
+  const name = $('exam-mistake-name').value.trim();
+  const qDesc = $('exam-mistake-q-desc').value.trim();
+  const wrongAns = $('exam-mistake-wrong-ans').value.trim();
+  const reason = $('exam-mistake-reason').value.trim();
+  const action = $('exam-mistake-action').value.trim();
+  
+  const tags = Array.from(document.querySelectorAll('.mistake-cause-tag:checked')).map(cb => cb.value);
+  
+  if (!name || !qDesc) return showToast('模試名と問題概要は必須です');
+  
+  examMistakes.unshift({
+    id: generateId(),
+    date: todayDateStr(),
+    name, qDesc, wrongAns, reason, action, tags
+  });
+  
+  save.examMistakes();
+  renderExamMistakes();
+  renderMistakeRadarChart();
+  
+  $('exam-mistake-name').value = '';
+  $('exam-mistake-q-desc').value = '';
+  $('exam-mistake-wrong-ans').value = '';
+  $('exam-mistake-reason').value = '';
+  $('exam-mistake-action').value = '';
+  document.querySelectorAll('.mistake-cause-tag').forEach(cb => cb.checked = false);
+  showToast('追加しました');
+};
+
+window.renderExamMistakes = () => {
+  const c = $('mistake-exam-list');
+  if (!c) return;
+  if (!examMistakes.length) {
+    c.innerHTML = '<div class="vocab-empty">ミス履歴がありません</div>';
+    return;
+  }
+  
+  const tagLabels = { careless: 'ケアレスミス', knowledge: '知識不足', time: '時間不足', reading: '読解ミス', calculation: '計算ミス' };
+  
+  c.innerHTML = examMistakes.map(m => `
+    <div class="card mb-2">
+      <div class="flex-between mb-2">
+        <span class="text-sm font-bold">${esc(m.name)}</span>
+        <span class="text-xs text-muted">${m.date}</span>
+      </div>
+      <div class="flex gap-1 mb-2 flex-wrap">
+        ${m.tags.map(t => `<span class="filter-chip" style="font-size:10px;padding:2px 6px;">${tagLabels[t] || t}</span>`).join('')}
+      </div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>問題:</b><br>${esc(m.qDesc)}</div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>誤答:</b><br>${esc(m.wrongAns)}</div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>原因:</b><br>${esc(m.reason)}</div>
+      <div class="text-sm mb-2"><b>対策:</b><br>${esc(m.action)}</div>
+      <div class="flex-gap-8 mt-3">
+        <button class="action-btn mb-0 flex-1 btn-sm bg-accent2" onclick="addMistakeToPlan('${m.id}')">復習を予定に追加</button>
+        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteExamMistake('${m.id}')">削除</button>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.deleteExamMistake = id => {
+  if (!confirm('削除しますか？')) return;
+  examMistakes = examMistakes.filter(m => m.id !== id);
+  save.examMistakes();
+  renderExamMistakes();
+  renderMistakeRadarChart();
+};
+
+window.addMistakeToPlan = id => {
+  const m = examMistakes.find(x => x.id === id);
+  if (!m) return;
+  const d = new Date();
+  d.setDate(d.getDate() + 3); // 3日後に復習
+  const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  
+  if (!plans[ds]) plans[ds] = [];
+  plans[ds].push({ text: `[復習] ${m.name}: ${m.qDesc.substring(0, 15)}...`, done: false, time: '' });
+  save.plans();
+  showToast(`${ds} の予定に追加しました`);
+};
+
+window.renderMistakeRadarChart = () => {
+  renderChartSafe('mistake-radar-chart', () => {
+    const cv = $('mistake-radar-chart');
+    if (!cv) return;
+    
+    const counts = { careless: 0, knowledge: 0, time: 0, reading: 0, calculation: 0 };
+    examMistakes.forEach(m => {
+      m.tags.forEach(t => { if (counts[t] !== undefined) counts[t]++; });
+    });
+    
+    const labels = ['ケアレスミス', '知識不足', '時間不足', '読解ミス', '計算ミス'];
+    const data = [counts.careless, counts.knowledge, counts.time, counts.reading, counts.calculation];
+    
+    if (mistakeRadarChart) mistakeRadarChart.destroy();
+    mistakeRadarChart = new Chart(cv, {
+      type: 'radar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'ミスの回数',
+          data,
+          backgroundColor: 'rgba(192, 57, 43, 0.2)',
+          borderColor: '#C0392B',
+          pointBackgroundColor: '#C0392B'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { r: { angleLines: { display: true }, suggestedMin: 0, ticks: { stepSize: 1 } } }
+      }
+    });
+  });
+};
+
+window.generateMistakeRootCauseReport = async () => {
+  const r = $('mistake-root-cause-report');
+  if (!r) return;
+  if (examMistakes.length === 0) return showToast('データがありません');
+  
+  r.innerHTML = '<div class="text-center"><span class="loading-dots">AIが分析中</span></div>';
+  const dataStr = examMistakes.map(m => `[${m.tags.join(',')}] 原因:${m.reason} 対策:${m.action}`).join('\n');
+  
+  try {
+    const rep = await callGemini([{ role: 'user', content: `以下の生徒のミス履歴から、根本的な原因と具体的な改善アクションをHTMLでレポートしてください。客観的な参考書スタイルで出力。挨拶不要。\n${dataStr}` }], 1500);
+    r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
+  } catch (e) {
+    r.innerHTML = '<p class="text-danger">分析に失敗しました</p>';
+  }
+};
+
+window.addCalcMistake = () => {
+  const name = $('calc-mistake-name').value.trim();
+  const qDesc = $('calc-mistake-q-desc').value.trim();
+  const wrongAns = $('calc-mistake-wrong-ans').value.trim();
+  const reason = $('calc-mistake-reason').value.trim();
+  const action = $('calc-mistake-action').value.trim();
+  
+  if (!name || !qDesc) return showToast('問題名と概要は必須です');
+  
+  calcMistakes.unshift({
+    id: generateId(),
+    date: todayDateStr(),
+    name, qDesc, wrongAns, reason, action
+  });
+  
+  save.calcMistakes();
+  renderCalcMistakes();
+  
+  $('calc-mistake-name').value = '';
+  $('calc-mistake-q-desc').value = '';
+  $('calc-mistake-wrong-ans').value = '';
+  $('calc-mistake-reason').value = '';
+  $('calc-mistake-action').value = '';
+  showToast('追加しました');
+};
+
+window.renderCalcMistakes = () => {
+  const c = $('mistake-calc-list');
+  if (!c) return;
+  if (!calcMistakes.length) {
+    c.innerHTML = '<div class="vocab-empty">計算ミス履歴がありません</div>';
+    return;
+  }
+  
+  c.innerHTML = calcMistakes.map(m => `
+    <div class="card mb-2">
+      <div class="flex-between mb-2">
+        <span class="text-sm font-bold">${esc(m.name)}</span>
+        <span class="text-xs text-muted">${m.date}</span>
+      </div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>問題:</b><br>${esc(m.qDesc)}</div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>誤答:</b><br>${esc(m.wrongAns)}</div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>原因:</b><br>${esc(m.reason)}</div>
+      <div class="text-sm mb-2"><b>対策:</b><br>${esc(m.action)}</div>
+      <div class="flex-gap-8 mt-3">
+        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteCalcMistake('${m.id}')">削除</button>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.deleteCalcMistake = id => {
+  if (!confirm('削除しますか？')) return;
+  calcMistakes = calcMistakes.filter(m => m.id !== id);
+  save.calcMistakes();
+  renderCalcMistakes();
+};
+
+window.addOtherMistake = () => {
+  const name = $('other-mistake-name').value.trim();
+  const qDesc = $('other-mistake-q-desc').value.trim();
+  const wrongAns = $('other-mistake-wrong-ans').value.trim();
+  const reason = $('other-mistake-reason').value.trim();
+  const action = $('other-mistake-action').value.trim();
+  
+  if (!name || !qDesc) return showToast('問題名と概要は必須です');
+  
+  otherMistakes.unshift({
+    id: generateId(),
+    date: todayDateStr(),
+    name, qDesc, wrongAns, reason, action
+  });
+  
+  save.otherMistakes();
+  renderOtherMistakes();
+  
+  $('other-mistake-name').value = '';
+  $('other-mistake-q-desc').value = '';
+  $('other-mistake-wrong-ans').value = '';
+  $('other-mistake-reason').value = '';
+  $('other-mistake-action').value = '';
+  showToast('追加しました');
+};
+
+window.renderOtherMistakes = () => {
+  const c = $('mistake-other-list');
+  if (!c) return;
+  if (!otherMistakes.length) {
+    c.innerHTML = '<div class="vocab-empty">その他のミス履歴がありません</div>';
+    return;
+  }
+  
+  c.innerHTML = otherMistakes.map(m => `
+    <div class="card mb-2">
+      <div class="flex-between mb-2">
+        <span class="text-sm font-bold">${esc(m.name)}</span>
+        <span class="text-xs text-muted">${m.date}</span>
+      </div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>問題:</b><br>${esc(m.qDesc)}</div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>誤答:</b><br>${esc(m.wrongAns)}</div>
+      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>原因:</b><br>${esc(m.reason)}</div>
+      <div class="text-sm mb-2"><b>対策:</b><br>${esc(m.action)}</div>
+      <div class="flex-gap-8 mt-3">
+        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteOtherMistake('${m.id}')">削除</button>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.deleteOtherMistake = id => {
+  if (!confirm('削除しますか？')) return;
+  otherMistakes = otherMistakes.filter(m => m.id !== id);
+  save.otherMistakes();
+  renderOtherMistakes();
+};
+
+// ============================================================
+// [16] IMPORT
 // ============================================================
 const openImportModal = () => { openModal('import-modal'); };
 const switchImportTab = t => { curImpTab = t; ['file', 'text', 'url', 'photo'].forEach(x => { const tb = $('itab-' + x), c = $('itab-content-' + x); if (tb) { if (x === t) tb.classList.add('active'); else tb.classList.remove('active'); } if (c) { if (x === t) c.classList.remove('hidden'); else c.classList.add('hidden'); } }); };
@@ -3199,7 +4051,7 @@ const fetchAndParseUrl = async () => {
     } catch (e) { textContent = "URLの内容を取得できませんでした。URLの文字列から推測してください。"; }
     
     let prompt = `以下のテキスト内容から、関連する重要な英単語を抽出してJSON配列で出力してください。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${textContent}`;
-    const raw = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的なトーンで出力。', true);
+    const raw = await callGemini([{ role: 'user', content: prompt }], 2000, '客観的な参考書スタイルで出力。挨拶不要。', true);
     const w = extractJSON(raw); renderPreview(w, 'url-preview');
   } catch (e) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); }
 };
@@ -3210,7 +4062,7 @@ window.parseManualTranscript = async () => {
   const extractContext = $('import-extract-context-url') && $('import-extract-context-url').checked;
   try {
     let prompt = `以下のYouTube字幕テキストから、関連する重要な英単語を抽出してJSON配列で出力してください。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${i.value.substring(0, 5000)}`;
-    const raw = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的なトーンで出力。', true);
+    const raw = await callGemini([{ role: 'user', content: prompt }], 2000, '客観的な参考書スタイルで出力。挨拶不要。', true);
     const w = extractJSON(raw); renderPreview(w, 'url-preview');
   } catch (e) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); }
 };
@@ -3226,7 +4078,7 @@ const handleImportPhoto = async e => {
     const extractContext = $('import-extract-context-photo') && $('import-extract-context-photo').checked;
     let prompt = `画像内のテキストを読み取り、重要な英単語を抽出してJSON配列で出力してください。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]`;
     
-    const raw = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: prompt }] }], 2000, '挨拶不要。客観的なトーンで出力。', true); 
+    const raw = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: prompt }] }], 2000, '客観的な参考書スタイルで出力。挨拶不要。', true); 
     let wd = extractJSON(raw); 
     
     if (unknownOnly && wd && Array.isArray(wd)) {
@@ -3252,19 +4104,23 @@ const applyImport = async m => {
     showToast('AI補完中...');
     const toFill = formattedWords.filter(w => !w.meaning || !w.example);
     if (toFill.length > 0) {
-      try {
-        const rep = await callGemini([{role:'user', content:`以下の英単語の意味と例文を補完しJSON配列で出力。形式:[{"word":"...","meaning":"...","example":"..."}]\n単語: ${toFill.map(w=>w.word).join(', ')}`}], 2000, '挨拶不要。客観的なトーンで出力。', true);
-        const filled = extractJSON(rep);
-        if (filled && Array.isArray(filled)) {
-          filled.forEach(fw => {
-            const target = formattedWords.find(w => w.word === fw.word);
-            if (target) {
-              target.meaning = target.meaning || fw.meaning;
-              target.example = target.example || fw.example;
-            }
-          });
-        }
-      } catch(e) { showToast('AI補完の一部に失敗しました'); }
+      const chunkSize = 15;
+      for (let i = 0; i < toFill.length; i += chunkSize) {
+        const chunk = toFill.slice(i, i + chunkSize);
+        try {
+          const rep = await callGemini([{role:'user', content:`以下の英単語の意味と例文を補完しJSON配列で出力。形式:[{"word":"...","meaning":"...","example":"..."}]\n単語: ${chunk.map(w=>w.word).join(', ')}`}], 2000, '客観的な参考書スタイルで出力。挨拶不要。', true);
+          const filled = extractJSON(rep);
+          if (filled && Array.isArray(filled)) {
+            filled.forEach(fw => {
+              const target = formattedWords.find(w => w.word === fw.word);
+              if (target) {
+                target.meaning = target.meaning || fw.meaning;
+                target.example = target.example || fw.example;
+              }
+            });
+          }
+        } catch(e) { console.warn('AI補完チャンク失敗', e); }
+      }
     }
   }
 
@@ -3302,12 +4158,22 @@ const applyImport = async m => {
 };
 
 // ============================================================
-// [16] SETTINGS & EXPORT
+// [17] SETTINGS & EXPORT
 // ============================================================
 const loadProfileFields = () => { const map = { targetUniv: 'target-univ', grade: 'grade', courses: 'courses' }; Object.entries(map).forEach(([k, id]) => { const e = $('profile-' + id); if (e) e.value = userProfile[k] || ''; }); };
 const saveProfile = () => { const u = $('profile-target-univ'), g = $('profile-grade'), c = $('profile-courses'); if (u) userProfile.targetUniv = u.value.trim(); if (g) userProfile.grade = g.value.trim(); if (c) userProfile.courses = c.value.trim(); save.profile(); };
 const saveProfileDebounced = debounce(saveProfile, 500);
 const toggleProfileCard = () => { const f = $('profile-fields'), b = $('profile-toggle-btn'); if (!f || !b) return; const hid = f.classList.contains('hidden'); if (hid) f.classList.remove('hidden'); else f.classList.add('hidden'); b.textContent = hid ? (customTexts['plan_ai_prof_toggle'] || '折りたたむ') : '展開'; };
+
+window.saveGoalTimes = () => {
+  ['english', 'math', 'japanese', 'science', 'social', 'other'].forEach(k => {
+    const el = $(`goal-time-${k}`);
+    if (el) goalTimes[k] = parseInt(el.value) || 0;
+  });
+  safeSet('study_goal_times', goalTimes);
+  showToast('目標時間を保存しました');
+  if ($('Dashboard').classList.contains('active')) renderDashboard();
+};
 
 const saveReminderSettings = async () => {
   const t = $('reminder-time'); if (!t || !t.value) return;
@@ -3351,16 +4217,7 @@ const checkConfirm = (iid, bid, ex) => { const i = $(iid), b = $(bid); if (i && 
 
 const exportData = async () => { 
   showToast('エクスポート準備中...');
-  const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan };
-  
-  const images = {};
-  for (const s of subjectSaved) {
-    if (s.imageId) {
-      const imgData = await getImageFromDB(s.imageId);
-      if (imgData) images[s.imageId] = imgData;
-    }
-  }
-  data.images = images;
+  const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan, examMistakes, calcMistakes, otherMistakes, subjectFolders };
   
   const b = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'study_data.json'; a.click(); 
@@ -3373,7 +4230,14 @@ const exportCSV = () => {
   const b = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'study_vocab.csv'; a.click();
 };
-const clearData = async () => { localStorage.clear(); await localforage.clear(); await imageStore.clear(); location.reload(); };
+
+window.clearData = async () => { 
+  Object.keys(localStorage).forEach(k => { if(k.startsWith('study_')) localStorage.removeItem(k); });
+  const keys = await localforage.keys();
+  for(const k of keys) { if(k.startsWith('study_') || k.startsWith('backup_')) await localforage.removeItem(k); }
+  await imageStore.clear();
+  location.reload(); 
+};
 
 const openWeeklyReport = async () => {
   openModal('weekly-report-modal'); $('weekly-report-content').innerHTML = '<div class="text-center p-40"><span class="loading-dots">AIが分析中</span></div>';
@@ -3382,7 +4246,7 @@ const openWeeklyReport = async () => {
   if (recentLogs.length === 0) { $('weekly-report-content').innerHTML = '<p>過去7日間の学習データがありません。</p>'; return; }
   const subjMap = {}; recentLogs.forEach(l => { subjMap[l.subj] = (subjMap[l.subj] || 0) + Math.floor(l.seconds / 60); });
   const logStr = Object.entries(subjMap).map(([k, v]) => `${SCORE_SUBJECTS[k]?.label || k}:${v}分`).join(', ');
-  const prompt = `以下の生徒の過去7日間の学習データに基づき、HTMLで週次レポートを作成してください。見出し（h4タグ）として「総学習時間とバランス」「ストロングポイント」「改善点」「来週のおすすめ学習プラン」を含め、pタグやul/liタグでわかりやすく記述してください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。データ: ${logStr}`;
+  const prompt = `以下の生徒の過去7日間の学習データに基づき、HTMLで週次レポートを作成してください。見出し（h4タグ）として「総学習時間とバランス」「ストロングポイント」「改善点」「来週のおすすめ学習プラン」を含め、pタグやul/liタグでわかりやすく記述してください。挨拶や語りかけは一切不要です。客観的な参考書スタイルで出力してください。データ: ${logStr}`;
   try { let rep = await callGemini([{ role: 'user', content: prompt }], 1500); $('weekly-report-content').innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); } catch (e) { $('weekly-report-content').innerHTML = '<p class="text-danger">分析に失敗しました。通信環境を確認してください。</p><button class="action-btn mt-3" onclick="openWeeklyReport()">リトライ</button>'; }
 };
 
@@ -3397,7 +4261,7 @@ const openWeaknessAnalysis = async () => {
   const overdue = Object.entries(srsData).map(([w, r]) => ({ word: w, ef: r.stability, overdueDays: srsDaysDiff(srsNextDate(r)) * -1 })).filter(x => x.overdueDays >= 0 || x.ef < 2.0).sort((a, b) => (b.overdueDays - a.overdueDays) || (a.ef - b.ef)).slice(0, 10);
   if (!overdue.length) { $('weakness-content').innerHTML = '<p>現在、深刻な弱点データはありません。素晴らしいペースです！</p>'; return; }
   weaknessWords = overdue.map(x => x.word);
-  const prompt = `以下の生徒が特に苦手としている英単語TOP10のリストに基づき、HTMLでレポートを作成してください。見出し（h4タグ）として「最も復習が必要な単語TOP10」をリスト表示し、それぞれの単語の覚え方のコツや語源的アプローチを簡潔に添えてください。また「おすすめ学習法」として具体的なアドバイスを記載してください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。苦手単語: ${weaknessWords.join(', ')}`;
+  const prompt = `以下の生徒が特に苦手としている英単語TOP10のリストに基づき、HTMLでレポートを作成してください。見出し（h4タグ）として「最も復習が必要な単語TOP10」をリスト表示し、それぞれの単語の覚え方のコツや語源的アプローチを簡潔に添えてください。また「おすすめ学習法」として具体的なアドバイスを記載してください。挨拶や語りかけは一切不要です。客観的な参考書スタイルで出力してください。苦手単語: ${weaknessWords.join(', ')}`;
   try { let rep = await callGemini([{ role: 'user', content: prompt }], 1500); $('weakness-content').innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); $('weakness-focus-btn').classList.remove('hidden'); } catch (e) { $('weakness-content').innerHTML = '<p class="text-danger">分析に失敗しました。通信環境を確認してください。</p><button class="action-btn mt-3" onclick="openWeaknessAnalysis()">リトライ</button>'; }
 };
 const startWeaknessFocusMode = () => { closeModal('weakness-modal'); setTabByIndex(4); setCardsMode('weak'); };
@@ -3450,7 +4314,7 @@ window.generateStory = async () => {
   const words = srsGetDueWords().slice(0, 10).map(w => w.word);
   if(!words.length) words.push(...ALL_WORDS.slice(0,10).map(w=>w.word));
   try {
-    const rep = await callGemini([{role:'user', content:`以下の単語を全て使って、面白い英語のショートストーリーを作成し、和訳と解説をHTMLで出力してください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。単語: ${words.join(', ')}`}], 2000);
+    const rep = await callGemini([{role:'user', content:`以下の単語を全て使って、面白い英語のショートストーリーを作成し、和訳と解説をHTMLで出力してください。挨拶や語りかけは一切不要です。客観的な参考書スタイルで出力してください。単語: ${words.join(', ')}`}], 2000);
     area.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
   } catch(e) { area.innerHTML = '<p class="text-danger">生成失敗</p>'; }
   finally { ld.classList.add('hidden'); }
@@ -3501,7 +4365,7 @@ window.saveShuffleSettings = () => {
 };
 
 // ============================================================
-// [17] ROUTER & INIT
+// [18] ROUTER & INIT
 // ============================================================
 const setTabByIndex = (idx) => {
   if (idx < 0 || idx >= TABS.length) return;
@@ -3535,10 +4399,15 @@ const triggerTabEffects = (id) => {
     $('dark-mode-start').value = safeGet('study_dark_schedule_start', '20:00');
     $('dark-mode-end').value = safeGet('study_dark_schedule_end', '06:00');
     if (userProfile.customThemeColor) $('custom-theme-bg').value = userProfile.customThemeColor;
+    ['english', 'math', 'japanese', 'science', 'social', 'other'].forEach(k => {
+      const el = $(`goal-time-${k}`);
+      if (el) el.value = goalTimes[k] || '';
+    });
   }
   if (id === 'SkillUp') switchWritingTab('input');
   if (id === 'Subject') { renderSubjectChat(); renderSubjectSaved(); renderSubjectQuiz(); }
   if (id === 'Plan' && planMode === 'score') { renderScoreList(); renderScoreChart(); }
+  if (id === 'Mistakes') { switchMistakeTab(mistakeTab); }
 };
 
 document.querySelectorAll('.nav-item').forEach((item, idx) => {
@@ -3561,7 +4430,7 @@ async function initAppData() {
   localforage.config({ name: 'StudyApp' });
   
   const [
-    words, saved, p, ev, writing, subSaved, subQuiz, exams, books, srs, prof, decks, prog, meta, daily, syntax, listen, logs, yearly, freeze
+    words, saved, p, ev, writing, subSaved, subQuiz, exams, books, srs, prof, decks, prog, meta, daily, syntax, listen, logs, yearly, freeze, examMistakesData, calcMistakesData, otherMistakesData, subjectFoldersData
   ] = await Promise.all([
     localforage.getItem('study_words'),
     localforage.getItem('study_saved'),
@@ -3582,7 +4451,11 @@ async function initAppData() {
     localforage.getItem('study_listen'),
     localforage.getItem('study_logs'),
     localforage.getItem('study_yearly_plan'),
-    localforage.getItem('study_freeze_logs')
+    localforage.getItem('study_freeze_logs'),
+    localforage.getItem('study_exam_mistakes'),
+    localforage.getItem('study_calc_mistakes'),
+    localforage.getItem('study_other_mistakes'),
+    localforage.getItem('study_subject_folders')
   ]);
 
   ALL_WORDS = words || [];
@@ -3605,6 +4478,10 @@ async function initAppData() {
   studyLogs = logs || [];
   yearlyPlan = yearly || { year: new Date().getFullYear(), goal: '', months: {} };
   freezeLogs = freeze || [];
+  examMistakes = examMistakesData || [];
+  calcMistakes = calcMistakesData || [];
+  otherMistakes = otherMistakesData || [];
+  subjectFolders = subjectFoldersData || [];
   
   ALL_WORDS = ALL_WORDS.map(w => {
     if (typeof w === 'string') return { word: w, meaning: '', example: '', tags: [] };
