@@ -102,19 +102,19 @@ const getTotalStudySeconds = () => studyLogs.reduce((a, l) => a + l.seconds, 0);
 
 const openModal = id => { 
   $(id).classList.add('open'); 
-  document.body.classList.add('modal-open-locked');
+  document.body.style.overflow = 'hidden'; 
   history.pushState({ modal: id }, ''); 
 };
 const closeModal = id => { 
   $(id).classList.remove('open'); 
   if (!document.querySelector('.modal-overlay.open')) {
-    document.body.classList.remove('modal-open-locked');
+    document.body.style.overflow = '';
   }
   if (history.state && history.state.modal === id) history.back(); 
 };
 window.addEventListener('popstate', () => { 
   document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open')); 
-  document.body.classList.remove('modal-open-locked');
+  document.body.style.overflow = '';
 });
 
 const resizeImage = (file, maxWidth = 1024, maxHeight = 1024, skipResize = false) => {
@@ -226,7 +226,7 @@ window.resetCustomTexts = () => {
 // ============================================================
 // [2] CONSTANTS & STATE
 // ============================================================
-const TABS = ['Dashboard', 'Timer', 'ImportSearch', 'Vocab', 'Cards', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Mistakes', 'Manage'];
+const TABS = ['Dashboard', 'Timer', 'ImportSearch', 'Vocab', 'Cards', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Manage'];
 const ACCENTS = ['en_US', 'en_GB', 'en_AU'];
 const ACCENT_LABELS = { en_US: 'アメリカ英語', en_GB: 'イギリス英語', en_AU: 'オーストラリア英語' };
 const SCORE_SUBJECTS = { japanese: { label: '国語', details: ['現代文', '古文', '漢文', '総合'] }, math: { label: '数学', details: ['数学I・A', '数学II・B', '数学III・C', '総合'] }, english: { label: '英語', details: ['リーディング', 'リスニング', 'ライティング', '総合'] }, science: { label: '理科', details: ['物理', '化学', '生物', '地学', '基礎', '総合'] }, social: { label: '社会', details: ['歴史', '地理', '公共', '倫理', '政経', '総合'] }, total: { label: '総合', details: ['文系', '理系', '全体'] } };
@@ -247,16 +247,16 @@ const THEMES = {
 };
 
 let ALL_WORDS = [], savedWords = [], plans = {}, events = {}, writingHistory = [], subjectSaved = [], subjectQuizzes = [], examScores = [], textbooks = [], srsData = {}, userProfile = { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', aiNotificationTiming: false, freezeItems: 0, themeColor: 'default', customThemeColor: '' }, customDecks = [], wordProgress = {}, vocabMeta = {}, dailyChallenges = [], syntaxList = [], listenHistory = [], studyLogs = [], freezeLogs = [];
-let quickCaptures = [], mistakeCalc = [], mistakeExam = [];
 let yearlyPlan = { year: new Date().getFullYear(), goal: '', months: {} };
 let countdownData = safeGet('study_countdown', { name: '', date: '' });
+let quickCaptures = safeGet('study_quick_captures', []);
 let currentTabIndex = 0;
 let timerPresets = safeGet('study_timer_presets', [1500, 3000]);
 let darkThemeMode = safeGet('study_dark_mode', 'auto');
 let fsrsRetention = safeGet('study_fsrs_retention', 90);
 let cachedWotd = safeGet('study_wotd_cache', { date: '', word: null, exampleHtml: '' });
 let cachedQuote = safeGet('study_quote_cache', { date: '', text: '', author: '', explanation: '' });
-let activeWidgets = safeGet('study_active_widgets', ['wotd', 'hero', 'quote', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'forecast', 'subj-chart', 'heatmap', 'calendar', 'today-plan', 'today-log']);
+let activeWidgets = safeGet('study_active_widgets', ['wotd', 'hero', 'quote', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'subj-chart', 'heatmap', 'calendar', 'quick-capture-inbox', 'today-plan', 'today-log']);
 let shuffleSettings = safeGet('study_shuffle_settings', { mode: 'random' });
 
 let reminderCheckInt = null;
@@ -270,7 +270,6 @@ let vocabPosFilter = 'all', vocabProgFilter = 'all', vocabTagFilter = 'all', voc
 let vocabPage = 1;
 let timerInt = null, timerTime = 25 * 60, timerInitial = 25 * 60, timerRunning = false, timerEndTime = 0; 
 let isPomodoroMode = false, isPomodoroBreak = false;
-let linkedPlanTask = null; // Timer連動タスク用
 
 let audioCtx = null;
 let masterCompressor = null;
@@ -306,8 +305,6 @@ let shadowingAudioCtx = null;
 let shadowingAnalyser = null;
 let shadowingDataArray = null;
 let shadowingReqAnimFrame = null;
-
-let currentMistakeTab = 'saved';
 
 // ============================================================
 // [3] STORAGE & SYNC
@@ -347,17 +344,14 @@ const save = {
   listen: () => safeSave('study_listen', listenHistory.slice(0, 100)),
   logs: () => safeSave('study_logs', studyLogs),
   yearly: () => safeSave('study_yearly_plan', yearlyPlan),
-  freezeLogs: () => safeSave('study_freeze_logs', freezeLogs),
-  quick: () => safeSave('study_quick_captures', quickCaptures),
-  mcalc: () => safeSave('study_mistake_calc', mistakeCalc),
-  mexam: () => safeSave('study_mistake_exam', mistakeExam)
+  freezeLogs: () => safeSave('study_freeze_logs', freezeLogs)
 };
 
 const createAutoBackup = async () => {
   const today = todayDateStr();
   const lastBackup = localStorage.getItem('study_last_backup_date');
   if (lastBackup !== today) {
-    const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan, quickCaptures, mistakeCalc, mistakeExam };
+    const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan };
     await localforage.setItem('backup_' + today, data);
     localStorage.setItem('study_last_backup_date', today);
     
@@ -387,7 +381,7 @@ window.restoreBackup = async () => {
   
   const data = await localforage.getItem(sel.value);
   if (data) {
-    ALL_WORDS = data.ALL_WORDS || []; savedWords = data.savedWords || []; plans = data.plans || {}; events = data.events || {}; writingHistory = data.writingHistory || []; subjectSaved = data.subjectSaved || []; subjectQuizzes = data.subjectQuizzes || []; examScores = data.examScores || []; textbooks = data.textbooks || []; srsData = data.srsData || {}; userProfile = data.userProfile || userProfile; customDecks = data.customDecks || []; wordProgress = data.wordProgress || {}; vocabMeta = data.vocabMeta || {}; dailyChallenges = data.dailyChallenges || []; syntaxList = data.syntaxList || []; listenHistory = data.listenHistory || []; studyLogs = data.studyLogs || []; yearlyPlan = data.yearlyPlan || yearlyPlan; quickCaptures = data.quickCaptures || []; mistakeCalc = data.mistakeCalc || []; mistakeExam = data.mistakeExam || [];
+    ALL_WORDS = data.ALL_WORDS || []; savedWords = data.savedWords || []; plans = data.plans || {}; events = data.events || {}; writingHistory = data.writingHistory || []; subjectSaved = data.subjectSaved || []; subjectQuizzes = data.subjectQuizzes || []; examScores = data.examScores || []; textbooks = data.textbooks || []; srsData = data.srsData || {}; userProfile = data.userProfile || userProfile; customDecks = data.customDecks || []; wordProgress = data.wordProgress || {}; vocabMeta = data.vocabMeta || {}; dailyChallenges = data.dailyChallenges || []; syntaxList = data.syntaxList || []; listenHistory = data.listenHistory || []; studyLogs = data.studyLogs || []; yearlyPlan = data.yearlyPlan || yearlyPlan;
     Object.values(save).forEach(f => f());
     showToast('復元しました。再読み込みします。');
     setTimeout(() => location.reload(), 1500);
@@ -401,7 +395,7 @@ const initFirebaseSafe = () => {
     const firebaseConfig = { apiKey: "AIzaSyBbIaem_gtmb9Qjt95loeAAa-ymBwP6rSM", authDomain: "study-app-faf25.firebaseapp.com", projectId: "study-app-faf25", storageBucket: "study-app-faf25.firebasestorage.app", messagingSenderId: "282913543801", appId: "1:282913543801:web:8e5f73aa46bcce613ca6a8" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     window._db = firebase.firestore(); window._auth = firebase.auth();
-    const login = () => window._auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(() => showToast('ログイン完了')).catch(() => showToast('エラー'));
+    const login = () => window._auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(() => showToast('ログイン完了')).catch((e) => { console.error(e); showToast('ログインエラー: ' + e.message); });
     const logout = () => window._auth.signOut().then(() => showToast('ログアウト完了'));
     window._auth.onAuthStateChanged(u => {
       const st = $('firebase-login-status'), btn = $('firebase-auth-btn');
@@ -479,7 +473,7 @@ const cloudSync = async (m, isAuto = false) => {
       batch.set(c.doc('history'), { writingHistory: JSON.stringify(writingHistory.slice(0, 50)), listenHistory: JSON.stringify(listenHistory.slice(0, 50)), dailyChallenges: JSON.stringify(dailyChallenges.slice(0, 50)) });
       batch.set(c.doc('qa'), { subjectSaved: JSON.stringify(subjectSaved.slice(0, 50)), subjectQuizzes: JSON.stringify(subjectQuizzes.slice(0, 50)) });
       batch.set(c.doc('plans'), { plans: JSON.stringify(plans), events: JSON.stringify(events), studyLogs: JSON.stringify(studyLogs), textbooks: JSON.stringify(textbooks), yearlyPlan: JSON.stringify(yearlyPlan) });
-      batch.set(c.doc('misc'), { examScores: JSON.stringify(examScores), customDecks: JSON.stringify(customDecks), syntaxList: JSON.stringify(syntaxList), userProfile: JSON.stringify(userProfile), freezeLogs: JSON.stringify(freezeLogs), quickCaptures: JSON.stringify(quickCaptures), mistakeCalc: JSON.stringify(mistakeCalc), mistakeExam: JSON.stringify(mistakeExam), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      batch.set(c.doc('misc'), { examScores: JSON.stringify(examScores), customDecks: JSON.stringify(customDecks), syntaxList: JSON.stringify(syntaxList), userProfile: JSON.stringify(userProfile), freezeLogs: JSON.stringify(freezeLogs), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       
       await batch.commit();
       localStorage.setItem('study_last_sync_time', Date.now().toString());
@@ -529,9 +523,6 @@ const cloudSync = async (m, isAuto = false) => {
           if (r.syntaxList) syntaxList = mergeHistory(syntaxList, ps(r.syntaxList, [])); 
           if (r.userProfile) userProfile = { ...userProfile, ...ps(r.userProfile, {}) }; 
           if (r.freezeLogs) freezeLogs = [...new Set([...freezeLogs, ...ps(r.freezeLogs, [])])];
-          if (r.quickCaptures) quickCaptures = mergeHistory(quickCaptures, ps(r.quickCaptures, []));
-          if (r.mistakeCalc) mistakeCalc = mergeHistory(mistakeCalc, ps(r.mistakeCalc, []));
-          if (r.mistakeExam) mistakeExam = mergeHistory(mistakeExam, ps(r.mistakeExam, []));
         }
       }
       if (found) { 
@@ -556,14 +547,6 @@ window.addEventListener('online', async () => {
 // ============================================================
 // [4] THEME & SETTINGS
 // ============================================================
-window.saveApiKey = () => {
-  const i = $('gemini-api-key-input');
-  if(!i || !i.value.trim()) return showToast('API Keyを入力してください');
-  localStorage.setItem('study_gemini_api_key', i.value.trim());
-  showToast('API Keyを保存しました');
-  i.value = '';
-};
-
 const applyTheme = () => {
   let isD = false;
   if (darkThemeMode === 'auto') isD = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -748,7 +731,7 @@ window.callGemini = async (msgs, maxT = 1000, sys = '', expectJson = false) => {
                .replace(/you are a/gi, '');
   };
 
-  const finalSys = sys || 'プロの予備校トップ講師として、非常に丁寧で論理的な解説を行ってください。';
+  const finalSys = sys || '挨拶や語りかけは一切不要です。客観的かつ簡潔な単語帳スタイルで出力してください。';
   if (finalSys) contents.push({ role: 'user', parts: [{ text: finalSys }] }, { role: 'model', parts: [{ text: 'OK' }] });
   
   msgs.slice(-15).forEach(m => {
@@ -955,11 +938,6 @@ const timerStartStop = () => {
             showToast('学習終了！5分休憩です');
             studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: 25 * 60, ts: Date.now() });
             save.logs();
-            if (linkedPlanTask) {
-              const t = plans[linkedPlanTask.date]?.[linkedPlanTask.idx];
-              if (t) { t.done = true; save.plans(); showToast(`Task Completed: ${linkedPlanTask.text}`); }
-              linkedPlanTask = null;
-            }
             isPomodoroBreak = true; timerInitial = 5 * 60; timerTime = timerInitial; updateTimerDisplay();
             if ($('timer-pomodoro-auto') && $('timer-pomodoro-auto').checked) {
               setTimeout(timerStartStop, 1500);
@@ -975,11 +953,6 @@ const timerStartStop = () => {
           showToast('終了');
           studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: timerInitial, ts: Date.now() });
           save.logs();
-          if (linkedPlanTask) {
-            const t = plans[linkedPlanTask.date]?.[linkedPlanTask.idx];
-            if (t) { t.done = true; save.plans(); showToast(`Task Completed: ${linkedPlanTask.text}`); }
-            linkedPlanTask = null;
-          }
         }
       }
     }, 200);
@@ -1102,10 +1075,10 @@ window.openWidgetSettingsModal = () => {
     { id: 'srs-chart', name: '忘却曲線グラフ' },
     { id: 'srs-scatter', name: '記憶の定着度分布' },
     { id: 'stability-chart', name: '平均定着度推移' },
-    { id: 'forecast', name: 'Review Forecast (復習予測)' },
     { id: 'subj-chart', name: '科目別学習時間' },
     { id: 'heatmap', name: '学習ヒートマップ' },
     { id: 'calendar', name: 'カレンダー' },
+    { id: 'quick-capture-inbox', name: 'Quick Notes' },
     { id: 'today-plan', name: '今日の予定' },
     { id: 'today-log', name: '今日の学習記録' }
   ];
@@ -1220,6 +1193,48 @@ window.saveCountdown = () => {
 const dashWeeklyPrev = () => { dashWeeklyOffset++; renderDashboard(); };
 const dashWeeklyNext = () => { if (dashWeeklyOffset > 0) dashWeeklyOffset--; renderDashboard(); };
 
+window.openQuickCaptureModal = () => {
+  const input = $('qc-text-input');
+  if (input) input.value = '';
+  openModal('quick-capture-modal');
+};
+
+window.saveQuickCapture = () => {
+  const input = $('qc-text-input');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  quickCaptures.unshift({ id: generateId(), text, date: new Date().toLocaleString('ja-JP') });
+  safeSet('study_quick_captures', quickCaptures);
+  closeModal('quick-capture-modal');
+  showToast('メモを保存しました');
+  renderQuickCaptures();
+};
+
+const renderQuickCaptures = () => {
+  const list = $('quick-capture-list');
+  if (!list) return;
+  if (!quickCaptures.length) {
+    list.innerHTML = '<p class="text-xs text-muted text-center">メモはありません</p>';
+    return;
+  }
+  list.innerHTML = quickCaptures.map(qc => `
+    <div class="card mb-2 p-10">
+      <div class="text-xs text-muted mb-1">${qc.date}</div>
+      <div class="text-sm line-height-15">${esc(qc.text).replace(/\n/g, '<br>')}</div>
+      <div class="flex justify-end mt-1">
+        <button class="btn-clear text-danger text-xs" onclick="deleteQuickCapture('${qc.id}')">削除</button>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.deleteQuickCapture = (id) => {
+  quickCaptures = quickCaptures.filter(qc => qc.id !== id);
+  safeSet('study_quick_captures', quickCaptures);
+  renderQuickCaptures();
+};
+
 const renderDashboard = () => {
   applyWidgetVisibility();
   
@@ -1235,7 +1250,7 @@ const renderDashboard = () => {
     avatarEl.style.fontWeight = 'bold';
   }
 
-  renderWordOfTheDay(); renderCountdown(); renderQuote();
+  renderWordOfTheDay(); renderCountdown(); renderQuote(); renderQuickCaptures();
 
   const studiedDays = new Set(studyLogs.map(l => l.date));
   const tD = $('dash-total-days'); if (tD) tD.textContent = studiedDays.size;
@@ -1384,35 +1399,6 @@ const renderDashboard = () => {
     if ($('dash-srs-scatter-card')) $('dash-srs-scatter-card').classList.add('hidden');
     if ($('dash-stability-chart-card')) $('dash-stability-chart-card').classList.add('hidden');
   }
-  
-  const fc = $('dash-forecast-grid');
-  if (fc && activeWidgets.includes('forecast')) {
-    let html = '';
-    const td = new Date(); td.setHours(0, 0, 0, 0); 
-    
-    const counts = {};
-    Object.values(srsData).forEach(r => {
-      const nd = srsNextDate(r);
-      if(nd) {
-        nd.setHours(0,0,0,0);
-        const ds = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
-        counts[ds] = (counts[ds] || 0) + 1;
-      }
-    });
-
-    for (let i = 0; i < 30; i++) {
-      const d = new Date(td); d.setDate(d.getDate() + i); 
-      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const val = counts[ds] || 0; 
-      let bg = 'var(--bg2)'; 
-      let title = `${ds}: ${val} reviews`;
-      if (val > 0) {
-        bg = val < 20 ? '#a8e6cf' : val < 50 ? '#f1c40f' : '#e74c3c';
-      }
-      html += `<div style="width:12px;height:12px;border-radius:2px;background:${bg};cursor:pointer;" title="${title}"></div>`;
-    }
-    fc.innerHTML = html;
-  }
 
   const hm = $('dash-heatmap');
   if (hm && activeWidgets.includes('heatmap')) {
@@ -1486,7 +1472,6 @@ const renderDashboardCalendar = () => {
   }
   const cd = $('cal-days'); if (cd) cd.innerHTML = html;
 };
-
 // ============================================================
 // [10] VOCAB
 // ============================================================
@@ -1520,7 +1505,7 @@ const renderWordOfTheDay = async () => {
   else {
     exBox.innerHTML = '<span class="loading-dots"></span>';
     try {
-      const rep = await callGemini([{ role: 'user', content: `英単語「${w.word}」のシンプルで分かりやすい英語の例文を1つと、その自然な和訳を生成して。改行で区切ってテキストのみで出力。` }], 300);
+      const rep = await callGemini([{ role: 'user', content: `英単語「${w.word}」のシンプルで分かりやすい英語の例文を1つと、その自然な和訳を生成してください。挨拶や語りかけは一切不要です。改行で区切ってテキストのみで出力。` }], 300);
       const html = clean(rep.trim().replace(/\n/g, '<br>')); exBox.innerHTML = html; cachedWotd.exampleHtml = html; safeSet('study_wotd_cache', cachedWotd);
     } catch (e) { 
       const fallbackMeaning = await fetchFreeDictFallback(w.word);
@@ -1616,6 +1601,12 @@ const addWordManual = () => {
   if (old) { closeModal('detail-modal'); setTimeout(() => showWordModal(w, m), 300); }
 };
 
+window.regenerateSearchWord = async (w) => {
+  const i = $('word-input');
+  if(i) i.value = w;
+  searchWord();
+};
+
 const searchWord = async (isSuggest = false) => {
   const i = $('word-input'); if (!i) return; const w = i.value.trim();
   const s = $('word-suggest'), ld = $('loading'), sr = $('search-result');
@@ -1630,21 +1621,28 @@ const searchWord = async (isSuggest = false) => {
   if (!w) return;
   if (s) s.innerHTML = ''; if (ld) ld.classList.remove('hidden'); if (sr) sr.innerHTML = '';
   
-  const fd = ALL_WORDS.find(x => x.word.toLowerCase() === w.toLowerCase()), hint = fd ? `（基本意味: ${fd.meaning}）` : '';
+  const fd = ALL_WORDS.find(x => x.word.toLowerCase() === w.toLowerCase()), hint = fd && fd.meaning ? `（基本意味: ${fd.meaning}）` : '';
   try {
-    const prompt = `英単語「${w}」${hint}を解説してください。HTMLのみで出力してください。必ず以下のh4見出しを含め、箇条書き(ul/li)を適切に使ってスタイリングしやすいようにしてください。見出し: <h4>意味</h4>, <h4>語源</h4>, <h4>同語根</h4>, <h4>派生語</h4>, <h4>例文</h4>(必ず2つ以上), <h4>類義語</h4>, <h4>反義語</h4>`;
-    let html = await callGemini([{ role: 'user', content: prompt }], 1500);
+    const prompt = `英単語「${w}」${hint}について、単語帳形式で客観的に解説してください。挨拶や語りかけは一切不要です。HTMLのみで出力し、以下のh4見出しを必ず含めてください。
+見出し:
+<h4>意味・よく使われる表現</h4> (多義語の場合は全て網羅し、熟語も記載)
+<h4>語源</h4>
+<h4>派生語</h4>
+<h4>類義語</h4> (語源も簡潔に)
+<h4>対義語</h4> (語源も簡潔に)`;
+    
+    let html = await callGemini([{ role: 'user', content: prompt }], 2000);
     html = clean(html.replace(/```html?/g, '').replace(/```/g, ''));
     if (ld) ld.classList.add('hidden');
     
-    let extractMeaning = html.match(/<h4>意味<\/h4>\s*<p>(.*?)<\/p>/) || html.match(/<li>([^<]{2,40})<\/li>/);
-    let meaningText = fd ? fd.meaning : (extractMeaning ? extractMeaning[1].replace(/<[^>]+>/g, '').trim() : '解析完了');
+    let extractMeaning = html.match(/<h4>意味・よく使われる表現<\/h4>\s*<p>(.*?)<\/p>/) || html.match(/<li>([^<]{2,40})<\/li>/);
+    let meaningText = (fd && fd.meaning) ? fd.meaning : (extractMeaning ? extractMeaning[1].replace(/<[^>]+>/g, '').trim() : '解析完了');
 
     if (!fd) { ALL_WORDS.push({ word: w, meaning: meaningText, detailHtml: html }); save.words(); showToast(`追加: ${w}`); updateTagFilters(); } 
-    else { fd.detailHtml = html; save.words(); }
+    else { fd.detailHtml = html; if(!fd.meaning) fd.meaning = meaningText; save.words(); }
     
     const isSaved = savedWords.includes(w), pt = `${w}\n${meaningText}\n${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`;
-    if (sr) sr.innerHTML = `<div class="card result-box"><div class="flex-between mb-1"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">発音</button></div><div class="flex-gap-8"><button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? '保存済' : '保存'}</button><button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">コピー</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">削除</button></div></div><div class="result-meaning-badge">${esc(meaningText)}</div>${html}</div>`;
+    if (sr) sr.innerHTML = `<div class="card result-box"><div class="flex-between mb-1"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">発音</button></div><div class="flex-gap-8"><button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? '保存済' : '保存'}</button><button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">コピー</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">削除</button></div></div><div class="result-meaning-badge">${esc(meaningText)}</div>${html}<div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateSearchWord('${escJS(w)}')">途切れた場合は再生成</button></div></div>`;
   } catch (e) { 
     const fallbackMeaning = await fetchFreeDictFallback(w);
     if (ld) ld.classList.add('hidden');
@@ -1668,12 +1666,32 @@ window.openWordMapModal = async () => {
   container.innerHTML = '<div class="flex-center h-full"><span class="loading-dots">AIが関連語を分析中</span></div>';
   
   try {
-    const prompt = `英単語「${word}」の類義語、反義語、派生語、同じ語源を持つ単語を分析し、視覚的なマインドマップ風のHTMLとCSSを生成してください。外部ライブラリは使わず、divとflexbox等を使って美しくデザインしてください。`;
-    const rep = await callGemini([{ role: 'user', content: prompt }], 1500);
+    const prompt = `英単語「${word}」の類義語、反義語、派生語、同じ語源を持つ単語を分析し、視覚的なマインドマップ風のHTMLとCSSを生成してください。外部ライブラリは使わず、divとflexbox等を使って美しくデザインしてください。文字が途切れないように折り返し（word-wrap: break-word）を適用し、挨拶や語りかけは一切不要です。客観的なトーンで出力してください。`;
+    const rep = await callGemini([{ role: 'user', content: prompt }], 2000);
     container.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
   } catch (e) {
     container.innerHTML = '<div class="flex-center h-full text-danger">マップの生成に失敗しました。</div>';
   }
+};
+
+window.regenerateWordDetail = async (w) => {
+  const mc = $('modal-detail-content');
+  if (!mc) return;
+  mc.innerHTML = '<div class="text-center p-20"><span class="loading-dots">AIが再生成中</span></div>';
+  try {
+    const prompt = `英単語「${w}」について、単語帳形式で客観的に解説してください。挨拶や語りかけは一切不要です。HTMLのみで出力し、以下のh4見出しを必ず含めてください。
+見出し:
+<h4>意味・よく使われる表現</h4> (多義語の場合は全て網羅し、熟語も記載)
+<h4>語源</h4>
+<h4>派生語</h4>
+<h4>類義語</h4> (語源も簡潔に)
+<h4>対義語</h4> (語源も簡潔に)`;
+    const html = await callGemini([{ role: 'user', content: prompt }], 2000);
+    const parsedHtml = clean(html.replace(/```html?/g, '').replace(/```/g, ''));
+    const fd = ALL_WORDS.find(x => x.word === w);
+    if (fd) { fd.detailHtml = parsedHtml; save.words(); }
+    mc.innerHTML = `<div class="mt-4">${parsedHtml}</div><div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">途切れた場合は再生成</button></div>`;
+  } catch (e) { handleApiError(e, 'modal-detail-content'); }
 };
 
 window.showWordModal = async (w, m) => {
@@ -1722,15 +1740,9 @@ window.showWordModal = async (w, m) => {
   }
   
   if (fd && fd.detailHtml) {
-    mc.innerHTML = customHtml + `<div class="mt-4">${clean(fd.detailHtml)}</div>`;
+    mc.innerHTML = customHtml + `<div class="mt-4">${clean(fd.detailHtml)}</div><div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">途切れた場合は再生成</button></div>`;
   } else {
-    try {
-      const prompt = `英単語「${w}」を解説してください。HTMLのみ。見出し: <h4>語源</h4>, <h4>同語根</h4>, <h4>派生語</h4>, <h4>例文</h4>(2つ以上), <h4>類義語</h4>, <h4>反義語</h4>`;
-      const html = await callGemini([{ role: 'user', content: prompt }], 1500);
-      const parsedHtml = clean(html.replace(/```html?/g, '').replace(/```/g, ''));
-      if (fd) { fd.detailHtml = parsedHtml; save.words(); }
-      if (mc) mc.innerHTML = customHtml + `<div class="mt-4">${parsedHtml}</div>`;
-    } catch (e) { handleApiError(e, 'modal-detail-content'); }
+    regenerateWordDetail(w);
   }
   
   const imgContainer = $('modal-image-container');
@@ -1843,6 +1855,7 @@ const exportVocabPDF = () => {
   const html = `<!DOCTYPE html><html lang="ja"><head><title>単語リスト</title><style>body{font-family:sans-serif;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f5f5f5}.mastered{color:#1a6038;font-weight:bold}.learning{color:#8a6200;font-weight:bold}.new{color:#999}.btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#2D2B27;color:#fff;border-radius:50px;cursor:pointer}@media print{.btn{display:none}}</style></head><body><button class="btn" onclick="window.print()">印刷</button><h1>単語リスト（${ALL_WORDS.length}語）</h1><table><tr><th>単語</th><th>意味</th><th>進捗</th></tr>${ALL_WORDS.map(w => { const p = getWordProgress(w.word); return `<tr><td><b>${esc(w.word)}</b></td><td>${esc(w.meaning || '')}</td><td class="${p}">${p}</td></tr>` }).join('')}</table></body></html>`;
   printHtml(html);
 };
+
 const toggleVoiceCommand = () => {
   const btn = $('voice-cmd-btn');
   if (cardVoiceActive) {
@@ -2047,13 +2060,13 @@ window.generateQuizFromPhoto = async () => {
   if (ld) ld.classList.remove('hidden');
   if (rs) rs.innerHTML = '';
   try {
-    const rep = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: 'この画像内の英文や内容から、内容理解を問う4択クイズを3問作成し、HTMLで出力してください。解答と解説も必ず含めてください。' }] }], 2000);
+    const rep = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: 'この画像内の英文や内容から、内容理解を問う4択クイズを3問作成し、HTMLで出力してください。解答と解説も必ず含めてください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。' }] }], 2000);
     if (rs) rs.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch (e) { if (rs) handleApiError(e, 'writing-result'); }
   finally { if (ld) ld.classList.add('hidden'); }
 };
 
-const extractSyntaxFromText = async text => { showToast('構文抽出中...'); try { const rep = await callGemini([{ role: 'user', content: text }], 1500, '大学受験レベルの重要構文抽出。JSON配列:[{"syntax":"...","meaning":"...","note":"..."}]', true); const arr = extractJSON(rep); if (!arr || !arr.length) return showToast('構文なし'); let added = 0; arr.forEach(item => { if (item.syntax) { syntaxList.unshift({ id: generateId(), syntax: item.syntax, meaning: item.meaning || '', note: item.note || '', date: new Date().toLocaleDateString('ja-JP') }); added++; } }); if (added > 0) { save.syntax(); const pn = $('wpane-syntax'); if (pn && pn.classList.contains('active')) renderSyntax(); showToast(`${added}件保存`); } } catch (e) { showToast('通信エラー'); } };
+const extractSyntaxFromText = async text => { showToast('構文抽出中...'); try { const rep = await callGemini([{ role: 'user', content: text }], 1500, '大学受験レベルの重要構文抽出。JSON配列:[{"syntax":"...","meaning":"...","note":"..."}]。挨拶不要。', true); const arr = extractJSON(rep); if (!arr || !arr.length) return showToast('構文なし'); let added = 0; arr.forEach(item => { if (item.syntax) { syntaxList.unshift({ id: generateId(), syntax: item.syntax, meaning: item.meaning || '', note: item.note || '', date: new Date().toLocaleDateString('ja-JP') }); added++; } }); if (added > 0) { save.syntax(); const pn = $('wpane-syntax'); if (pn && pn.classList.contains('active')) renderSyntax(); showToast(`${added}件保存`); } } catch (e) { showToast('通信エラー'); } };
 const extractSyntaxFromHistory = async id => { const h = writingHistory.find(x => String(x.id) === String(id)); if (!h) return; await extractSyntaxFromText(h.original + '\n' + h.result.replace(/<[^>]+>/g, '')); };
 
 const submitWriting = async type => {
@@ -2064,15 +2077,15 @@ const submitWriting = async type => {
   const sb = $('writing-submit-btn'), ab = $('writing-analyze-btn'), pb = $('writing-paraphrase-btn'), eb = $('writing-essay-btn'), ld = $('writing-loading'), rs = $('writing-result');
   if (sb) sb.classList.add('hidden'); if (ab) ab.classList.add('hidden'); if (pb) pb.classList.add('hidden'); if (eb) eb.classList.add('hidden'); if (ld) ld.classList.remove('hidden'); if (rs) rs.innerHTML = '';
   try {
-    let sys = 'Please carefully correct the submitted English text and output it in HTML. Provide detailed explanations of grammar and natural expressions in English, and finally give a score out of 100.';
-    if (type === 'analyze') sys = 'Please output a very careful syntactic analysis in HTML. Identify the subject (S), verb (V), object (O), complement (C), and modifier (M), color-code them using tags like <span class="svoc-s">S</span>, and insert <span class="slash">/</span> at meaning boundaries. Be sure to include detailed explanations of special syntax in English, and an accurate Japanese translation.';
-    else if (type === 'paraphrase') sys = 'Please paraphrase the input English text into more sophisticated, academic English (native paper level) and output it in HTML. Explain in detail why you paraphrased it that way and the nuances between them in English.';
-    else if (type === 'essay') sys = '提出されたエッセイ（自由英作文）を「論理性」「語彙の豊富さ」「文法の正確さ」の観点からルーブリック評価し、HTMLで出力してください。改善案と100点満点のスコアを必ず含めてください。';
+    let sys = '提出された英文を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。文法や自然な表現の解説、100点満点のスコアを含めてください。';
+    if (type === 'analyze') sys = '客観的な構文解析をHTMLで出力してください。挨拶不要。SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切ってください。特殊構文の解説と和訳を含めてください。';
+    else if (type === 'paraphrase') sys = '入力された英文をより洗練された学術的な英語に言い換え、HTMLで出力してください。挨拶不要。言い換えた理由とニュアンスの違いを客観的に解説してください。';
+    else if (type === 'essay') sys = '提出されたエッセイを「論理性」「語彙」「文法」の観点から客観的に評価し、HTMLで出力してください。挨拶不要。改善案と100点満点のスコアを含めてください。';
     
     const rep = await callGemini([{ role: 'user', content: c }], 2000, sys), ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '')), newId = generateId();
     writingHistory.unshift({ id: newId, type, date: new Date().toLocaleString('ja-JP'), original: histTxt.substring(0, 100), fullOriginal: histTxt, result: ht, score: (type === 'correct' || type === 'essay') ? (ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null) : null });
     save.writing();
-    if (rs) { if (type === 'analyze') rs.innerHTML = `<div class="card"><div class="text-xs font-bold text-muted mb-2">白文テスト</div><div class="text-base mb-3" style="line-height:1.6;">${esc(histTxt).replace(/\n/g, '<br>')}</div><button class="action-btn mb-0 bg-accent" onclick="document.getElementById('res-analyzed-${newId}').classList.remove('hidden');this.classList.add('hidden');">正解を見る</button><div id="res-analyzed-${newId}" class="hidden mt-14"><div class="correction-box mt-0">${ht}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button></div></div>`; else rs.innerHTML = `<div class="correction-box">${ht}</div>${(type === 'correct' || type === 'essay') ? `<div class="flex gap-2"><button class="action-btn mt-3 mb-0 bg-accent2 flex-1" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button><button class="action-btn mt-3 mb-0 bg-danger flex-1" onclick="saveToMistakes('Writing Mistake', '${escJS(histTxt)}', '${escJS(ht)}')">Save Mistake</button></div>` : ''}`; }
+    if (rs) { if (type === 'analyze') rs.innerHTML = `<div class="card"><div class="text-xs font-bold text-muted mb-2">白文テスト</div><div class="text-base mb-3" style="line-height:1.6;">${esc(histTxt).replace(/\n/g, '<br>')}</div><button class="action-btn mb-0 bg-accent" onclick="document.getElementById('res-analyzed-${newId}').classList.remove('hidden');this.classList.add('hidden');">正解を見る</button><div id="res-analyzed-${newId}" class="hidden mt-14"><div class="correction-box mt-0">${ht}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button></div></div>`; else rs.innerHTML = `<div class="correction-box">${ht}</div>${(type === 'correct' || type === 'essay') ? `<button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button>` : ''}`; }
   } catch (e) { handleApiError(e, 'writing-result'); } finally { if (ld) ld.classList.add('hidden'); if (sb) sb.classList.remove('hidden'); if (ab) ab.classList.remove('hidden'); if (pb) pb.classList.remove('hidden'); if (eb) eb.classList.remove('hidden'); }
 };
 
@@ -2106,7 +2119,7 @@ const renderDaily = () => {
     const tasks = dailyChallenges.filter(d => d.date === ts && d.taskType === currentDailyTab); let html = '';
     
     if (!tasks.length) html += `<div class="card text-center p-36"><button class="action-btn mb-0 btn-auto-width btn-lg-pad" onclick="generateDailyTask('${currentDailyTab}')">問題を作成</button></div>`;
-    else { html += tasks.map(task => { if (!task.answer) return `<div class="card"><p class="text-xs font-bold text-muted mb-3">問題 (${task.date})</p><div class="text-base mb-4 line-height-16">${task.question}</div><textarea id="daily-ans-${task.id}" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="daily-submit-${task.id}" onclick="submitDailyAnswer('${task.id}')">解答・添削</button><div id="daily-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div></div>`; else return `<div class="card"><p class="text-xs font-bold text-green mb-3">完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${task.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(task.answer)}</div><div class="correction-box mt-0">${task.feedback}</div><div class="flex gap-2 mt-3"><button class="action-btn mb-0 bg-accent2 flex-1" onclick="extractSyntaxFromDaily('${task.id}')">重要構文抽出</button><button class="action-btn mb-0 bg-danger flex-1" onclick="saveToMistakes('Daily Problem', '${escJS(task.answer)}', '${escJS(task.feedback)}')">Save Mistake</button></div></div>`; }).join(''); html += `<div class="text-center mt-4"><button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyTask('${currentDailyTab}')">＋ 追加作成</button></div>`; }
+    else { html += tasks.map(task => { if (!task.answer) return `<div class="card"><p class="text-xs font-bold text-muted mb-3">問題 (${task.date})</p><div class="text-base mb-4 line-height-16">${task.question}</div><textarea id="daily-ans-${task.id}" class="writing-textarea" placeholder="解答..."></textarea><button class="action-btn mb-0" id="daily-submit-${task.id}" onclick="submitDailyAnswer('${task.id}')">解答・添削</button><div id="daily-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div></div>`; else return `<div class="card"><p class="text-xs font-bold text-green mb-3">完了</p><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${task.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(task.answer)}</div><div class="correction-box mt-0">${task.feedback}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromDaily('${task.id}')">重要構文抽出</button></div>`; }).join(''); html += `<div class="text-center mt-4"><button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyTask('${currentDailyTab}')">＋ 追加作成</button></div>`; }
     const hist = dailyChallenges.filter(d => d.date !== ts && d.taskType === currentDailyTab);
     if (hist.length) html += `<div class="mt-4 pt-3 border-top"><p class="section-note">過去の問題</p>${hist.map(h => `<div class="writing-history-item" role="button" tabindex="0" onclick="showDailyHistoryDetail('${h.id}')"><div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + '点' : ''}</div><div class="text-sm">${h.question.replace(/<[^>]+>/g, '').substring(0, 60)}...</div></div>`).join('')}</div>`;
     area.innerHTML = html;
@@ -2123,11 +2136,11 @@ const generateDailyTask = async type => {
   
   if (type === 'reading') {
     const interests = userProfile.courses || '一般的な話題';
-    sys = `生徒の興味（${interests}）に合わせた、高校生向けの${diffText}英語長文（${diff === 'basic' ? '150' : diff === 'advanced' ? '500' : '300'}語程度）と、内容説明の記述式問題を1題出題してください。HTMLのみ。h4で「本日の長文読解」、pで本文と設問。解答や解説は絶対に含めないでください。`;
+    sys = `生徒の興味（${interests}）に合わせた、高校生向けの${diffText}英語長文（${diff === 'basic' ? '150' : diff === 'advanced' ? '500' : '300'}語程度）と、内容説明の記述式問題を1題出題してください。HTMLのみ。h4で「本日の長文読解」、pで本文と設問。解答や解説は絶対に含めないでください。挨拶や語りかけは一切不要です。客観的な問題形式で出力してください。`;
   } else if (type === 'comp') {
-    sys = `高校生向けの${diffText}和文英訳問題を1題出題してください。HTMLのみ。h4で「本日の英作文」、pで日本語問題文。解答や解説は絶対に含めないでください。`;
+    sys = `高校生向けの${diffText}和文英訳問題を1題出題してください。HTMLのみ。h4で「本日の英作文」、pで日本語問題文。解答や解説は絶対に含めないでください。挨拶や語りかけは一切不要です。客観的な問題形式で出力してください。`;
   } else if (type === 'parse') {
-    sys = `高校生向けの${diffText}英文解釈（和訳）問題を1題出題してください。HTMLのみ。h4で「本日の英文解釈」、pで英文。解答や解説は絶対に含めないでください。`;
+    sys = `高校生向けの${diffText}英文解釈（和訳）問題を1題出題してください。HTMLのみ。h4で「本日の英文解釈」、pで英文。解答や解説は絶対に含めないでください。挨拶や語りかけは一切不要です。客観的な問題形式で出力してください。`;
   }
   
   try { const rep = await callGemini([{ role: 'user', content: '問題作成' }], 1500, sys); const ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); const ts = new Date().toLocaleDateString('ja-JP'); dailyChallenges.unshift({ id: 'daily_' + generateId(), date: ts, taskType: type, question: ht, answer: '', feedback: '', score: null }); save.daily(); renderDaily(); } catch (e) { handleApiError(e, a.id); setTimeout(renderDaily, 2000); }
@@ -2137,9 +2150,9 @@ const submitDailyAnswer = async id => {
   const i = $('daily-ans-' + id); if (!i || !i.value.trim()) return; const task = dailyChallenges.find(d => String(d.id) === String(id)); if (!task) return;
   const sb = $('daily-submit-' + id), ld = $('daily-load-' + id); if (sb) sb.classList.add('hidden'); if (ld) ld.classList.remove('hidden');
   let sys = '';
-  if (task.taskType === 'comp') sys = '提出された英作文を非常に丁寧に添削しHTMLで出力してください。なぜその表現になるのか詳しく解説し、より自然な模範解答を複数提示してください。最後に100点満点でスコアをつけてください。';
-  else if (task.taskType === 'parse') sys = '和訳解答を非常に丁寧に添削しHTMLで出力してください。SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切ってください。特殊構文の構造を図解するように詳しく解説し、100点満点でスコアをつけてください。';
-  else if (task.taskType === 'reading') sys = '長文読解の解答を非常に丁寧に添削しHTMLで出力してください。本文の全訳、要旨、設問の論理的な解答プロセスを詳しく解説し、100点満点でスコアをつけてください。';
+  if (task.taskType === 'comp') sys = '提出された英作文を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。なぜその表現になるのか詳しく解説し、より自然な模範解答を複数提示してください。最後に100点満点でスコアをつけてください。';
+  else if (task.taskType === 'parse') sys = '和訳解答を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切ってください。特殊構文の構造を図解するように詳しく解説し、100点満点でスコアをつけてください。';
+  else if (task.taskType === 'reading') sys = '長文読解の解答を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。本文の全訳、要旨、設問の論理的な解答プロセスを詳しく解説し、100点満点でスコアをつけてください。';
   try { const rep = await callGemini([{ role: 'user', content: `問題:\n${task.question}\n解答:\n${i.value}` }], 2500, sys); const ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '')); task.answer = i.value; task.feedback = ht; task.score = ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null; save.daily(); renderDaily(); } catch (e) { showToast('通信エラー'); if (sb) sb.classList.remove('hidden'); if (ld) ld.classList.add('hidden'); }
 };
 
@@ -2147,7 +2160,7 @@ const showDailyHistoryDetail = id => {
   const h = dailyChallenges.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return;
   const sK = "daily_" + h.id, r = srsData[sK.toLowerCase()], sT = r ? `次回復習: ${srsDaysDiff(srsNextDate(r)) <= 0 ? '今日' : srsDaysDiff(srsNextDate(r)) + '日後'}` : '未登録';
   let html = `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題 (${h.date}):</b><br>${h.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(h.answer)}</div><div class="correction-box mt-0">${h.feedback}</div><div class="mt-4 pt-3 border-top"><p class="text-xs font-bold mb-2">理解度 (FSRS)</p><div class="flex-gap-8"><button onclick="srsReviewItem('${sK}',0);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-danger">忘</button><button onclick="srsReviewItem('${sK}',1);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-streak">難</button><button onclick="srsReviewItem('${sK}',2);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-green">覚</button><button onclick="srsReviewItem('${sK}',3);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-blue">完</button></div><p class="text-xs text-muted text-center mt-2">${sT}</p></div>`;
-  html += `<div class="flex gap-2 mt-3"><button class="action-btn mb-0 btn-danger flex-1" onclick="deleteDailyChallenge('${id}')">この問題を削除</button></div>`;
+  html += `<button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteDailyChallenge('${id}')">この問題を削除</button>`;
   mb.innerHTML = html; openModal('writing-history-modal');
 };
 const deleteDailyChallenge = id => { if (!confirm('削除しますか？')) return; dailyChallenges = dailyChallenges.filter(x => String(x.id) !== String(id)); save.daily(); renderDaily(); closeModal('writing-history-modal'); };
@@ -2163,7 +2176,7 @@ const generateWeaknessDrill = async () => {
   const context = `【過去の添削ミス】\n${mistakes.join('\n')}\n【過去の問題ミス】\n${dailyMistakes.join('\n')}\n【苦手単語】\n${weakWords.join(', ')}`;
   
   try {
-    const sys = `生徒の過去のミス傾向と苦手単語を分析し、それらを克服するための「弱点特化ドリル（文法・語法・単語の穴埋め問題など）」を3問作成してください。HTMLのみで出力。解答解説も必ず含めてください。`;
+    const sys = `生徒の過去のミス傾向と苦手単語を分析し、それらを克服するための「弱点特化ドリル（文法・語法・単語の穴埋め問題など）」を3問作成してください。客観的な問題形式で出力し、挨拶や語りかけは一切不要です。HTMLのみで出力。解答解説も必ず含めてください。`;
     const rep = await callGemini([{ role: 'user', content: context }], 2000, sys);
     const html = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
     if (area) area.innerHTML = `<div class="card">${html}</div><div class="text-center mt-3"><button class="action-btn btn-secondary btn-auto-width" onclick="generateWeaknessDrill()">もう一度生成</button></div>`;
@@ -2180,7 +2193,7 @@ window.generateTrickDrill = async () => {
   ld.classList.remove('hidden'); area.innerHTML = '';
   const mistakes = writingHistory.filter(h => h.score !== null && h.score < 80).slice(0, 3).map(h => h.result.replace(/<[^>]+>/g, '').substring(0, 200));
   try {
-    const rep = await callGemini([{role:'user', content:`過去のミス: ${mistakes.join('\n')}`}], 2000, '過去のミスを分析し、あえて間違えやすいダミー選択肢を混ぜた「ひっかけ問題」を3問作成し、HTMLで出力。解説付き。');
+    const rep = await callGemini([{role:'user', content:`過去のミス: ${mistakes.join('\n')}`}], 2000, '過去のミスを分析し、あえて間違えやすいダミー選択肢を混ぜた「ひっかけ問題」を3問作成し、HTMLで出力。客観的な解説付き。挨拶不要。');
     area.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch(e) { area.innerHTML = '<p class="text-danger">生成失敗</p>'; }
   finally { ld.classList.add('hidden'); }
@@ -2207,13 +2220,7 @@ const renderListenArea = () => {
         const ans = task.userAnswer >= 0, accL = ACCENT_LABELS[task.accent] || task.accent;
         let opts = task.options.map((opt, i) => { let cls = 'listen-option'; if (ans) { if (i === task.answer) cls += ' show-correct'; else if (i === task.userAnswer && task.userAnswer !== task.answer) cls += ' selected-wrong'; } return `<div class="${cls}" role="button" tabindex="0" onclick="submitDailyListenAnswer('${task.id}', ${i})">${String.fromCharCode(65 + i)}. ${esc(opt)}</div>`; }).join('');
         let card = `<div class="card mb-3"><div class="flex-between align-center mb-3"><span class="text-xs font-bold text-muted">LISTENING — ${accL}</span><span class="text-xs text-muted">${task.date}</span></div><div class="flex-center gap-2 mb-4"><button onclick="playListenAudioById('${task.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">標準再生</button><button onclick="playListenAudioById('${task.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">スロー再生</button></div><p class="text-base font-bold mb-3">${esc(task.question)}</p><div class="listen-options">${opts}</div>`;
-        if (ans) {
-          const isCorrect = task.userAnswer === task.answer;
-          card += `<div style="background:${isCorrect ? '#d4f0e0' : '#fde8e6'};border-radius:var(--radius-sm);padding:14px;margin-top:14px;"><p style="font-weight:700;margin-bottom:8px;color:${isCorrect ? '#1a6038' : '#8b1c14'}">${isCorrect ? '正解！' : '不正解'}</p><p class="text-sm line-height-16">${esc(task.explanation)}</p></div><div class="mt-3 p-14 bg-main radius-sm border"><p class="text-xs font-bold text-muted mb-2">放送文</p><p class="text-sm line-height-16" id="listen-transcript-${task.id}">${esc(task.transcript)}</p></div>`;
-          if (!isCorrect) {
-            card += `<button class="action-btn mt-3 mb-0 bg-danger" onclick="saveToMistakes('Listening', '${escJS(task.question)}', 'You selected: ${task.userAnswer}. Correct: ${task.answer}.\\n${escJS(task.explanation)}')">Save Mistake</button>`;
-          }
-        }
+        if (ans) card += `<div style="background:${task.userAnswer === task.answer ? '#d4f0e0' : '#fde8e6'};border-radius:var(--radius-sm);padding:14px;margin-top:14px;"><p style="font-weight:700;margin-bottom:8px;color:${task.userAnswer === task.answer ? '#1a6038' : '#8b1c14'}">${task.userAnswer === task.answer ? '正解！' : '不正解'}</p><p class="text-sm line-height-16">${esc(task.explanation)}</p></div><div class="mt-3 p-14 bg-main radius-sm border"><p class="text-xs font-bold text-muted mb-2">放送文</p><p class="text-sm line-height-16" id="listen-transcript-${task.id}">${esc(task.transcript)}</p></div>`;
         return card + `</div>`;
       }).join('');
       html += `<div class="text-center mt-4"><button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyListen()">＋ 追加作成</button></div>`;
@@ -2230,10 +2237,7 @@ const renderListenArea = () => {
         const isDone = task.userAnswer !== undefined;
         let card = `<div class="card mb-3"><div class="flex-between align-center mb-3"><span class="text-xs font-bold text-muted">DICTATION — ${ACCENT_LABELS[task.accent] || task.accent}</span><span class="text-xs text-muted">${task.date}</span></div><div class="flex-center gap-2 mb-4"><button onclick="playListenAudioById('${task.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">標準再生</button><button onclick="playListenAudioById('${task.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">スロー再生</button></div>`;
         if (!isDone) { card += `<textarea id="dict-ans-${task.id}" class="writing-textarea" placeholder="聞き取った英語を入力してください..."></textarea><button class="action-btn mb-0" id="dict-submit-${task.id}" onclick="submitDailyDictation('${task.id}')">採点する</button><div id="dict-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div>`; } 
-        else { 
-          card += `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>あなたの解答:</b><br>${esc(task.userAnswer)}</div><div class="correction-box mt-0">${task.feedback}</div>`;
-          card += `<button class="action-btn mt-3 mb-0 bg-danger" onclick="saveToMistakes('Dictation', '${escJS(task.userAnswer)}', '${escJS(task.feedback)}')">Save Mistake</button>`;
-        }
+        else { card += `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>あなたの解答:</b><br>${esc(task.userAnswer)}</div><div class="correction-box mt-0">${task.feedback}</div>`; }
         return card + `</div>`;
       }).join('');
       html += `<div class="text-center mt-4"><button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyDictation()">＋ 追加作成</button></div>`;
@@ -2249,7 +2253,7 @@ const generateDailyListen = async () => {
   const ac = ACCENTS[Math.floor(Math.random() * ACCENTS.length)], diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
   const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（京都大学満点レベル）の極めて高度な' : '中級（京都大学合格レベル）の';
   try {
-    const sys = `高校生向けの英語リスニング問題を作成してください。難易度は「${diffText}」レベル。日常的な対話（2人の会話）や短いアナウンス（100〜150語程度）をスクリプトとし、その内容に関する4択問題を作成してください。JSONのみ:{"transcript":"英文スクリプト","question":"内容を問う設問","options":["1","2","3","4"],"answer":0,"explanation":"正解の根拠となる聞き取るべきキーワードと詳しい解説"}`;
+    const sys = `高校生向けの英語リスニング問題を作成してください。難易度は「${diffText}」レベル。日常的な対話（2人の会話）や短いアナウンス（100〜150語程度）をスクリプトとし、その内容に関する4択問題を作成してください。挨拶や語りかけは一切不要です。JSONのみ:{"transcript":"英文スクリプト","question":"内容を問う設問","options":["1","2","3","4"],"answer":0,"explanation":"正解の根拠となる聞き取るべきキーワードと詳しい解説"}`;
     const rep = await callGemini([{ role: 'user', content: '作成' }], 2000, sys, true);
     const js = extractJSON(rep), ts = new Date().toLocaleDateString('ja-JP');
     listenHistory.unshift({ id: 'listen_' + generateId(), type: 'mc', date: ts, accent: ac, transcript: js.transcript, question: js.question, options: js.options, answer: js.answer, explanation: js.explanation, userAnswer: -1 });
@@ -2263,7 +2267,7 @@ const generateDailyDictation = async () => {
   const ac = ACCENTS[Math.floor(Math.random() * ACCENTS.length)], diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
   const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（京都大学満点レベル）の極めて高度な' : '中級（京都大学合格レベル）の';
   try {
-    const sys = `高校生向けのディクテーション（書き取り）用の自然な英語パッセージを作成してください。難易度は「${diffText}」レベル。長さは2〜3文（30〜40語程度）。ネイティブの自然な発音（音の連結や脱落など）を意識した実践的な英文にしてください。JSONのみ:{"transcript":"英文","translation":"和訳","explanation":"日本人が聞き取りにくい音声変化のポイントや文法の解説"}`;
+    const sys = `高校生向けのディクテーション（書き取り）用の自然な英語パッセージを作成してください。難易度は「${diffText}」レベル。長さは2〜3文（30〜40語程度）。ネイティブの自然な発音（音の連結や脱落など）を意識した実践的な英文にしてください。挨拶や語りかけは一切不要です。JSONのみ:{"transcript":"英文","translation":"和訳","explanation":"日本人が聞き取りにくい音声変化のポイントや文法の解説"}`;
     const rep = await callGemini([{ role: 'user', content: '作成' }], 1000, sys, true);
     const js = extractJSON(rep), ts = new Date().toLocaleDateString('ja-JP');
     listenHistory.unshift({ id: 'dict_' + generateId(), type: 'dict', date: ts, accent: ac, transcript: js.transcript, translation: js.translation, explanation: js.explanation });
@@ -2274,7 +2278,7 @@ const submitDailyDictation = async id => {
   const i = $('dict-ans-' + id); if (!i || !i.value.trim()) return; const task = listenHistory.find(x => String(x.id) === String(id)); if (!task) return;
   const sb = $('dict-submit-' + id), ld = $('dict-load-' + id); if (sb) sb.classList.add('hidden'); if (ld) ld.classList.remove('hidden');
   try {
-    const sys = `生徒のディクテーション（書き取り）を添削し、HTMLで出力してください。元の正解文と生徒の解答を比較し、間違えた部分（スペルミス、聞き逃しなど）を指摘し、100点満点でスコアをつけてください。最後に和訳と解説も添えてください。\n正解文: ${task.transcript}\n和訳: ${task.translation}\n解説: ${task.explanation}`;
+    const sys = `生徒のディクテーション（書き取り）を客観的かつ丁寧に添削し、HTMLで出力してください。挨拶や語りかけは不要です。元の正解文と生徒の解答を比較し、間違えた部分（スペルミス、聞き逃しなど）を指摘し、100点満点でスコアをつけてください。最後に和訳と解説も添えてください。\n正解文: ${task.transcript}\n和訳: ${task.translation}\n解説: ${task.explanation}`;
     const rep = await callGemini([{ role: 'user', content: `生徒の解答:\n${i.value.trim()}` }], 1500, sys);
     task.userAnswer = i.value.trim(); task.feedback = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
     save.listen(); renderListenArea();
@@ -2352,7 +2356,7 @@ const generateWordQuiz = async () => {
   loading.classList.remove('hidden'); area.innerHTML = ''; if (btn) btn.disabled = true;
   
   let sys = `以下の英単語を使ってランダムにクイズを作成し、JSON配列のみで出力してください。単語: ${wordsToPrompt}
-出題形式は以下の${includeFill ? '3' : '2'}種類のいずれかをランダムに混ぜてください。
+出題形式は以下の${includeFill ? '3' : '2'}種類のいずれかをランダムに混ぜてください。挨拶や語りかけは一切不要です。
 1. 4択問題 {"type":"mc", "word":"...", "q":"(単語) の意味は？", "options":["...", "...", "...", "..."], "ans": (正解のインデックス0-3)}
 ${includeFill ? '2. 穴埋め問題 {"type":"fill", "word":"...", "q":"英文の穴埋め: I eat an ___.", "ans": "(正解の単語)"}' : ''}
 ${includeFill ? '3' : '2'}. 並び替え問題 {"type":"sort", "word":"...", "q":"和訳: 私はりんごを食べる", "options":["eat", "I", "apple", "an"], "ans":["I", "eat", "an", "apple"]}`;
@@ -2405,7 +2409,7 @@ window.generateYouTubeLesson = async () => {
   const ld = $('media-loading'), area = $('media-result-area');
   ld.classList.remove('hidden'); area.innerHTML = '';
   try {
-    const rep = await callGemini([{role:'user', content:`以下のYouTube動画URLの内容を推測・取得し、英語学習用の「要約」「重要単語」「内容理解クイズ」をHTMLで作成してください。URL: ${url}`}], 2000);
+    const rep = await callGemini([{role:'user', content:`以下のYouTube動画URLの内容を推測・取得し、英語学習用の「要約」「重要単語」「内容理解クイズ」をHTMLで作成してください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。URL: ${url}`}], 2000);
     area.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch(e) { area.innerHTML = '<p class="text-danger">生成失敗</p>'; }
   finally { ld.classList.add('hidden'); }
@@ -2538,7 +2542,7 @@ const ccGenerateCardsAI = async () => {
   else if (ccAiMode === 'photo') { if (!ccAiPhotoData) return showToast('写真未選択'); const b = ccAiPhotoData.split(',')[1], m = ccAiPhotoData.match(/data:([^;]+)/)[1], p = $('cc-ai-photo-prompt')?.value.trim() || '画像内容からカード生成'; c = [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: p }] }]; }
   const btn = $('cc-ai-btn'); if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
   try {
-    const rep = await callGemini(c, 1500, 'JSON配列。キーは "front" と "back"。フロントとバックを簡潔に。', true);
+    const rep = await callGemini(c, 1500, 'JSON配列。キーは "front" と "back"。フロントとバックを簡潔に。挨拶不要。', true);
     const arr = extractJSON(rep);
     if (arr && arr.length) {
       let added = 0; arr.forEach(cd => { if (cd.front && cd.back) { d.cards.push({ front: String(cd.front), back: String(cd.back) }); added++; } });
@@ -2577,9 +2581,9 @@ const _sendSubj = async (c, dt) => {
   const ct = $('subject-chat'); if (!ct) return;
   ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble user">${esc(dt)}</div><div class="chat-bubble ai" id="sq-load"><span class="loading-dots"></span></div>`); ct.scrollTop = ct.scrollHeight;
   try {
-    const rep = await callGemini(subjHist[curSubj].slice(0, -1).concat([{ role: 'user', content: c }]), 1500);
+    const rep = await callGemini(subjHist[curSubj].slice(0, -1).concat([{ role: 'user', content: c }]), 1500, '客観的かつ簡潔に解説してください。挨拶や語りかけは一切不要です。');
     const cleanRep = clean(rep); subjHist[curSubj].push({ role: 'assistant', content: cleanRep }); const ld = $('sq-load'); if (ld) ld.remove();
-    ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')} <div class="flex gap-2 mt-2"><button class="copy-btn flex-1" onclick="saveLastSubjectQA(this,'${curSubj}')">保存</button><button class="copy-btn text-danger flex-1" style="border-color:#f0d4d0;" onclick="saveLastSubjectQA(this,'${curSubj}',true)">Save Mistake</button></div></div>`);
+    ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')} <button class="copy-btn mt-2" onclick="saveLastSubjectQA(this,'${curSubj}')">保存</button></div>`);
   } catch (e) { const ld = $('sq-load'); if (ld) ld.remove(); ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai text-danger">通信エラー</div>`); subjHist[curSubj].pop(); }
   ct.scrollTop = ct.scrollHeight;
 };
@@ -2600,7 +2604,7 @@ const sendSubjectPhotoMessage = () => {
 
 const renderSubjectChat = () => { const c = $('subject-chat'); if (!c) return; c.innerHTML = ''; (subjHist[curSubj] || []).forEach(m => { c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ${m.role === 'user' ? 'user' : 'ai'}">${m.role === 'user' ? esc(m.content) : String(m.content).replace(/\n/g, '<br>')}</div>`); }); c.scrollTop = c.scrollHeight; };
 const clearSubjectChat = () => { subjHist[curSubj] = []; renderSubjectChat(); };
-const saveLastSubjectQA = async (btn, subj, isMistake = false) => {
+const saveLastSubjectQA = async (btn, subj) => {
   const hist = subjHist[subj]; if (!hist || hist.length < 2) return;
   const qObj = hist[hist.length - 2].content;
   let qStr = '画像';
@@ -2618,19 +2622,19 @@ const saveLastSubjectQA = async (btn, subj, isMistake = false) => {
     }
   }
   
-  subjectSaved.unshift({ id: generateId(), subject: subj, subjectLabel: subjConf[subj], date: new Date().toLocaleString(), question: qStr, answer: hist[hist.length - 1].content, imageId, isMistake });
-  save.subSaved(); showToast(isMistake ? 'Mistakeとして保存' : '保存済'); if (btn) { btn.textContent = '保存済'; btn.disabled = true; }
+  subjectSaved.unshift({ id: generateId(), subject: subj, subjectLabel: subjConf[subj], date: new Date().toLocaleString(), question: qStr, answer: hist[hist.length - 1].content, imageId });
+  save.subSaved(); showToast('保存済'); if (btn) { btn.textContent = '保存済'; btn.disabled = true; }
 };
 const generateSimilarSubject = async id => {
   const x = subjectSaved.find(s => String(s.id) === String(id)); if (!x) return; showToast('類題生成中...');
   try {
-    const rep = await callGemini([{ role: 'user', content: `以下の問題と解答を参考にして、状況や数値を変えた類題を1つ出題し、その解答解説も出力して。JSONのみ: {"question":"...","answer":"..."}\nQ: ${x.question}\nA: ${x.answer}` }], 1500, '', true);
+    const rep = await callGemini([{ role: 'user', content: `以下の問題と解答を参考にして、状況や数値を変えた類題を1つ出題し、その解答解説も出力して。JSONのみ: {"question":"...","answer":"..."}\nQ: ${x.question}\nA: ${x.answer}` }], 1500, '挨拶不要。客観的なトーンで出力。', true);
     const json = extractJSON(rep); subjectSaved.unshift({ id: generateId(), subject: x.subject, subjectLabel: x.subjectLabel, date: new Date().toLocaleString(), question: json.question, answer: clean(json.answer) });
     save.subSaved(); renderSubjectSaved(); showToast('類題追加');
   } catch (e) { showToast('通信エラー'); }
 };
 const renderSubjectSaved = () => { 
-  const ls = subjectSaved.filter(x => x.subject === curSubj && !x.isMistake); const sl = $('subject-saved-list'); if (!sl) return; 
+  const ls = subjectSaved.filter(x => x.subject === curSubj), sl = $('subject-saved-list'); if (!sl) return; 
   sl.innerHTML = ls.length ? ls.map(x => `<div class="card mb-2"><div class="text-xs text-muted mb-1">${x.date}</div><div class="text-sm font-bold mb-1">${esc(x.question)}</div>${x.imageId ? `<div class="mb-2"><button class="btn-text-muted" onclick="showSavedImage('${x.imageId}')">画像を表示</button><div id="saved-img-${x.imageId}" class="mt-1"></div></div>` : ''}<div class="text-xs text-sub">${esc(x.answer)}</div><div class="flex-gap-8 mt-2"><button class="copy-btn" onclick="generateSimilarSubject('${x.id}')">類題生成</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteSubjectSaved('${x.id}')">削除</button></div></div>`).join('') : '<div class="vocab-empty">空</div>'; 
 };
 window.showSavedImage = async (id) => {
@@ -2648,7 +2652,7 @@ const generateSubjectQuiz = async () => {
   const qas = ls.slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n'), sqs = $('subject-quiz-start'), sqa = $('subject-quiz-area');
   if (sqs) sqs.classList.add('hidden'); if (sqa) { sqa.classList.remove('hidden'); sqa.innerHTML = '<div class="card text-center p-36"><span class="loading-dots"></span></div>'; }
   try {
-    const rep = await callGemini([{ role: 'user', content: `【QA履歴】\n${qas}\n\n復習問題を作成` }], 1000, `QA履歴から極めて難関な復習問題を1問作成。HTML(h4+p)のみ。解答解説なし。`);
+    const rep = await callGemini([{ role: 'user', content: `【QA履歴】\n${qas}\n\n復習問題を作成` }], 1000, `QA履歴から極めて難関な復習問題を1問作成。HTML(h4+p)のみ。解答解説なし。挨拶不要。`);
     const html = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()), newQuiz = { id: 'squiz_' + generateId(), subject: curSubj, date: new Date().toLocaleDateString('ja-JP'), question: html, answer: '', feedback: '', score: null };
     subjectQuizzes.unshift(newQuiz); save.subQuiz(); renderSubjectQuizActive(newQuiz);
   } catch (e) { if (sqa) handleApiError(e, sqa.id); }
@@ -2659,12 +2663,12 @@ const submitSubjectQuiz = async id => {
   if (!quiz) return; if (sb) sb.classList.add('hidden'); if (ld) ld.classList.remove('hidden');
   const ls = subjectSaved.filter(x => x.subject === curSubj).slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n');
   try {
-    const rep = await callGemini([{ role: 'user', content: `問題:\n${quiz.question}\n解答:\n${ans}` }], 2000, `非常に丁寧な添削と解説をHTML出力。100点満点スコア。参考:\n${ls}`);
+    const rep = await callGemini([{ role: 'user', content: `問題:\n${quiz.question}\n解答:\n${ans}` }], 2000, `非常に丁寧な添削と解説をHTML出力。100点満点スコア。挨拶不要。参考:\n${ls}`);
     const html = clean(rep.replace(/```html?/g, '').replace(/```/g, '')); quiz.answer = ans; quiz.feedback = html; quiz.score = html.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null;
     save.subQuiz(); renderSubjectQuizActive(quiz);
   } catch (e) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); if (sb) sb.classList.remove('hidden'); }
 };
-const showSubjectQuizHistory = id => { const h = subjectQuizzes.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return; let html = `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${h.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(h.answer)}</div><div class="correction-box mt-0">${h.feedback}</div><div class="flex gap-2 mt-3"><button class="action-btn mb-0 btn-danger flex-1" onclick="deleteSubjectQuizHistory('${id}')">削除</button><button class="action-btn mb-0 bg-accent2 flex-1" onclick="saveToMistakes('Subject Quiz', '${escJS(h.answer)}', '${escJS(h.feedback)}')">Save Mistake</button></div>`; mb.innerHTML = html; openModal('writing-history-modal'); };
+const showSubjectQuizHistory = id => { const h = subjectQuizzes.find(x => String(x.id) === String(id)), mb = $('writing-history-modal-body'); if (!h || !mb) return; let html = `<div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>問題:</b><br>${h.question}</div><div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>解答:</b><br>${esc(h.answer)}</div><div class="correction-box mt-0">${h.feedback}</div><button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteSubjectQuizHistory('${id}')">この問題を削除</button>`; mb.innerHTML = html; openModal('writing-history-modal'); };
 const deleteSubjectQuizHistory = id => { if (!confirm('削除しますか？')) return; subjectQuizzes = subjectQuizzes.filter(x => String(x.id) !== String(id)); save.subQuiz(); renderSubjectQuiz(); closeModal('writing-history-modal'); };
 
 // ============================================================
@@ -2707,56 +2711,12 @@ const selectPlanDate = ds => { selectedPlanDate = ds; renderPlanCalendar(); rend
 const renderPlanDateList = () => {
   const lbl = $('plan-selected-date-label'); if (lbl) lbl.textContent = selectedPlanDate;
   const evL = $('plan-event-list'), lsE = events[selectedPlanDate] || []; if (evL) evL.innerHTML = lsE.length ? lsE.map((e, i) => `<div class="plan-item-row" style="margin-bottom:6px;border-left:3px solid #3498db;"><div style="flex:1"><div class="pi-text" style="font-size:14px;">${esc(e.text)}</div></div><button class="plan-del" onclick="deletePlanEvent(${i})">✕</button></div>`).join('') : '<div class="text-center text-xs text-muted">イベントなし</div>';
-  const plL = $('plan-content'), lsP = plans[selectedPlanDate] || []; if (plL) plL.innerHTML = lsP.length ? lsP.map((p, i) => `<div class="plan-item-row"><input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePlanDatePlan(${i})"><div style="flex:1; display:flex; align-items:center;"><button class="btn-play-task" onclick="startTimerForPlanTask('${selectedPlanDate}', ${i})"><span class="material-symbols-rounded" style="font-size:16px;">play_arrow</span></button><div><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:14px;">${esc(p.text)}</div>${p.time ? `<div class="pi-time" style="font-size:11px;color:var(--text-muted);">${esc(p.time)}</div>` : ''}</div></div><button class="plan-del" onclick="deletePlanDatePlan(${i})">✕</button></div>`).join('') : '<p class="text-center text-xs text-muted p-10">予定なし</p>';
-};
-
-window.startTimerForPlanTask = (date, idx) => {
-  const t = plans[date]?.[idx];
-  if (!t) return;
-  linkedPlanTask = { date, idx, text: t.text };
-  setTabByIndex(1);
-  showToast(`${t.text} のタイマーをセットしました`);
+  const plL = $('plan-content'), lsP = plans[selectedPlanDate] || []; if (plL) plL.innerHTML = lsP.length ? lsP.map((p, i) => `<div class="plan-item-row"><input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePlanDatePlan(${i})"><div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:14px;">${esc(p.text)}</div>${p.time ? `<div class="pi-time" style="font-size:11px;color:var(--text-muted);">${esc(p.time)}</div>` : ''}</div><button class="plan-del" onclick="deletePlanDatePlan(${i})">✕</button></div>`).join('') : '<p class="text-center text-xs text-muted p-10">予定なし</p>';
 };
 
 const addPlanEvent = () => { const i = $('plan-event-input'); if (!i || !i.value.trim()) return; if (!events[selectedPlanDate]) events[selectedPlanDate] = []; events[selectedPlanDate].push({ text: i.value.trim() }); save.events(); i.value = ''; renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 const deletePlanEvent = i => { if (events[selectedPlanDate]) { events[selectedPlanDate].splice(i, 1); if (events[selectedPlanDate].length === 0) delete events[selectedPlanDate]; save.events(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
-
-const addPlanDatePlan = () => { 
-  const i = $('new-plan-input'), t = $('new-plan-time'); 
-  if (!i || !i.value.trim()) return; 
-  const routine = $('new-plan-routine') ? $('new-plan-routine').value : 'none';
-  const text = i.value.trim();
-  const time = t ? t.value.trim() : '';
-
-  if (routine === 'none') {
-    if (!plans[selectedPlanDate]) plans[selectedPlanDate] = []; 
-    plans[selectedPlanDate].push({ text, done: false, time }); 
-  } else if (routine === 'daily') {
-    let d = new Date(selectedPlanDate);
-    for(let j=0; j<30; j++) {
-      const ds = d.toISOString().split('T')[0];
-      if (!plans[ds]) plans[ds] = [];
-      plans[ds].push({ text, done: false, time });
-      d.setDate(d.getDate() + 1);
-    }
-    showToast('30日分のDailyタスクを追加しました');
-  } else if (routine === 'weekly') {
-    let d = new Date(selectedPlanDate);
-    for(let j=0; j<12; j++) {
-      const ds = d.toISOString().split('T')[0];
-      if (!plans[ds]) plans[ds] = [];
-      plans[ds].push({ text, done: false, time });
-      d.setDate(d.getDate() + 7);
-    }
-    showToast('12週分のWeeklyタスクを追加しました');
-  }
-
-  save.plans(); 
-  i.value = ''; if (t) t.value = ''; 
-  renderPlanCalendar(); renderPlanDateList(); 
-  if ($('Dashboard').classList.contains('active')) renderDashboard(); 
-};
-
+const addPlanDatePlan = () => { const i = $('new-plan-input'), t = $('new-plan-time'); if (!i || !i.value.trim()) return; if (!plans[selectedPlanDate]) plans[selectedPlanDate] = []; plans[selectedPlanDate].push({ text: i.value.trim(), done: false, time: t ? t.value.trim() : '' }); save.plans(); i.value = ''; if (t) t.value = ''; renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 const togglePlanDatePlan = i => { if (plans[selectedPlanDate] && plans[selectedPlanDate][i]) { plans[selectedPlanDate][i].done = !plans[selectedPlanDate][i].done; save.plans(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
 const deletePlanDatePlan = i => { if (plans[selectedPlanDate]) { plans[selectedPlanDate].splice(i, 1); if (plans[selectedPlanDate].length === 0) delete plans[selectedPlanDate]; save.plans(); renderPlanCalendar(); renderPlanDateList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); } };
 
@@ -2777,14 +2737,14 @@ window.rebuildScheduleAI = async () => {
   const targetDate = $('gantt-target-date')?.value;
   let prompt = '';
   if (targetDate && targetDate >= today) {
-    prompt = `以下の未完了タスクを、今日(${today})から目標日(${targetDate})までの間に無理なく分散させて配置し、JSON配列で出力してください。1日あたりのタスク数は最大3件までにし、週末に少し多めに配置するなど現実的な計画にしてください。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
+    prompt = `以下の未完了タスクを、今日(${today})から目標日(${targetDate})までの間に無理なく分散させて配置し、JSON配列で出力してください。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
   } else {
-    prompt = `以下の未完了タスクを、今日(${today})から1週間以内に無理なく分散させて配置し、JSON配列で出力してください。1日あたりのタスク数は最大3件までにし、週末に少し多めに配置するなど現実的な計画にしてください。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
+    prompt = `以下の未完了タスクを、今日(${today})から1週間以内に無理なく分散させて配置し、JSON配列で出力してください。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
   }
 
   showToast('AIがスケジュールを再構築中...');
   try {
-    const rep = await callGemini([{role:'user', content:prompt}], 1500, '', true);
+    const rep = await callGemini([{role:'user', content:prompt}], 1500, '挨拶不要。客観的なトーンで出力。', true);
     const arr = extractJSON(rep);
     if(arr && arr.length) {
       arr.forEach(d => {
@@ -2800,38 +2760,6 @@ window.rebuildScheduleAI = async () => {
     }
   } catch(e) {
     showToast('通信エラー');
-  }
-};
-
-window.slideGanttSchedule = () => {
-  if (!confirm('過去の未完了の予定をすべて1日後ろにずらしますか？（締切を超過する可能性があります）')) return;
-  const today = todayDateStr();
-  const sortedDates = Object.keys(plans).sort().reverse();
-  
-  let moved = 0;
-  sortedDates.forEach(date => {
-    if (date < today) {
-      const incomplete = plans[date].filter(p => !p.done);
-      if (incomplete.length > 0) {
-        const nextDateObj = new Date(date);
-        nextDateObj.setDate(nextDateObj.getDate() + 1);
-        const nextDateStr = nextDateObj.toISOString().split('T')[0];
-        
-        if (!plans[nextDateStr]) plans[nextDateStr] = [];
-        plans[nextDateStr].push(...incomplete);
-        plans[date] = plans[date].filter(p => p.done);
-        moved += incomplete.length;
-      }
-    }
-  });
-  
-  if (moved > 0) {
-    save.plans();
-    renderPlanCalendar();
-    renderPlanDateList();
-    showToast(`${moved}件の予定を1日後ろにスライドしました`);
-  } else {
-    showToast('スライドする未完了の予定がありません');
   }
 };
 
@@ -2859,7 +2787,7 @@ window.generateMilestonesAI = async () => {
   if(!goal) return showToast('年間大目標を入力してください');
   showToast('AIがマイルストーンを生成中...');
   try {
-    const rep = await callGemini([{role:'user', content:`目標「${goal}」を達成するための月別マイルストーンをJSONで出力。形式: {"4":"...", "5":"..."}`}], 1000, '', true);
+    const rep = await callGemini([{role:'user', content:`目標「${goal}」を達成するための月別マイルストーンをJSONで出力。形式: {"4":"...", "5":"..."}`}], 1000, '挨拶不要。客観的なトーンで出力。', true);
     const json = extractJSON(rep);
     if(json) {
       Object.keys(json).forEach(m => {
@@ -2883,13 +2811,13 @@ const generateGanttSchedule = async () => {
   if (btn) btn.disabled = true;
   
   const today = todayDateStr();
-  const prompt = `今日(${today})から目標日(${targetDate})までの学習スケジュール（逆算プラン）を構築し、JSON配列で出力してください。1日の最大タスク数は3件まで。
+  const prompt = `今日(${today})から目標日(${targetDate})までの学習スケジュール（逆算プラン）を構築し、JSON配列で出力してください。
 目標: ${targetName}
 使用参考書・タスク量:\n${materials}
 出力形式: [{"date": "YYYY-MM-DD", "tasks": ["やること1", "やること2"]}]`;
 
   try {
-    const rep = await callGemini([{ role: 'user', content: prompt }], 2000, '', true);
+    const rep = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的なトーンで出力。', true);
     const planArr = extractJSON(rep);
     if (!planArr || !Array.isArray(planArr)) throw new Error('Invalid JSON');
     
@@ -2942,21 +2870,21 @@ const sendPlanAiMessage = async () => {
   c.insertAdjacentHTML('beforeend', `<div class="chat-bubble user">${esc(txt)}</div><div class="chat-bubble ai" id="pai-load"><span class="loading-dots"></span></div>`);
   planAiHistory.push({ role: 'user', content: txt }); c.scrollTop = c.scrollHeight;
   try {
-    const rep = await callGemini(planAiHistory.slice(), 1000, `プロ学習コーチ。プロフ:${userProfile.targetUniv},${userProfile.grade}${buildScoreContext()}`);
+    const rep = await callGemini(planAiHistory.slice(), 1000, `プロ学習コーチ。プロフ:${userProfile.targetUniv},${userProfile.grade}${buildScoreContext()}。客観的かつ簡潔に回答。挨拶不要。`);
     const cleanRep = clean(rep); planAiHistory.push({ role: 'assistant', content: cleanRep }); const ld = $('pai-load'); if (ld) ld.remove();
     c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')}</div>`);
   } catch (e) { const ld = $('pai-load'); if (ld) ld.remove(); c.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai text-danger">通信エラー</div>`); planAiHistory.pop(); }
   finally { if (sbtn) sbtn.disabled = false; c.scrollTop = c.scrollHeight; }
 };
 
-const generateRoadmapReport = async () => { const r = $('ai-weakness-report'); if (!r) return; r.innerHTML = '<div class="text-center"><span class="loading-dots">作成中</span></div>'; try { const rep = await callGemini([{ role: 'user', content: '合格ロードマップを作成' }], 2000, `プロ進路指導。プロフ(${JSON.stringify(userProfile)})と成績(${JSON.stringify(examScores.slice(0, 3))})からHTMLで。`); r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`; } catch (e) { handleApiError(e, 'ai-weakness-report'); } };
+const generateRoadmapReport = async () => { const r = $('ai-weakness-report'); if (!r) return; r.innerHTML = '<div class="text-center"><span class="loading-dots">作成中</span></div>'; try { const rep = await callGemini([{ role: 'user', content: '合格ロードマップを作成' }], 2000, `プロ進路指導。プロフ(${JSON.stringify(userProfile)})と成績(${JSON.stringify(examScores.slice(0, 3))})からHTMLで。挨拶不要。客観的なトーンで出力。`); r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`; } catch (e) { handleApiError(e, 'ai-weakness-report'); } };
 const generatePersonalizedExam = async () => {
   const r = $('ai-weakness-report'); if (!r) return; r.innerHTML = '<div class="text-center"><span class="loading-dots">作成中</span></div>';
   const weakWords = Object.entries(srsData).sort((a, b) => a[1].stability - b[1].stability).slice(0, 15).map(x => x[0]).join(', ');
   const recentMistakes = dailyChallenges.filter(d => d.score !== null && d.score < 80).slice(0, 3).map(d => d.question).join('\n');
   const pastExams = examScores.slice(0, 2).map(s => s.subjects.map(x => `${x.detail}:${x.dev}`).join(', ')).join('\n');
   const prompt = `以下の生徒の過去の学習データから、完全カスタマイズされた模試問題（英語長文または和文英訳などを1題）を作成し、HTMLで出力してください。\n【弱点単語】${weakWords}\n【最近の誤答傾向】${recentMistakes}\n【過去の成績】${pastExams}`;
-  try { const rep = await callGemini([{ role: 'user', content: prompt }], 2000); r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`; } catch (e) { handleApiError(e, 'ai-weakness-report'); }
+  try { const rep = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的なトーンで出力。'); r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`; } catch (e) { handleApiError(e, 'ai-weakness-report'); }
 };
 
 const ocrScore = async e => {
@@ -2990,13 +2918,6 @@ const addExamScore = () => {
 const deleteExamScore = id => { examScores = examScores.filter(s => s.id !== id); save.exams(); renderScoreList(); renderScoreChart(); };
 const renderScoreList = () => { const c = $('score-list'); if (!c) return; if (!examScores.length) { c.innerHTML = '<div class="vocab-empty">成績なし</div>'; return; } c.innerHTML = examScores.map(s => { const subjHtml = (s.subjects || []).map(x => `<div class="flex-between border-bottom border-dashed py-4 text-xs"><span>${(SCORE_SUBJECTS[x.cat]?.label || x.cat)} (${esc(x.detail)})</span><span>${x.score ? esc(x.score) + '点' : '-'} ${x.dev ? '(偏:' + esc(x.dev) + ')' : ''}</span></div>`).join(''); const judgeHtml = (s.judges || []).map(x => `<span class="inline-block bg-main border radius-sm px-6 py-2 mr-4 mb-2 text-xs font-bold">${esc(x.univ)} <span class="text-danger">${esc(x.rank)}</span></span>`).join(''); return `<div class="card mb-2"><div class="flex-between align-center mb-2"><div><div class="text-base font-bold">${esc(s.name)}</div>${s.date ? `<div class="text-xs text-muted mt-1">${esc(s.date)}</div>` : ''}</div><button onclick="deleteExamScore(${s.id})" class="btn-clear">✕</button></div>${subjHtml ? `<div class="mb-2">${subjHtml}</div>` : ''}${judgeHtml ? `<div class="mb-2">${judgeHtml}</div>` : ''}${s.memo ? `<div class="text-xs text-muted pt-2 border-top">${esc(s.memo)}</div>` : ''}</div>`; }).join(''); };
 
-const getHashColor = (str) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-  return '#' + '00000'.substring(0, 6 - c.length) + c;
-};
-
 const setScoreChartMode = m => {
   scoreChartMode = m;
   ['dev', 'judge'].forEach(x => {
@@ -3015,35 +2936,18 @@ const renderScoreChart = () => {
   
   const sorted = [...scored].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
   const labels = sorted.map(s => s.date || s.name);
+  const colors = ['#2980B9', '#C0392B', '#2E7D52', '#E67E22', '#8E44AD', '#16A085', '#D35400', '#2C3E50'];
   
   let datasets = [];
   let allDetails = [];
   
   if (scoreChartMode === 'dev') {
     allDetails = [...new Set(sorted.flatMap(s => s.subjects.filter(x => x.dev).map(x => x.detail)))];
-    datasets = allDetails.map(det => {
-      const color = getHashColor(det);
-      return { 
-        label: det, 
-        data: sorted.map(s => { const f = s.subjects.find(x => x.detail === det && x.dev); return f ? parseFloat(f.dev) : null; }), 
-        borderColor: color, 
-        backgroundColor: color + '33', 
-        tension: 0.3, pointRadius: 5, pointHoverRadius: 7, spanGaps: true 
-      };
-    });
+    datasets = allDetails.map((det, i) => ({ label: det, data: sorted.map(s => { const f = s.subjects.find(x => x.detail === det && x.dev); return f ? parseFloat(f.dev) : null; }), borderColor: colors[i % colors.length], backgroundColor: colors[i % colors.length] + '33', tension: 0.3, pointRadius: 5, pointHoverRadius: 7, spanGaps: true }));
   } else {
     const rankMap = { 'A': 5, 'B': 4, 'C': 3, 'D': 2, 'E': 1 };
     allDetails = [...new Set(sorted.flatMap(s => (s.judges || []).map(x => x.univ)))];
-    datasets = allDetails.map(univ => {
-      const color = getHashColor(univ);
-      return { 
-        label: univ, 
-        data: sorted.map(s => { const f = (s.judges || []).find(x => x.univ === univ); return f ? rankMap[f.rank] || null : null; }), 
-        borderColor: color, 
-        backgroundColor: color + '33', 
-        tension: 0.3, pointRadius: 5, pointHoverRadius: 7, spanGaps: true 
-      };
-    });
+    datasets = allDetails.map((univ, i) => ({ label: univ, data: sorted.map(s => { const f = (s.judges || []).find(x => x.univ === univ); return f ? rankMap[f.rank] || null : null; }), borderColor: colors[i % colors.length], backgroundColor: colors[i % colors.length] + '33', tension: 0.3, pointRadius: 5, pointHoverRadius: 7, spanGaps: true }));
   }
   
   if (scoreLineChart) scoreLineChart.destroy();
@@ -3064,7 +2968,7 @@ const renderScoreChart = () => {
       } 
     } 
   });
-  const leg = $('score-chart-legend'); if (leg) leg.innerHTML = allDetails.map(d => `<span class="flex align-center gap-1"><span style="width:12px;height:12px;border-radius:50%;background:${getHashColor(d)};display:inline-block;"></span>${esc(d)}</span>`).join('');
+  const leg = $('score-chart-legend'); if (leg) leg.innerHTML = allDetails.map((d, i) => `<span class="flex align-center gap-1"><span style="width:12px;height:12px;border-radius:50%;background:${colors[i % colors.length]};display:inline-block;"></span>${esc(d)}</span>`).join('');
 };
 function buildScoreContext() { if (!examScores.length) return ''; return '\n【模試】\n' + examScores.slice(0, 5).map(s => { let p = [`${s.name}`]; if (s.subjects) p.push(...s.subjects.map(x => `${x.detail}:${x.score}/${x.dev}`)); return p.join(' '); }).join('\n'); }
 
@@ -3151,126 +3055,8 @@ const addStudyLogManual = () => {
 };
 const deleteStudyLog = ts => { studyLogs = studyLogs.filter(l => l.ts !== ts); save.logs(); renderLogModalList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 
-
 // ============================================================
-// [15] MISTAKES & QUICK CAPTURE
-// ============================================================
-window.openQuickCaptureModal = () => { openModal('quick-capture-modal'); };
-window.saveQuickCapture = () => {
-  const i = $('qc-text-input');
-  if(!i || !i.value.trim()) return;
-  quickCaptures.unshift({ id: generateId(), text: i.value.trim(), date: new Date().toLocaleString() });
-  save.quick();
-  i.value = '';
-  closeModal('quick-capture-modal');
-  showToast('Saved to Inbox');
-};
-
-window.switchMistakeTab = t => {
-  currentMistakeTab = t;
-  ['saved', 'calc', 'exam'].forEach(x => {
-    const b = $('mistake-tab-' + x);
-    const a = $('mistake-area-' + x);
-    if(b) { if(x === t) b.classList.add('active'); else b.classList.remove('active'); }
-    if(a) { if(x === t) a.classList.remove('hidden'); else a.classList.add('hidden'); }
-  });
-  if(t === 'saved') renderMistakeSaved();
-  if(t === 'calc') renderMistakeCalc();
-  if(t === 'exam') renderMistakeExam();
-};
-
-window.saveToMistakes = (category, question, answer) => {
-  subjectSaved.unshift({ 
-    id: generateId(), 
-    subject: 'mistake', 
-    subjectLabel: category, 
-    date: new Date().toLocaleString(), 
-    question: question, 
-    answer: answer,
-    isMistake: true
-  });
-  save.subSaved();
-  showToast('Saved to Mistakes');
-};
-
-const renderMistakeSaved = () => {
-  const ls = subjectSaved.filter(x => x.isMistake);
-  const c = $('mistake-saved-list');
-  if(!c) return;
-  c.innerHTML = ls.length ? ls.map(x => `
-    <div class="card mb-0">
-      <div class="flex-between mb-2">
-        <span class="text-xs font-bold text-muted">${esc(x.subjectLabel)}</span>
-        <span class="text-xs text-muted">${x.date}</span>
-      </div>
-      <div class="text-sm font-bold mb-2">${esc(x.question)}</div>
-      <div class="text-sm text-sub bg-bg p-10 radius-sm">${x.answer}</div>
-      <div class="mt-3 flex justify-end">
-        <button class="btn-clear text-danger" onclick="deleteMistakeSaved('${x.id}')">Delete</button>
-      </div>
-    </div>
-  `).join('') : '<p class="text-sm text-muted text-center p-20">Saved items will appear here.</p>';
-};
-window.deleteMistakeSaved = id => {
-  subjectSaved = subjectSaved.filter(x => x.id !== id);
-  save.subSaved(); renderMistakeSaved();
-};
-
-window.addCalcMistake = () => {
-  const i = $('calc-mistake-input');
-  if(!i || !i.value.trim()) return showToast('Input is empty');
-  mistakeCalc.unshift({ id: generateId(), text: i.value.trim(), date: todayDateStr() });
-  save.mcalc();
-  i.value = '';
-  renderMistakeCalc();
-  showToast('Added');
-};
-const renderMistakeCalc = () => {
-  const c = $('mistake-calc-list');
-  if(!c) return;
-  c.innerHTML = mistakeCalc.length ? mistakeCalc.map(x => `
-    <div class="card mb-0 flex-between">
-      <div>
-        <div class="text-xs text-muted mb-1">${x.date}</div>
-        <div class="text-sm font-bold">${esc(x.text)}</div>
-      </div>
-      <button class="btn-clear text-danger" onclick="deleteMistakeCalc('${x.id}')">✕</button>
-    </div>
-  `).join('') : '<p class="text-sm text-muted text-center p-20">No calculation mistakes.</p>';
-};
-window.deleteMistakeCalc = id => { mistakeCalc = mistakeCalc.filter(x => x.id !== id); save.mcalc(); renderMistakeCalc(); };
-
-window.addExamMistake = () => {
-  const n = $('exam-mistake-name'), q = $('exam-mistake-question'), r = $('exam-mistake-reason');
-  if(!n || !n.value.trim() || !q.value.trim()) return showToast('Please enter required fields');
-  mistakeExam.unshift({ id: generateId(), name: n.value.trim(), question: q.value.trim(), reason: r.value.trim(), date: todayDateStr() });
-  save.mexam();
-  n.value = ''; q.value = ''; r.value = '';
-  renderMistakeExam();
-  showToast('Added');
-};
-const renderMistakeExam = () => {
-  const c = $('mistake-exam-list');
-  if(!c) return;
-  c.innerHTML = mistakeExam.length ? mistakeExam.map(x => `
-    <div class="card mb-0">
-      <div class="flex-between mb-2">
-        <span class="text-xs font-bold text-accent">${esc(x.name)}</span>
-        <span class="text-xs text-muted">${x.date}</span>
-      </div>
-      <p class="text-sm font-bold mb-2 pb-2 border-bottom">Q: ${esc(x.question)}</p>
-      <p class="text-sm text-sub">Reason: ${esc(x.reason)}</p>
-      <div class="mt-3 flex justify-end">
-        <button class="btn-clear text-danger" onclick="deleteMistakeExam('${x.id}')">Delete</button>
-      </div>
-    </div>
-  `).join('') : '<p class="text-sm text-muted text-center p-20">No exam mistakes.</p>';
-};
-window.deleteMistakeExam = id => { mistakeExam = mistakeExam.filter(x => x.id !== id); save.mexam(); renderMistakeExam(); };
-
-
-// ============================================================
-// [16] IMPORT
+// [15] IMPORT
 // ============================================================
 const openImportModal = () => { openModal('import-modal'); };
 const switchImportTab = t => { curImpTab = t; ['file', 'text', 'url', 'photo'].forEach(x => { const tb = $('itab-' + x), c = $('itab-content-' + x); if (tb) { if (x === t) tb.classList.add('active'); else tb.classList.remove('active'); } if (c) { if (x === t) c.classList.remove('hidden'); else c.classList.add('hidden'); } }); };
@@ -3350,7 +3136,7 @@ const ifi = $('import-file-input'); if (ifi) ifi.addEventListener('change', e =>
     r.onload = async ev => {
       const b64 = ev.target.result.split(',')[1];
       try {
-        const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: 'application/pdf', data: b64 } }, { type: 'text', text: 'このPDFの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力してください。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]' }] }], 2500, '', true);
+        const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: 'application/pdf', data: b64 } }, { type: 'text', text: 'このPDFの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力してください。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]。挨拶不要。' }] }], 2500, '', true);
         const w = extractJSON(rep);
         if (w && Array.isArray(w)) {
           renderPreview(w, 'file-preview');
@@ -3370,7 +3156,7 @@ const ifi = $('import-file-input'); if (ifi) ifi.addEventListener('change', e =>
       const b64 = ev.target.result.split(',')[1];
       const mimeType = f.type || 'application/octet-stream';
       try {
-        const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: mimeType, data: b64 } }, { type: 'text', text: 'このファイルの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力してください。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]' }] }], 2500, '', true);
+        const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: mimeType, data: b64 } }, { type: 'text', text: 'このファイルの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力してください。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]。挨拶不要。' }] }], 2500, '', true);
         const w = extractJSON(rep);
         if (w && Array.isArray(w)) {
           renderPreview(w, 'file-preview');
@@ -3413,7 +3199,7 @@ const fetchAndParseUrl = async () => {
     } catch (e) { textContent = "URLの内容を取得できませんでした。URLの文字列から推測してください。"; }
     
     let prompt = `以下のテキスト内容から、関連する重要な英単語を抽出してJSON配列で出力してください。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${textContent}`;
-    const raw = await callGemini([{ role: 'user', content: prompt }], 2000, '', true);
+    const raw = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的なトーンで出力。', true);
     const w = extractJSON(raw); renderPreview(w, 'url-preview');
   } catch (e) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); }
 };
@@ -3424,7 +3210,7 @@ window.parseManualTranscript = async () => {
   const extractContext = $('import-extract-context-url') && $('import-extract-context-url').checked;
   try {
     let prompt = `以下のYouTube字幕テキストから、関連する重要な英単語を抽出してJSON配列で出力してください。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${i.value.substring(0, 5000)}`;
-    const raw = await callGemini([{ role: 'user', content: prompt }], 2000, '', true);
+    const raw = await callGemini([{ role: 'user', content: prompt }], 2000, '挨拶不要。客観的なトーンで出力。', true);
     const w = extractJSON(raw); renderPreview(w, 'url-preview');
   } catch (e) { showToast('通信エラー'); } finally { if (ld) ld.classList.add('hidden'); }
 };
@@ -3440,7 +3226,7 @@ const handleImportPhoto = async e => {
     const extractContext = $('import-extract-context-photo') && $('import-extract-context-photo').checked;
     let prompt = `画像内のテキストを読み取り、重要な英単語を抽出してJSON配列で出力してください。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]`;
     
-    const raw = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: prompt }] }], 2000, '', true); 
+    const raw = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: prompt }] }], 2000, '挨拶不要。客観的なトーンで出力。', true); 
     let wd = extractJSON(raw); 
     
     if (unknownOnly && wd && Array.isArray(wd)) {
@@ -3467,7 +3253,7 @@ const applyImport = async m => {
     const toFill = formattedWords.filter(w => !w.meaning || !w.example);
     if (toFill.length > 0) {
       try {
-        const rep = await callGemini([{role:'user', content:`以下の英単語の意味と例文を補完しJSON配列で出力。形式:[{"word":"...","meaning":"...","example":"..."}]\n単語: ${toFill.map(w=>w.word).join(', ')}`}], 2000, '', true);
+        const rep = await callGemini([{role:'user', content:`以下の英単語の意味と例文を補完しJSON配列で出力。形式:[{"word":"...","meaning":"...","example":"..."}]\n単語: ${toFill.map(w=>w.word).join(', ')}`}], 2000, '挨拶不要。客観的なトーンで出力。', true);
         const filled = extractJSON(rep);
         if (filled && Array.isArray(filled)) {
           filled.forEach(fw => {
@@ -3516,7 +3302,7 @@ const applyImport = async m => {
 };
 
 // ============================================================
-// [17] SETTINGS & EXPORT
+// [16] SETTINGS & EXPORT
 // ============================================================
 const loadProfileFields = () => { const map = { targetUniv: 'target-univ', grade: 'grade', courses: 'courses' }; Object.entries(map).forEach(([k, id]) => { const e = $('profile-' + id); if (e) e.value = userProfile[k] || ''; }); };
 const saveProfile = () => { const u = $('profile-target-univ'), g = $('profile-grade'), c = $('profile-courses'); if (u) userProfile.targetUniv = u.value.trim(); if (g) userProfile.grade = g.value.trim(); if (c) userProfile.courses = c.value.trim(); save.profile(); };
@@ -3535,7 +3321,10 @@ const saveReminderSettings = async () => {
     }
     $('reminder-status-text').textContent = userProfile.aiNotificationTiming ? 'AIが最適なタイミングで通知します' : `毎日 ${t.value} に通知します`; 
     showToast('リマインダー設定保存'); startReminderCheck();
-  } catch (e) { showToast('通知の設定に失敗しました'); }
+  } catch (e) { 
+    $('reminder-status-text').textContent = '通知の設定に失敗しました。ブラウザが対応していない可能性があります。';
+    showToast('通知の設定に失敗しました'); 
+  }
 };
 
 const startReminderCheck = () => {
@@ -3562,7 +3351,7 @@ const checkConfirm = (iid, bid, ex) => { const i = $(iid), b = $(bid); if (i && 
 
 const exportData = async () => { 
   showToast('エクスポート準備中...');
-  const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan, quickCaptures, mistakeCalc, mistakeExam };
+  const data = { ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes, examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta, dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan };
   
   const images = {};
   for (const s of subjectSaved) {
@@ -3593,7 +3382,7 @@ const openWeeklyReport = async () => {
   if (recentLogs.length === 0) { $('weekly-report-content').innerHTML = '<p>過去7日間の学習データがありません。</p>'; return; }
   const subjMap = {}; recentLogs.forEach(l => { subjMap[l.subj] = (subjMap[l.subj] || 0) + Math.floor(l.seconds / 60); });
   const logStr = Object.entries(subjMap).map(([k, v]) => `${SCORE_SUBJECTS[k]?.label || k}:${v}分`).join(', ');
-  const prompt = `以下の生徒の過去7日間の学習データに基づき、HTMLで週次レポートを作成してください。見出し（h4タグ）として「総学習時間とバランス」「ストロングポイント」「改善点」「来週のおすすめ学習プラン」を含め、pタグやul/liタグでわかりやすく記述してください。データ: ${logStr}`;
+  const prompt = `以下の生徒の過去7日間の学習データに基づき、HTMLで週次レポートを作成してください。見出し（h4タグ）として「総学習時間とバランス」「ストロングポイント」「改善点」「来週のおすすめ学習プラン」を含め、pタグやul/liタグでわかりやすく記述してください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。データ: ${logStr}`;
   try { let rep = await callGemini([{ role: 'user', content: prompt }], 1500); $('weekly-report-content').innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); } catch (e) { $('weekly-report-content').innerHTML = '<p class="text-danger">分析に失敗しました。通信環境を確認してください。</p><button class="action-btn mt-3" onclick="openWeeklyReport()">リトライ</button>'; }
 };
 
@@ -3608,7 +3397,7 @@ const openWeaknessAnalysis = async () => {
   const overdue = Object.entries(srsData).map(([w, r]) => ({ word: w, ef: r.stability, overdueDays: srsDaysDiff(srsNextDate(r)) * -1 })).filter(x => x.overdueDays >= 0 || x.ef < 2.0).sort((a, b) => (b.overdueDays - a.overdueDays) || (a.ef - b.ef)).slice(0, 10);
   if (!overdue.length) { $('weakness-content').innerHTML = '<p>現在、深刻な弱点データはありません。素晴らしいペースです！</p>'; return; }
   weaknessWords = overdue.map(x => x.word);
-  const prompt = `以下の生徒が特に苦手としている英単語TOP10のリストに基づき、HTMLでレポートを作成してください。見出し（h4タグ）として「最も復習が必要な単語TOP10」をリスト表示し、それぞれの単語の覚え方のコツや語源的アプローチを簡潔に添えてください。また「おすすめ学習法」として具体的なアドバイスを記載してください。苦手単語: ${weaknessWords.join(', ')}`;
+  const prompt = `以下の生徒が特に苦手としている英単語TOP10のリストに基づき、HTMLでレポートを作成してください。見出し（h4タグ）として「最も復習が必要な単語TOP10」をリスト表示し、それぞれの単語の覚え方のコツや語源的アプローチを簡潔に添えてください。また「おすすめ学習法」として具体的なアドバイスを記載してください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。苦手単語: ${weaknessWords.join(', ')}`;
   try { let rep = await callGemini([{ role: 'user', content: prompt }], 1500); $('weakness-content').innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); $('weakness-focus-btn').classList.remove('hidden'); } catch (e) { $('weakness-content').innerHTML = '<p class="text-danger">分析に失敗しました。通信環境を確認してください。</p><button class="action-btn mt-3" onclick="openWeaknessAnalysis()">リトライ</button>'; }
 };
 const startWeaknessFocusMode = () => { closeModal('weakness-modal'); setTabByIndex(4); setCardsMode('weak'); };
@@ -3661,7 +3450,7 @@ window.generateStory = async () => {
   const words = srsGetDueWords().slice(0, 10).map(w => w.word);
   if(!words.length) words.push(...ALL_WORDS.slice(0,10).map(w=>w.word));
   try {
-    const rep = await callGemini([{role:'user', content:`以下の単語を全て使って、面白い英語のショートストーリーを作成し、和訳と解説をHTMLで出力してください。単語: ${words.join(', ')}`}], 2000);
+    const rep = await callGemini([{role:'user', content:`以下の単語を全て使って、面白い英語のショートストーリーを作成し、和訳と解説をHTMLで出力してください。挨拶や語りかけは一切不要です。客観的なトーンで出力してください。単語: ${words.join(', ')}`}], 2000);
     area.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
   } catch(e) { area.innerHTML = '<p class="text-danger">生成失敗</p>'; }
   finally { ld.classList.add('hidden'); }
@@ -3711,11 +3500,8 @@ window.saveShuffleSettings = () => {
   showToast('設定を保存しました');
 };
 
-window.connectGoogleDrive = () => { showToast('Google Drive連携は準備中です'); };
-window.connectDropbox = () => { showToast('Dropbox連携は準備中です'); };
-
 // ============================================================
-// [18] ROUTER & INIT
+// [17] ROUTER & INIT
 // ============================================================
 const setTabByIndex = (idx) => {
   if (idx < 0 || idx >= TABS.length) return;
@@ -3734,10 +3520,8 @@ const triggerTabEffects = (id) => {
   if (id === 'Plan') { setPlanMode('calendar'); renderTextbooks(); loadProfileFields(); renderYearlyPlan(); }
   if (id === 'Cards') { updateTagFilters(); initCards(); }
   if (id === 'CustomCards') ccInitDecks();
-  if (id === 'Mistakes') switchMistakeTab(currentMistakeTab);
   if (id === 'Manage') {
     updateFooter(); updateAutoSyncBtn(); initModelSelect(); renderBackupList();
-    if (localStorage.getItem('study_gemini_api_key')) $('gemini-api-key-input').value = localStorage.getItem('study_gemini_api_key');
     if (userProfile.reminderTime) $('reminder-time').value = userProfile.reminderTime;
     if ($('ai-notification-timing')) $('ai-notification-timing').checked = userProfile.aiNotificationTiming;
     if (fsrsRetention) { $('fsrs-retention-slider').value = fsrsRetention; $('fsrs-retention-label').textContent = fsrsRetention + '%'; }
@@ -3777,7 +3561,7 @@ async function initAppData() {
   localforage.config({ name: 'StudyApp' });
   
   const [
-    words, saved, p, ev, writing, subSaved, subQuiz, exams, books, srs, prof, decks, prog, meta, daily, syntax, listen, logs, yearly, freeze, quick, mcalc, mexam
+    words, saved, p, ev, writing, subSaved, subQuiz, exams, books, srs, prof, decks, prog, meta, daily, syntax, listen, logs, yearly, freeze
   ] = await Promise.all([
     localforage.getItem('study_words'),
     localforage.getItem('study_saved'),
@@ -3798,10 +3582,7 @@ async function initAppData() {
     localforage.getItem('study_listen'),
     localforage.getItem('study_logs'),
     localforage.getItem('study_yearly_plan'),
-    localforage.getItem('study_freeze_logs'),
-    localforage.getItem('study_quick_captures'),
-    localforage.getItem('study_mistake_calc'),
-    localforage.getItem('study_mistake_exam')
+    localforage.getItem('study_freeze_logs')
   ]);
 
   ALL_WORDS = words || [];
@@ -3824,9 +3605,6 @@ async function initAppData() {
   studyLogs = logs || [];
   yearlyPlan = yearly || { year: new Date().getFullYear(), goal: '', months: {} };
   freezeLogs = freeze || [];
-  quickCaptures = quick || [];
-  mistakeCalc = mcalc || [];
-  mistakeExam = mexam || [];
   
   ALL_WORDS = ALL_WORDS.map(w => {
     if (typeof w === 'string') return { word: w, meaning: '', example: '', tags: [] };
