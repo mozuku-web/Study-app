@@ -691,6 +691,18 @@ header {
   display: none !important;
 }
 
+/* Word Map Styles */
+#word-map-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+  word-wrap: break-word;
+  padding: 10px;
+}
+.word-map-node {
+  word-break: break-word;
+  white-space: normal;
+}
+
 /* ==========================
    7. Animations
    ========================== */
