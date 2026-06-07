@@ -11,6 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -19,6 +21,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
 <link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
 </head>
@@ -32,6 +37,10 @@
   </div>
 </header>
 <div class="toast" id="toast"></div>
+<div id="undo-snackbar" class="toast" style="background: var(--accent); color: var(--bg); display: flex; justify-content: space-between; align-items: center; width: 300px; max-width: 90%; z-index: 10000; pointer-events: auto;">
+  <span id="undo-message">削除しました</span>
+  <button id="undo-btn" class="btn-clear" style="color: var(--streak);">元に戻す</button>
+</div>
 
 <!-- Quick Capture Floating Button -->
 <button id="quick-capture-btn" class="global-mic-btn" style="bottom: 150px; background: var(--streak); display: flex;" onclick="openQuickCaptureModal()">
@@ -192,7 +201,7 @@
       <div class="cal-grid" id="cal-days"></div>
     </div>
 
-    <!-- Quick Capture Inbox Widget (NEW) -->
+    <!-- Quick Capture Inbox Widget -->
     <div class="dash-today-log mb-14 widget-item" data-widget-id="quick-capture-inbox">
       <div class="flex-between mb-2">
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1">Quick Notes</p>
@@ -340,6 +349,13 @@
       <span id="meta-status" class="text-xs text-muted"></span>
     </div>
   </div>
+  
+  <div id="vocab-bulk-actions" class="flex-gap-8 mb-3 hidden">
+    <button class="action-btn mb-0 flex-1 btn-sm" onclick="bulkTagWords()">一括タグ付け</button>
+    <button class="action-btn mb-0 flex-1 btn-sm btn-secondary" onclick="bulkResetProgress()">進捗リセット</button>
+    <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="bulkDeleteWords()">一括削除</button>
+  </div>
+
   <div id="vocab-count" class="vocab-count"></div>
   <div id="vocab-grid" class="vocab-grid"></div>
   <div class="text-center mt-3 mb-3">
@@ -359,14 +375,14 @@
   <div class="flip-card" onclick="flipCard()">
     <div class="flip-inner" id="flip-inner">
       <div class="flip-front">
-        <div class="swipe-indicator swipe-left" id="swipe-left" data-i18n="cards_swipe_left">忘れた</div>
-        <div class="swipe-indicator swipe-right" id="swipe-right" data-i18n="cards_swipe_right">覚えた</div>
-        <div class="flip-word" id="card-word">—</div>
-        <div class="flip-hint" data-i18n="cards_hint">タップで裏返す / スワイプで仕分け / 音声コマンド可</div>
+        <div class="swipe-indicator swipe-left" id="swipe-left" data-i18n="cards_swipe_left" style="pointer-events: none;">忘れた</div>
+        <div class="swipe-indicator swipe-right" id="swipe-right" data-i18n="cards_swipe_right" style="pointer-events: none;">覚えた</div>
+        <div class="flip-word" id="card-word" style="pointer-events: none;">—</div>
+        <div class="flip-hint" data-i18n="cards_hint" style="pointer-events: none;">タップで裏返す / スワイプで仕分け / 音声コマンド可</div>
       </div>
       <div class="flip-back">
-        <div class="flip-meaning" id="card-meaning">—</div>
-        <div id="card-image-container" class="mt-3" style="max-height: 120px; overflow: hidden; border-radius: 8px;"></div>
+        <div class="flip-meaning" id="card-meaning" style="pointer-events: none;">—</div>
+        <div id="card-image-container" class="mt-3" style="max-height: 120px; overflow: hidden; border-radius: 8px; pointer-events: none;"></div>
       </div>
     </div>
   </div>
@@ -393,6 +409,12 @@
     <div class="flex-between mb-2">
       <p class="section-note mb-0" data-i18n="cards_source_title">カードソース</p>
       <button class="btn-pill btn-outline" onclick="openShuffleSettingsModal()" data-i18n="cards_btn_shuffle_set">出題設定</button>
+    </div>
+    <div class="flex-gap-8 mb-3 align-center">
+      <span class="text-xs font-bold text-muted">裏面表示:</span>
+      <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" id="card-show-example" checked onchange="renderCard()"> 例文</label>
+      <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" id="card-show-image" checked onchange="renderCard()"> 画像</label>
+      <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" id="card-show-note" checked onchange="renderCard()"> メモ</label>
     </div>
     <div class="mode-toggle">
       <button class="ptab active" id="cards-mode-all" onclick="setCardsMode('all')" data-i18n="cards_mode_all">All</button>
@@ -551,6 +573,20 @@
   </div>
   
   <div class="writing-pane" id="wpane-history">
+    <div class="flex-gap-8 mb-3">
+      <input type="date" id="history-filter-date" class="score-input flex-1">
+      <select id="history-filter-type" class="score-input flex-1">
+        <option value="all">すべての種類</option>
+        <option value="correct">添削</option>
+        <option value="analyze">構文解析</option>
+        <option value="paraphrase">言い換え</option>
+        <option value="essay">エッセイ</option>
+      </select>
+      <select id="history-filter-score" class="score-input flex-1">
+        <option value="all">すべてのスコア</option>
+        <option value="under80">80点以下</option>
+      </select>
+    </div>
     <div id="writing-history-list"></div>
   </div>
 </div>
@@ -615,7 +651,16 @@
       <div class="chat-input-row"><textarea id="subject-photo-extra" placeholder="追加コメント..." data-i18n-placeholder="subj_file_extra" rows="1" oninput="autoResize(this)"></textarea><button class="chat-send-btn" onclick="sendSubjectPhotoMessage()" data-i18n="subj_btn_send">送信</button></div>
     </div>
   </div>
-  <div id="subject-history-view" class="hidden"><div id="subject-saved-list"></div></div>
+  <div id="subject-history-view" class="hidden">
+    <div class="flex-between mb-3">
+      <select id="subject-folder-select" class="score-input flex-1 mr-2">
+        <option value="all">すべてのフォルダ</option>
+        <option value="uncategorized">未分類</option>
+      </select>
+      <button class="btn-pill btn-outline" onclick="createNewFolder()">+ フォルダ作成</button>
+    </div>
+    <div id="subject-saved-list"></div>
+  </div>
   <div id="subject-quiz-view" class="hidden"><div id="subject-quiz-start"><p class="section-note" data-i18n="subj_quiz_note">保存済みのQA履歴から復習クイズを生成</p><button class="action-btn" onclick="generateSubjectQuiz()" data-i18n="subj_quiz_btn">問題を生成</button><div id="subject-quiz-history-list" class="mt-4 pt-3 border-top"></div></div><div id="subject-quiz-area" class="hidden"></div></div>
 </div>
 
@@ -639,15 +684,25 @@
         <button class="btn-pill bg-accent2 text-bg border-none" onclick="rebuildScheduleAI()" data-i18n="plan_rebuild_btn">AI再構築</button>
       </div>
       <div id="plan-content" class="mb-2"></div>
-      <div class="plan-add-row mt-0">
+      <div class="plan-add-row mt-0 flex-wrap">
         <input type="text" id="new-plan-input" placeholder="予定を追加..." data-i18n-placeholder="plan_plan_input" onkeydown="if(event.key==='Enter')addPlanDatePlan()">
         <input type="text" id="new-plan-time" placeholder="時間" class="plan-time-input w-60" data-i18n-placeholder="plan_plan_time">
-        <select id="new-plan-routine" class="score-input w-auto p-8 text-xs">
-          <option value="none">Once</option>
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
+        <select id="new-plan-routine" class="score-input w-auto p-8 text-xs" onchange="toggleRoutineDays(this.value)">
+          <option value="none">1回のみ</option>
+          <option value="daily">毎日</option>
+          <option value="weekly">毎週</option>
+          <option value="monthly">毎月</option>
         </select>
         <button onclick="addPlanDatePlan()" class="add-btn" data-i18n="plan_plan_add">追加</button>
+        <div id="routine-days-selector" class="hidden flex-gap-wrap mt-2 w-full">
+          <label class="text-xs"><input type="checkbox" value="1"> 月</label>
+          <label class="text-xs"><input type="checkbox" value="2"> 火</label>
+          <label class="text-xs"><input type="checkbox" value="3"> 水</label>
+          <label class="text-xs"><input type="checkbox" value="4"> 木</label>
+          <label class="text-xs"><input type="checkbox" value="5"> 金</label>
+          <label class="text-xs"><input type="checkbox" value="6"> 土</label>
+          <label class="text-xs"><input type="checkbox" value="0"> 日</label>
+        </div>
       </div>
     </div>
     <div class="card" id="textbook-card"><p class="text-sm font-bold mb-2" data-i18n="plan_book_title">使用参考書</p><div id="textbook-chips" class="flex-gap-wrap mb-2"></div><div class="plan-add-row"><input type="text" id="new-textbook-input" placeholder="参考書追加" data-i18n-placeholder="plan_book_input" onkeydown="if(event.key==='Enter')addTextbook()"><button onclick="addTextbook()" class="add-btn" data-i18n="plan_book_add">追加</button></div></div>
@@ -659,7 +714,7 @@
         <p class="text-sm font-bold" data-i18n="plan_yearly_main">年間大目標</p>
         <button class="btn-pill btn-outline" onclick="generateMilestonesAI()" data-i18n="plan_yearly_milestone">AIマイルストーン分割</button>
       </div>
-      <input type="text" id="yearly-main-goal" class="score-input" placeholder="例: 第一志望校合格、TOEIC 800点" data-i18n-placeholder="plan_yearly_placeholder">
+      <input type="text" id="yearly-main-goal" class="score-input" placeholder="例: 第一志望校合格、TOEIC 800点" data-i18n-placeholder="plan_yearly_placeholder" oninput="saveYearlyPlanDebounced()">
     </div>
     <div class="yearly-plan-grid" id="yearly-months-grid"></div>
   </div>
@@ -692,7 +747,7 @@
   </div>
 
   <div id="plan-ai-area" class="hidden">
-    <div class="card mb-3" id="plan-profile-card"><div class="flex-between mb-3"><p class="text-xs font-bold text-muted" data-i18n="plan_ai_prof">プロフィール</p><button onclick="toggleProfileCard()" id="profile-toggle-btn" class="btn-pill btn-outline" data-i18n="plan_ai_prof_toggle">折りたたむ</button></div><div id="profile-fields"><div class="mb-2"><label class="text-xs font-bold text-muted mb-1 block" data-i18n="plan_ai_univ">志望校</label><input type="text" id="profile-target-univ" class="score-input"></div><div class="mb-2"><label class="text-xs font-bold text-muted mb-1 block" data-i18n="plan_ai_grade">学年</label><input type="text" id="profile-grade" class="score-input"></div><div class="mb-1"><label class="text-xs font-bold text-muted mb-1 block" data-i18n="plan_ai_course">塾・講座</label><textarea id="profile-courses" class="score-input h-72 no-resize"></textarea></div></div></div>
+    <div class="card mb-3" id="plan-profile-card"><div class="flex-between mb-3"><p class="text-xs font-bold text-muted" data-i18n="plan_ai_prof">プロフィール</p><button onclick="toggleProfileCard()" id="profile-toggle-btn" class="btn-pill btn-outline" data-i18n="plan_ai_prof_toggle">折りたたむ</button></div><div id="profile-fields"><div class="mb-2"><label class="text-xs font-bold text-muted mb-1 block" data-i18n="plan_ai_univ">志望校</label><input type="text" id="profile-target-univ" class="score-input" oninput="saveProfileDebounced()"></div><div class="mb-2"><label class="text-xs font-bold text-muted mb-1 block" data-i18n="plan_ai_grade">学年</label><input type="text" id="profile-grade" class="score-input" oninput="saveProfileDebounced()"></div><div class="mb-1"><label class="text-xs font-bold text-muted mb-1 block" data-i18n="plan_ai_course">塾・講座</label><textarea id="profile-courses" class="score-input h-72 no-resize" oninput="saveProfileDebounced()"></textarea></div></div></div>
     <div class="flex-gap-8 mb-3">
       <button class="action-btn mb-0 flex-1 bg-accent2" onclick="generateRoadmapReport()" data-i18n="plan_ai_sim">Simulator</button>
       <button class="action-btn mb-0 flex-1 bg-purple" onclick="generatePersonalizedExam()" data-i18n="plan_ai_exam">Custom Exam</button>
@@ -733,8 +788,9 @@
   <p class="page-title">Mistakes</p>
   <div class="mode-toggle mb-3">
     <button class="ptab active" id="mistake-tab-saved" onclick="switchMistakeTab('saved')">Saved</button>
-    <button class="ptab" id="mistake-tab-calc" onclick="switchMistakeTab('calc')">Calculation</button>
     <button class="ptab" id="mistake-tab-exam" onclick="switchMistakeTab('exam')">Exam</button>
+    <button class="ptab" id="mistake-tab-calc" onclick="switchMistakeTab('calc')">Calculation</button>
+    <button class="ptab" id="mistake-tab-other" onclick="switchMistakeTab('other')">Other</button>
   </div>
   
   <div id="mistake-area-saved" class="mistake-sub-area">
@@ -743,24 +799,67 @@
     </div>
   </div>
   
+  <div id="mistake-area-exam" class="mistake-sub-area hidden">
+    <div class="card mb-3">
+      <p class="text-sm font-bold mb-2">模試・テストでのミスを追加</p>
+      <input type="text" id="exam-mistake-name" class="score-input mb-2" placeholder="模試名・テスト名">
+      
+      <p class="text-xs font-bold text-muted mb-1">① 問題の概要</p>
+      <textarea id="exam-mistake-q-desc" class="score-input mb-2 h-72" placeholder="どのような問題だったか"></textarea>
+      
+      <p class="text-xs font-bold text-muted mb-1">② 自分の誤答</p>
+      <textarea id="exam-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="どう間違えたか"></textarea>
+      
+      <p class="text-xs font-bold text-muted mb-1">③ なぜ間違えたか (原因)</p>
+      <div class="flex-gap-wrap mb-2">
+        <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="mistake-cause-tag" value="careless"> ケアレスミス</label>
+        <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="mistake-cause-tag" value="knowledge"> 知識不足</label>
+        <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="mistake-cause-tag" value="time"> 時間不足</label>
+        <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="mistake-cause-tag" value="reading"> 読解ミス</label>
+        <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="mistake-cause-tag" value="calculation"> 計算ミス</label>
+      </div>
+      <textarea id="exam-mistake-reason" class="score-input mb-2 h-72" placeholder="具体的な原因の深掘り"></textarea>
+      
+      <p class="text-xs font-bold text-muted mb-1">④ 次どうするか (対策)</p>
+      <textarea id="exam-mistake-action" class="score-input mb-3 h-72" placeholder="同じミスを防ぐための具体的なアクション"></textarea>
+      
+      <button class="action-btn mb-0" onclick="addExamMistake()">追加</button>
+    </div>
+    
+    <div class="card mb-3">
+      <p class="text-sm font-bold mb-2">ミスの傾向分析</p>
+      <div class="chart-container-220"><canvas id="mistake-radar-chart"></canvas></div>
+      <button class="action-btn btn-secondary mt-3 mb-0" onclick="generateMistakeRootCauseReport()">AI 根本原因レポート生成</button>
+      <div id="mistake-root-cause-report" class="mt-3"></div>
+    </div>
+
+    <div id="mistake-exam-list" class="flex-col gap-6"></div>
+  </div>
+
   <div id="mistake-area-calc" class="mistake-sub-area hidden">
     <div class="card mb-3">
-      <p class="text-sm font-bold mb-2">Add Calculation Mistake</p>
-      <textarea id="calc-mistake-input" class="score-input mb-2 h-72" placeholder="Describe your calculation mistake..."></textarea>
-      <button class="action-btn mb-0" onclick="addCalcMistake()">Add</button>
+      <p class="text-sm font-bold mb-2">計算ミスの記録を追加</p>
+      <input type="text" id="calc-mistake-name" class="score-input mb-2" placeholder="問題名・テスト名">
+      <textarea id="calc-mistake-q-desc" class="score-input mb-2 h-72" placeholder="どのような計算問題だったか"></textarea>
+      <textarea id="calc-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="どう間違えたか (例: 符号ミス、約分忘れ)"></textarea>
+      <textarea id="calc-mistake-reason" class="score-input mb-2 h-72" placeholder="なぜ間違えたか"></textarea>
+      <textarea id="calc-mistake-action" class="score-input mb-3 h-72" placeholder="次どうするか (対策)"></textarea>
+      <button class="action-btn mb-0" onclick="addCalcMistake()">追加</button>
     </div>
     <div id="mistake-calc-list" class="flex-col gap-6"></div>
   </div>
-  
-  <div id="mistake-area-exam" class="mistake-sub-area hidden">
+
+  <div id="mistake-area-other" class="mistake-sub-area hidden">
     <div class="card mb-3">
-      <p class="text-sm font-bold mb-2">Add Exam Mistake</p>
-      <input type="text" id="exam-mistake-name" class="score-input mb-2" placeholder="Exam Name">
-      <textarea id="exam-mistake-question" class="score-input mb-2 h-72" placeholder="Question Details..."></textarea>
-      <textarea id="exam-mistake-reason" class="score-input mb-2 h-72" placeholder="Why did you make a mistake?"></textarea>
-      <button class="action-btn mb-0" onclick="addExamMistake()">Add</button>
+      <p class="text-sm font-bold mb-2">その他のミスの記録を追加</p>
+      <input type="text" id="other-mistake-name" class="score-input mb-2" placeholder="問題名・テスト名">
+      <textarea id="other-mistake-q-desc" class="score-input mb-2 h-72" placeholder="どのような問題だったか"></textarea>
+      <textarea id="other-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="どう間違えたか"></textarea>
+      <textarea id="other-mistake-reason" class="score-input mb-2 h-72" placeholder="なぜ間違えたか"></textarea>
+      <textarea id="other-mistake-action" class="score-input mb-3 h-72" placeholder="次どうするか (対策)"></textarea>
+      <button class="action-btn mb-0" onclick="addOtherMistake()">追加</button>
     </div>
-    <div id="mistake-exam-list" class="flex-col gap-6"></div>
+    <div id="mistake-other-list" class="flex-col gap-6"></div>
   </div>
 </div>
 
@@ -780,6 +879,21 @@
   <div class="card mb-4">
     <p class="text-xs font-bold text-muted mb-2" data-i18n="manage_log_title">学習データの管理</p>
     <button class="manage-btn mb-0" onclick="openLogListModal()" data-i18n="manage_log_btn">学習記録（ログ）の一覧・編集</button>
+  </div>
+
+  <div class="card mb-4">
+    <p class="text-xs font-bold text-muted mb-2">科目ごとの週間目標時間 (分)</p>
+    <div class="flex-gap-8 mb-2">
+      <input type="number" id="goal-time-english" class="score-input flex-1" placeholder="英語">
+      <input type="number" id="goal-time-math" class="score-input flex-1" placeholder="数学">
+      <input type="number" id="goal-time-japanese" class="score-input flex-1" placeholder="国語">
+    </div>
+    <div class="flex-gap-8 mb-2">
+      <input type="number" id="goal-time-science" class="score-input flex-1" placeholder="理科">
+      <input type="number" id="goal-time-social" class="score-input flex-1" placeholder="社会">
+      <input type="number" id="goal-time-other" class="score-input flex-1" placeholder="その他">
+    </div>
+    <button class="action-btn mb-0" onclick="saveGoalTimes()">保存</button>
   </div>
 
   <div class="card mb-4">
@@ -864,7 +978,7 @@
       <button class="action-btn mb-0 flex-1 btn-auto-width" onclick="saveReminderSettings()" data-i18n="manage_remind_btn">設定・許可</button>
     </div>
     <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-2">
-      <input type="checkbox" id="ai-notification-timing" style="width:16px;height:16px;accent-color:var(--accent);">
+      <input type="checkbox" id="ai-notification-timing" style="width:16px;height:16px;accent-color:var(--accent);" onchange="saveReminderSettings()">
       <span data-i18n="manage_remind_ai">AIが最適な通知タイミングを自動調整する</span>
     </label>
     <div class="text-sm text-sub mb-4" id="reminder-status-text" data-i18n="manage_remind_status">未設定</div>
@@ -946,6 +1060,25 @@
       <p class="text-xs font-bold text-muted mb-2" data-i18n="modal_detail_chart">記憶の減衰グラフ (忘却曲線)</p>
       <div class="chart-container-180"><canvas id="word-retention-chart"></canvas></div>
     </div>
+    <div id="word-fsrs-edit-container" class="card mt-3">
+      <p class="text-xs font-bold text-muted mb-2">FSRSデータ手動調整</p>
+      <div class="flex-gap-8 align-center mb-2">
+        <span class="text-xs w-50">定着度:</span>
+        <input type="number" id="fsrs-edit-stability" class="score-input flex-1" step="0.1">
+      </div>
+      <div class="flex-gap-8 align-center mb-2">
+        <span class="text-xs w-50">難易度:</span>
+        <input type="number" id="fsrs-edit-difficulty" class="score-input flex-1" step="0.1" min="1" max="10">
+      </div>
+      <div class="flex-gap-8 align-center mb-2">
+        <span class="text-xs w-50">次回:</span>
+        <input type="date" id="fsrs-edit-next" class="score-input flex-1">
+      </div>
+      <div class="flex-gap-8">
+        <button class="action-btn mb-0 flex-1 btn-sm" onclick="saveFsrsEdit()">保存</button>
+        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="resetFsrsData()">リセット</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -969,7 +1102,15 @@
       <option value="math">数学</option><option value="science">理科</option>
       <option value="social">社会</option><option value="other">その他</option>
     </select>
-    <input type="number" id="edit-log-min" class="score-input mb-3" placeholder="学習時間(分)">
+    <div class="flex-gap-8 align-center mb-2">
+      <input type="time" id="edit-log-start-time" class="score-input flex-1">
+      <span>〜</span>
+      <input type="time" id="edit-log-end-time" class="score-input flex-1">
+    </div>
+    <div class="flex-gap-8 align-center mb-3">
+      <span class="text-xs text-muted">または</span>
+      <input type="number" id="edit-log-min" class="score-input w-70" placeholder="分">
+    </div>
     <button class="action-btn mb-0" onclick="saveEditedLog()" data-i18n="modal_log_edit_save">保存</button>
   </div>
 </div>
@@ -1101,6 +1242,14 @@
           <option value="math" data-i18n="modal_log_add_subj_math">数学</option><option value="science" data-i18n="modal_log_add_subj_sci">理科</option>
           <option value="social" data-i18n="modal_log_add_subj_soc">社会</option><option value="other" data-i18n="modal_log_add_subj_other">その他</option>
         </select>
+      </div>
+      <div class="flex-gap-8 align-center mb-2">
+        <input type="time" id="log-modal-start-time" class="score-input flex-1">
+        <span>〜</span>
+        <input type="time" id="log-modal-end-time" class="score-input flex-1">
+      </div>
+      <div class="flex-gap-8 align-center mb-2">
+        <span class="text-xs text-muted">または</span>
         <input type="number" id="log-modal-min" class="score-input w-70" placeholder="分" data-i18n-placeholder="modal_log_add_min">
         <button class="action-btn mb-0 btn-auto-width" onclick="addStudyLogManual()" data-i18n="modal_log_add_btn">追加</button>
       </div>
@@ -1236,6 +1385,11 @@
     <p class="text-sm text-muted mb-3" data-i18n="modal_widget_note">ダッシュボードに表示する項目をON/OFFできます。</p>
     <div id="widget-settings-list" class="flex-col gap-3 mb-4">
     </div>
+    <p class="text-xs font-bold text-muted mb-2 mt-4">レイアウト設定</p>
+    <select id="widget-column-select" class="score-input mb-3">
+      <option value="1">1カラム表示</option>
+      <option value="2">2カラム表示 (PC/タブレット推奨)</option>
+    </select>
     <button class="action-btn mb-0" onclick="saveWidgetSettings()" data-i18n="modal_widget_save">保存</button>
   </div>
 </div>
@@ -1245,6 +1399,10 @@
   <div class="modal-sheet max-h-92vh" style="height: 90vh; display: flex; flex-direction: column;">
     <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('pdf-reader-modal')">✕</button>
     <p class="font-bold mb-3 text-lg" data-i18n="modal_pdf_title">PDF / EPUB リーダー</p>
+    <div class="flex-gap-8 mb-2">
+      <button class="btn-pill btn-outline" onclick="togglePdfHighlightMode()">ハイライト: OFF</button>
+      <button class="btn-pill btn-outline" onclick="addPdfNote()">メモを追加</button>
+    </div>
     <label class="writing-upload-btn mb-3" for="pdf-reader-input">
       <span class="mb-1 font-bold" data-i18n="modal_pdf_select">[ PDFファイルを選択 ]</span>
       <input type="file" id="pdf-reader-input" accept="application/pdf" class="hidden" onchange="loadPdfFile(event)" onclick="this.value=null">
@@ -1272,6 +1430,21 @@
     <div class="card">
       <p class="text-xs font-bold text-muted mb-1" data-i18n="modal_shadow_user">あなたの波形</p>
       <canvas id="shadowing-user-canvas" style="width:100%; height:60px; background:var(--bg2); border-radius:4px;"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 画像トリミングモーダル -->
+<div class="modal-overlay" id="image-crop-modal" onclick="if(event.target===this) closeModal('image-crop-modal')">
+  <div class="modal-sheet max-h-92vh" style="height: 90vh; display: flex; flex-direction: column;">
+    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('image-crop-modal')">✕</button>
+    <p class="font-bold mb-3 text-lg">画像のトリミング</p>
+    <div class="flex-1" style="min-height: 0; background: #000;">
+      <img id="image-crop-target" style="max-width: 100%; display: block;">
+    </div>
+    <div class="flex-gap-8 mt-3">
+      <button class="action-btn mb-0 flex-1 btn-secondary" onclick="closeModal('image-crop-modal')">キャンセル</button>
+      <button class="action-btn mb-0 flex-1" onclick="applyImageCrop()">切り抜く</button>
     </div>
   </div>
 </div>
