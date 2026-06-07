@@ -737,6 +737,19 @@ const updateFsrsRetention = (val) => { fsrsRetention = Math.min(99, parseInt(val
 const saveGeminiModel = () => { localStorage.setItem('study_gemini_model', $('gemini-model-select').value); showToast('変更済'); };
 const initModelSelect = () => { const s = $('gemini-model-select'); if (s) s.value = localStorage.getItem('study_gemini_model') || 'gemini-2.5-flash'; };
 
+window.saveApiKey = () => {
+  const input = $('gemini-api-key-input');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val) {
+    localStorage.setItem('study_gemini_api_key', val);
+    showToast('API Keyを保存しました');
+  } else {
+    localStorage.removeItem('study_gemini_api_key');
+    showToast('API Keyを削除しました');
+  }
+};
+
 // ============================================================
 // [5] FSRS ALGORITHM
 // ============================================================
@@ -4386,6 +4399,11 @@ const triggerTabEffects = (id) => {
   if (id === 'CustomCards') ccInitDecks();
   if (id === 'Manage') {
     updateFooter(); updateAutoSyncBtn(); initModelSelect(); renderBackupList();
+    
+    // API Keyの読み込み
+    const apiKeyInput = $('gemini-api-key-input');
+    if (apiKeyInput) apiKeyInput.value = localStorage.getItem('study_gemini_api_key') || '';
+    
     if (userProfile.reminderTime) $('reminder-time').value = userProfile.reminderTime;
     if ($('ai-notification-timing')) $('ai-notification-timing').checked = userProfile.aiNotificationTiming;
     if (fsrsRetention) { $('fsrs-retention-slider').value = fsrsRetention; $('fsrs-retention-label').textContent = fsrsRetention + '%'; }
@@ -4542,3 +4560,4 @@ async function initAppData() {
 const getISOWeek = date => { const d = new Date(date.getTime()); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7); };
 
 window.addEventListener('DOMContentLoaded', initAppData);
+
