@@ -333,7 +333,7 @@ let currentTabIndex = 0;
 let timerPresets = safeGet('study_timer_presets', [1500, 3000]);
 let darkThemeMode = safeGet('study_dark_mode', 'auto');
 let fsrsRetention = safeGet('study_fsrs_retention', 90);
-let cachedWotd = safeGet('study_wotd_cache', { date: '', word: null, exampleHtml: '' });
+let cachedWotd = safeGet('study_wotd_cache', { date: '', word: null, exampleHtml: '', meaning: '' });
 let cachedQuote = safeGet('study_quote_cache', { date: '', text: '', author: '', explanation: '' });
 let activeWidgets = safeGet('study_active_widgets', ['wotd', 'hero', 'quote', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'subj-chart', 'heatmap', 'calendar', 'quick-capture-inbox', 'today-plan', 'today-log']);
 let widgetColumnMode = safeGet('study_widget_column_mode', '1');
@@ -1665,6 +1665,7 @@ const renderDashboardCalendar = () => {
   }
   const cd = $('cal-days'); if (cd) cd.innerHTML = html;
 };
+
 // ============================================================
 // [10] VOCAB
 // ============================================================
@@ -1685,25 +1686,54 @@ const renderWordOfTheDay = async () => {
   else {
     const seed = parseInt(today.replace(/-/g, ''), 10), sortedWords = [...ALL_WORDS].sort((a, b) => a.word.localeCompare(b.word));
     wotdIndex = seed % sortedWords.length; w = sortedWords[wotdIndex];
-    cachedWotd = { date: today, word: w, exampleHtml: '' }; safeSet('study_wotd_cache', cachedWotd);
+    cachedWotd = { date: today, word: w, exampleHtml: '', meaning: '' }; safeSet('study_wotd_cache', cachedWotd);
   }
-  $('wotd-word').textContent = w.word; $('wotd-meaning').textContent = w.meaning || '意味解析中...'; $('wotd-speak').onclick = () => speakWord(w.word);
+  
+  $('wotd-word').textContent = w.word; 
+  $('wotd-meaning').textContent = w.meaning || cachedWotd.meaning || '意味解析中...'; 
+  $('wotd-speak').onclick = () => speakWord(w.word);
+  
   const isSaved = savedWords.includes(w.word), sBtn = $('wotd-save-btn');
   sBtn.textContent = isSaved ? (customTexts['dash_wotd_saved'] || '保存済') : (customTexts['dash_wotd_save'] || 'Vocabに追加'); 
   sBtn.className = `action-btn mb-0 flex-1 btn-md ${isSaved ? 'btn-secondary' : ''}`;
   sBtn.onclick = () => { toggleWordSave(w.word); renderWordOfTheDay(); };
 
   const exBox = $('wotd-example');
-  if (cachedWotd.exampleHtml) { exBox.innerHTML = cachedWotd.exampleHtml; } 
-  else {
+  if (cachedWotd.exampleHtml) { 
+    exBox.innerHTML = cachedWotd.exampleHtml; 
+    if(!w.meaning && cachedWotd.meaning) {
+       w.meaning = cachedWotd.meaning;
+       $('wotd-meaning').textContent = w.meaning;
+       save.words();
+    }
+  } else {
     exBox.innerHTML = '<span class="loading-dots"></span>';
     try {
-      const rep = await callGemini([{ role: 'user', content: `英単語「${w.word}」のシンプルで分かりやすい英語の例文を1つと、その自然な和訳を生成してください。客観的な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。改行で区切ってテキストのみで出力。` }], 300);
-      const html = clean(rep.trim().replace(/\n/g, '<br>')); exBox.innerHTML = html; cachedWotd.exampleHtml = html; safeSet('study_wotd_cache', cachedWotd);
+      const prompt = `英単語「${w.word}」の主要な意味を簡潔に1〜2語で、またシンプルで分かりやすい英語の例文を1つとその自然な和訳を生成し、以下のJSON形式で出力してください。
+{"meaning": "主な意味", "exampleHtml": "例文<br>和訳"}`;
+      const rep = await callGemini([{ role: 'user', content: prompt }], 300, '', true);
+      const json = extractJSON(rep);
+      if (json && json.exampleHtml) {
+        const html = clean(json.exampleHtml); 
+        exBox.innerHTML = html; 
+        cachedWotd.exampleHtml = html; 
+        if (json.meaning) {
+          cachedWotd.meaning = json.meaning;
+          if (!w.meaning) {
+            w.meaning = json.meaning;
+            $('wotd-meaning').textContent = w.meaning;
+            save.words();
+          }
+        }
+        safeSet('study_wotd_cache', cachedWotd);
+      } else {
+        throw new Error('Invalid JSON');
+      }
     } catch (e) { 
       const fallbackMeaning = await fetchFreeDictFallback(w.word);
       if (fallbackMeaning) {
         exBox.innerHTML = `[Fallback] ${esc(fallbackMeaning)}`;
+        if (!w.meaning) { w.meaning = fallbackMeaning; $('wotd-meaning').textContent = w.meaning; save.words(); }
       } else {
         exBox.textContent = '例文の取得に失敗しました。'; 
       }
@@ -1711,7 +1741,7 @@ const renderWordOfTheDay = async () => {
   }
   applyCustomTexts();
 };
-const nextWordOfTheDay = () => { if (!ALL_WORDS.length) return; const w = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)]; cachedWotd = { date: todayDateStr(), word: w, exampleHtml: '' }; safeSet('study_wotd_cache', cachedWotd); renderWordOfTheDay(); };
+const nextWordOfTheDay = () => { if (!ALL_WORDS.length) return; const w = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)]; cachedWotd = { date: todayDateStr(), word: w, exampleHtml: '', meaning: '' }; safeSet('study_wotd_cache', cachedWotd); renderWordOfTheDay(); };
 
 const toggleWordSave = w => { const idx = savedWords.indexOf(w), add = idx === -1; if (add) savedWords.push(w); else savedWords.splice(idx, 1); save.saved(); showToast(add ? '保存' : '解除'); document.querySelectorAll(`[data-word="${CSS.escape(w)}"]`).forEach(b => { b.className = add ? 'save-btn saved' : 'save-btn unsaved'; b.textContent = add ? '保存済' : '保存'; }); };
 const getWordProgress = w => wordProgress[w.toLowerCase()] || 'new';
@@ -1821,11 +1851,11 @@ const searchWord = async (isSuggest = false) => {
   
   const fd = ALL_WORDS.find(x => x.word.toLowerCase() === w.toLowerCase()), hint = fd && fd.meaning ? `（基本意味: ${fd.meaning}）` : '';
   try {
-    const prompt = `英単語「${w}」${hint}について、単語帳形式で客観的に解説してください。挨拶や語りかけは一切不要です。HTMLのみで出力し、以下のh4見出しを必ず含めてください。
+    const prompt = `英単語「${w}」${hint}について、単語帳形式で客観的に解説してください。挨拶や語りかけは一切不要です。HTMLのみで出力し、以下のh4見出しを必ず含めてください。特に「意味・よく使われる表現」と「派生語」については、細かいニュアンスや品詞ごとの意味、考えられるすべての派生語をもれなく網羅して詳細に書き出してください。
 見出し:
-<h4>意味・よく使われる表現</h4> (多義語の場合は全て網羅し、熟語も記載)
+<h4>意味・よく使われる表現</h4> (多義語の場合は全て網羅し、熟語も詳細に記載)
 <h4>語源</h4>
-<h4>派生語</h4>
+<h4>派生語</h4> (もれなく全て書き出すこと)
 <h4>類義語</h4> (語源も簡潔に)
 <h4>対義語</h4> (語源も簡潔に)`;
     
@@ -1859,11 +1889,11 @@ window.regenerateWordDetail = async (w) => {
   if (!mc) return;
   mc.innerHTML = '<div class="text-center p-20"><span class="loading-dots">AIが再生成中</span></div>';
   try {
-    const prompt = `英単語「${w}」について、単語帳形式で客観的に解説してください。挨拶や語りかけは一切不要です。HTMLのみで出力し、以下のh4見出しを必ず含めてください。
+    const prompt = `英単語「${w}」について、単語帳形式で客観的に解説してください。挨拶や語りかけは一切不要です。HTMLのみで出力し、以下のh4見出しを必ず含めてください。特に「意味・よく使われる表現」と「派生語」については、細かいニュアンスや品詞ごとの意味、考えられるすべての派生語をもれなく網羅して詳細に書き出してください。
 見出し:
-<h4>意味・よく使われる表現</h4> (多義語の場合は全て網羅し、熟語も記載)
+<h4>意味・よく使われる表現</h4> (多義語の場合は全て網羅し、熟語も詳細に記載)
 <h4>語源</h4>
-<h4>派生語</h4>
+<h4>派生語</h4> (もれなく全て書き出すこと)
 <h4>類義語</h4> (語源も簡潔に)
 <h4>対義語</h4> (語源も簡潔に)`;
     const html = await callGemini([{ role: 'user', content: prompt }], 2000);
@@ -1937,9 +1967,7 @@ window.showWordModal = async (w, m) => {
   }
   
   const imgContainer = $('modal-image-container');
-  if (imgContainer) {
-    imgContainer.innerHTML = `<img src="https://image.pollinations.io/prompt/${encodeURIComponent(w)}?width=300&height=150&nologo=true" style="border-radius: 8px; max-width: 100%; opacity: 0.8;" onerror="this.style.display='none'">`;
-  }
+  if (imgContainer) imgContainer.innerHTML = '';
 };
 
 window.saveFsrsEdit = () => {
@@ -2194,14 +2222,15 @@ const renderCard = () => {
   if (cw) cw.textContent = c.word; 
   
   let backHtml = '';
-  if (c.meaning) backHtml += `<div class="flip-meaning">${esc(c.meaning)}</div>`;
+  // ネストによる表示崩れを防ぐため、単純な div に変更
+  if (c.meaning) backHtml += `<div>${esc(c.meaning)}</div>`;
   
   const showEx = $('card-show-example') && $('card-show-example').checked;
   const showImg = $('card-show-image') && $('card-show-image').checked;
   const showNote = $('card-show-note') && $('card-show-note').checked;
   
-  if (showEx && c.example) backHtml += `<div class="text-sm text-muted italic mt-2">${esc(c.example)}</div>`;
-  if (showNote && c.note) backHtml += `<div class="text-xs text-sub mt-2 pt-2 border-top border-dashed">${esc(c.note)}</div>`;
+  if (showEx && c.example) backHtml += `<div class="text-sm text-muted italic mt-2" style="font-weight:400; line-height:1.4;">${esc(c.example)}</div>`;
+  if (showNote && c.note) backHtml += `<div class="text-xs text-sub mt-2 pt-2 border-top border-dashed" style="font-weight:400;">${esc(c.note)}</div>`;
   
   if (cm) cm.innerHTML = backHtml || '—';
   if (ci) ci.textContent = currentCardIdx + 1; if (ct) ct.textContent = cardList.length;
@@ -2473,7 +2502,7 @@ const renderDaily = () => {
       html += tasks.map(task => { 
         let qHtml = task.question;
         if (currentDailyTab === 'reading') {
-          // 段落ごとに和訳を隠す処理 (AIが <div class="translation hidden"> を出力する前提)
+          // 段落ごとに和訳を隠す処理
           qHtml = qHtml.replace(/<div class="translation hidden" id="([^"]+)">/g, '<button class="btn-text-muted mt-1 mb-2" onclick="toggleReadingTranslation(\'$1\')">和訳を表示</button><div class="translation hidden text-sm text-sub bg-main p-10 radius-sm mb-3" id="$1">');
         }
         
@@ -4315,19 +4344,6 @@ window.generateStory = async () => {
   finally { ld.classList.add('hidden'); }
 };
 
-window.openImageGalleryModal = () => {
-  if(!cardList.length) return;
-  const w = cardList[currentCardIdx].word;
-  openModal('image-gallery-modal');
-  const grid = $('image-gallery-grid');
-  grid.innerHTML = `
-    <img src="https://image.pollinations.io/prompt/${encodeURIComponent(w + ' concept art')}?width=300&height=300&nologo=true&seed=1" style="width:100%; border-radius:8px;">
-    <img src="https://image.pollinations.io/prompt/${encodeURIComponent(w + ' realistic')}?width=300&height=300&nologo=true&seed=2" style="width:100%; border-radius:8px;">
-    <img src="https://image.pollinations.io/prompt/${encodeURIComponent(w + ' illustration')}?width=300&height=300&nologo=true&seed=3" style="width:100%; border-radius:8px;">
-    <img src="https://image.pollinations.io/prompt/${encodeURIComponent(w + ' minimal')}?width=300&height=300&nologo=true&seed=4" style="width:100%; border-radius:8px;">
-  `;
-};
-
 window.openTagManagerModal = () => {
   openModal('tag-manager-modal');
   const tags = new Set();
@@ -4542,4 +4558,3 @@ async function initAppData() {
 const getISOWeek = date => { const d = new Date(date.getTime()); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7); };
 
 window.addEventListener('DOMContentLoaded', initAppData);
-
