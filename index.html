@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1052,10 +1053,6 @@
     <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('detail-modal')" data-i18n="modal_close">✕</button>
     <div id="modal-body"></div>
     <div id="modal-image-container" class="mb-3 text-center"></div>
-    <div class="flex-gap-8 mb-3">
-      <button class="action-btn btn-secondary mb-0 flex-1" onclick="openWordMapModal()" data-i18n="modal_detail_map">単語マップ</button>
-      <button class="action-btn btn-secondary mb-0 flex-1" onclick="openImageGalleryModal()" data-i18n="modal_detail_gallery">画像ギャラリー</button>
-    </div>
     <div id="word-retention-chart-container" class="card mt-3 hidden">
       <p class="text-xs font-bold text-muted mb-2" data-i18n="modal_detail_chart">記憶の減衰グラフ (忘却曲線)</p>
       <div class="chart-container-180"><canvas id="word-retention-chart"></canvas></div>
@@ -1269,16 +1266,6 @@
   </div>
 </div>
 
-<!-- 単語マップモーダル -->
-<div class="modal-overlay" id="word-map-modal" onclick="if(event.target===this) closeModal('word-map-modal')">
-  <div class="modal-sheet max-h-92vh">
-    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('word-map-modal')" data-i18n="modal_close">✕</button>
-    <p class="font-bold mb-3 text-lg" data-i18n="modal_map_title">単語マップ (類義語・派生語)</p>
-    <div id="word-map-container" style="width: 100%; height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); padding: 10px; word-wrap: break-word;"></div>
-    <p class="text-xs text-muted text-center mt-2" data-i18n="modal_map_note">※AIが関連語を分析してネットワーク図を生成します。</p>
-  </div>
-</div>
-
 <!-- テキストカスタマイズモーダル -->
 <div class="modal-overlay" id="text-customizer-modal" onclick="if(event.target===this) closeModal('text-customizer-modal')">
   <div class="modal-sheet max-h-92vh">
@@ -1332,16 +1319,6 @@
     <button class="action-btn mb-3 bg-blue" onclick="generateStory()" data-i18n="modal_story_btn">物語を生成する</button>
     <div id="story-loading" class="hidden text-center p-20"><span class="loading-dots">執筆中</span></div>
     <div id="story-result-area"></div>
-  </div>
-</div>
-
-<!-- 画像ギャラリーモーダル -->
-<div class="modal-overlay" id="image-gallery-modal" onclick="if(event.target===this) closeModal('image-gallery-modal')">
-  <div class="modal-sheet max-h-92vh">
-    <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('image-gallery-modal')">✕</button>
-    <p class="font-bold mb-3 text-lg" data-i18n="modal_gallery_title">画像ギャラリー</p>
-    <p class="text-sm text-muted mb-3" data-i18n="modal_gallery_note">視覚的なイメージで単語のニュアンスを掴みます。</p>
-    <div id="image-gallery-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
   </div>
 </div>
 
