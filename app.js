@@ -11,7 +11,8 @@ const clean = html => {
   if (window.DOMPurify) return DOMPurify.sanitize(html);
   const temp = document.createElement('div');
   temp.textContent = html;
-  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td)(.*?)&gt;/gi, '<$1$2$3>');
+  // buttonタグを許可（派生語追加ボタン等のため）
+  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td|button)(.*?)&gt;/gi, '<$1$2$3>');
 };
 
 const safeSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -47,7 +48,6 @@ const extractJSON = t => {
       let endIdx = Math.max(lastBrace, lastBracket);
       if (endIdx !== -1) cleanStr = cleanStr.substring(0, endIdx + 1);
     }
-    // 改行やタブを保持しつつ、制御文字のみを削除するよう修正
     cleanStr = cleanStr.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, "");
     return JSON.parse(cleanStr);
   } catch (err) {
@@ -144,7 +144,6 @@ const closeModal = id => {
   if (!document.querySelector('.modal-overlay.open')) {
     document.body.classList.remove('modal-open-locked');
   }
-  // Cropper.jsのメモリリーク対策
   if (id === 'image-crop-modal' && cropperInstance) {
     cropperInstance.destroy();
     cropperInstance = null;
@@ -312,7 +311,7 @@ window.resetCustomTexts = () => {
 // ============================================================
 // [2] CONSTANTS & STATE
 // ============================================================
-const TABS = ['Dashboard', 'Timer', 'ImportSearch', 'Vocab', 'Cards', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Mistakes', 'Manage'];
+const TABS = ['Dashboard', 'Timer', 'Vocab', 'Cards', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Mistakes', 'Manage'];
 const ACCENTS = ['en_US', 'en_GB', 'en_AU'];
 const ACCENT_LABELS = { en_US: 'アメリカ英語', en_GB: 'イギリス英語', en_AU: 'オーストラリア英語' };
 const SCORE_SUBJECTS = { japanese: { label: '国語', details: ['現代文', '古文', '漢文', '総合'] }, math: { label: '数学', details: ['数学I・A', '数学II・B', '数学III・C', '総合'] }, english: { label: '英語', details: ['リーディング', 'リスニング', 'ライティング', '総合'] }, science: { label: '理科', details: ['物理', '化学', '生物', '地学', '基礎', '総合'] }, social: { label: '社会', details: ['歴史', '地理', '公共', '倫理', '政経', '総合'] }, total: { label: '総合', details: ['文系', '理系', '全体'] } };
@@ -343,8 +342,7 @@ let timerPresets = safeGet('study_timer_presets', [1500, 3000]);
 let darkThemeMode = safeGet('study_dark_mode', 'auto');
 let fsrsRetention = safeGet('study_fsrs_retention', 90);
 let cachedWotd = safeGet('study_wotd_cache', { date: '', word: null, exampleHtml: '', meaning: '' });
-let cachedQuote = safeGet('study_quote_cache', { date: '', text: '', author: '', explanation: '' });
-let activeWidgets = safeGet('study_active_widgets', ['wotd', 'hero', 'quote', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'subj-chart', 'heatmap', 'calendar', 'quick-capture-inbox', 'today-plan', 'today-log']);
+let activeWidgets = safeGet('study_active_widgets', ['wotd', 'hero', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'subj-chart', 'heatmap', 'calendar', 'quick-capture-inbox', 'today-plan', 'today-log']);
 let widgetColumnMode = safeGet('study_widget_column_mode', '1');
 let shuffleSettings = safeGet('study_shuffle_settings', { mode: 'random' });
 
@@ -352,7 +350,6 @@ let reminderCheckInt = null;
 let swipeStartX = 0, swipeStartY = 0;
 let _audioUnlocked = false;
 let mBtn = null, rec = null, aInp = null;
-let wotdIndex = -1;
 let dashSubjChart = null, dashSrsChart = null, dashSrsScatter = null, wordRetentionChart = null, dashWeeklyChart = null, simulationChart = null, dashRadarChart = null, dashStabilityChart = null, mistakeRadarChart = null;
 let weaknessWords = [];
 let vocabPosFilter = 'all', vocabProgFilter = 'all', vocabTagFilter = 'all', vocabPrefixFilter = '';
@@ -679,8 +676,8 @@ const applyTheme = () => {
   Chart.defaults.borderColor = isD ? '#3E3C37' : '#E2DFD8';
   
   if (currentTabIndex === 0) renderDashboard();
-  if (currentTabIndex === 8 && planMode === 'score') renderScoreChart();
-  if (currentTabIndex === 9 && mistakeTab === 'exam') renderMistakeRadarChart();
+  if (currentTabIndex === 7 && planMode === 'score') renderScoreChart();
+  if (currentTabIndex === 8 && mistakeTab === 'exam') renderMistakeRadarChart();
 };
 const toggleDark = () => { darkThemeMode = darkThemeMode === 'auto' ? 'dark' : darkThemeMode === 'dark' ? 'light' : 'auto'; safeSet('study_dark_mode', darkThemeMode); applyTheme(); };
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (darkThemeMode === 'auto') applyTheme(); });
@@ -1195,7 +1192,6 @@ window.openWidgetSettingsModal = () => {
   const allWidgets = [
     { id: 'wotd', name: '今日の単語' },
     { id: 'hero', name: '総学習時間・ランク' },
-    { id: 'quote', name: '今日の名言' },
     { id: 'countdown', name: '目標カウントダウン' },
     { id: 'yearly', name: '今月の目標' },
     { id: 'actions', name: 'アクションボタン (Weekly/Analysis)' },
@@ -1259,30 +1255,6 @@ const applyWidgetVisibility = () => {
       else el.style.display = 'none';
     }
   });
-};
-
-const renderQuote = async () => {
-  const content = $('dash-quote-content');
-  if (!content || !activeWidgets.includes('quote')) return;
-  
-  const today = todayDateStr();
-  if (cachedQuote.date === today && cachedQuote.text) {
-    content.innerHTML = `<p class="text-base font-bold italic mb-1">"${esc(cachedQuote.text)}"</p><p class="text-xs text-muted mb-2">- ${esc(cachedQuote.author)}</p><p class="text-xs text-sub line-height-15">${esc(cachedQuote.explanation)}</p>`;
-    return;
-  }
-  
-  try {
-    const prompt = `英語の著名な名言やことわざを1つ選び、JSONで出力してください。形式: {"text":"英語の名言", "author":"発言者", "explanation":"文法構造や使われている単語の簡潔な解説と和訳"}`;
-    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
-    const json = extractJSON(rep);
-    if (json && json.text) {
-      cachedQuote = { date: today, text: json.text, author: json.author || 'Unknown', explanation: json.explanation || '' };
-      safeSet('study_quote_cache', cachedQuote);
-      content.innerHTML = `<p class="text-base font-bold italic mb-1">"${esc(cachedQuote.text)}"</p><p class="text-xs text-muted mb-2">- ${esc(cachedQuote.author)}</p><p class="text-xs text-sub line-height-15">${esc(cachedQuote.explanation)}</p>`;
-    }
-  } catch (e) {
-    content.innerHTML = '<p class="text-xs text-muted">名言の取得に失敗しました。</p>';
-  }
 };
 
 const renderCountdown = () => {
@@ -1405,6 +1377,90 @@ const renderChartSafe = (canvasId, renderFn) => {
   }
 };
 
+const renderWordOfTheDay = async () => {
+  const card = $('word-of-the-day-card'); if (!card || !activeWidgets.includes('wotd')) return;
+  card.classList.remove('hidden');
+  const today = todayDateStr();
+  
+  const exBox = $('wotd-example');
+  const wEl = $('wotd-word');
+  const mEl = $('wotd-meaning');
+  const sBtn = $('wotd-save-btn');
+  
+  if (cachedWotd.date === today && cachedWotd.word) {
+    wEl.textContent = cachedWotd.word.word;
+    mEl.textContent = cachedWotd.meaning || '意味解析中...';
+    exBox.innerHTML = cachedWotd.exampleHtml || '';
+  } else {
+    wEl.textContent = 'Loading...';
+    mEl.textContent = '';
+    exBox.innerHTML = '<span class="loading-dots"></span>';
+    
+    try {
+      const knownWords = ALL_WORDS.slice(0, 200).map(w => w.word).join(', ');
+      const prompt = `高校〜大学受験、またはTOEICレベルの英単語をランダムに1つ選び、JSONで出力してください。
+条件:
+- 以下の単語リストに含まれない、新しい単語を選んでください。
+除外リスト: ${knownWords}
+形式: {"word":"英単語", "meaning":"主な意味", "exampleHtml":"例文<br>和訳"}`;
+      
+      const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '客観的かつ簡潔な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。', true);
+      const json = extractJSON(rep);
+      if (json && json.word) {
+        cachedWotd = { 
+          date: today, 
+          word: { word: json.word, meaning: json.meaning }, 
+          exampleHtml: clean(json.exampleHtml), 
+          meaning: json.meaning 
+        };
+        safeSet('study_wotd_cache', cachedWotd);
+        
+        wEl.textContent = cachedWotd.word.word;
+        mEl.textContent = cachedWotd.meaning;
+        exBox.innerHTML = cachedWotd.exampleHtml;
+      } else {
+        throw new Error('Invalid JSON');
+      }
+    } catch (e) {
+      wEl.textContent = 'Error';
+      exBox.innerHTML = '<p class="text-xs text-muted">単語の取得に失敗しました。</p>';
+    }
+  }
+  
+  $('wotd-speak').onclick = () => { if(cachedWotd.word) speakWord(cachedWotd.word.word); };
+  
+  if (cachedWotd.word) {
+    const isSaved = ALL_WORDS.some(x => x.word.toLowerCase() === cachedWotd.word.word.toLowerCase());
+    sBtn.textContent = isSaved ? (customTexts['dash_wotd_saved'] || '保存済') : (customTexts['dash_wotd_save'] || 'Vocabに追加'); 
+    sBtn.className = `action-btn mb-0 flex-1 btn-md ${isSaved ? 'btn-secondary' : ''}`;
+    sBtn.onclick = () => { 
+      if (!isSaved) {
+        const tagInput = $('wotd-tag-input');
+        const tags = tagInput && tagInput.value.trim() ? tagInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+        const exText = cachedWotd.exampleHtml ? cachedWotd.exampleHtml.replace(/<br>/gi, '\n').replace(/<[^>]+>/g, '') : '';
+        
+        ALL_WORDS.unshift({ 
+          word: cachedWotd.word.word, 
+          meaning: cachedWotd.meaning, 
+          example: exText, 
+          tags: tags 
+        });
+        savedWords.push(cachedWotd.word.word);
+        save.words(); save.saved();
+        showToast('追加しました');
+        renderWordOfTheDay();
+        if (typeof updateTagFilters === 'function') updateTagFilters();
+      }
+    };
+  }
+  applyCustomTexts();
+};
+
+const nextWordOfTheDay = () => { 
+  cachedWotd = { date: '', word: null, exampleHtml: '', meaning: '' }; 
+  renderWordOfTheDay(); 
+};
+
 const renderDashboard = () => {
   applyWidgetVisibility();
   
@@ -1420,7 +1476,7 @@ const renderDashboard = () => {
     avatarEl.style.fontWeight = 'bold';
   }
 
-  renderWordOfTheDay(); renderCountdown(); renderQuote(); renderQuickCaptures();
+  renderWordOfTheDay(); renderCountdown(); renderQuickCaptures();
 
   const studiedDays = new Set(studyLogs.map(l => l.date));
   const tD = $('dash-total-days'); if (tD) tD.textContent = studiedDays.size;
@@ -1685,71 +1741,6 @@ const fetchFreeDictFallback = async (word) => {
   } catch (e) { return null; }
 };
 
-const renderWordOfTheDay = async () => {
-  const card = $('word-of-the-day-card'); if (!card || !ALL_WORDS.length || !activeWidgets.includes('wotd')) return;
-  card.classList.remove('hidden');
-  const today = todayDateStr(); let w;
-  if (cachedWotd.date === today && cachedWotd.word && ALL_WORDS.find(x => x.word === cachedWotd.word.word)) { w = cachedWotd.word; } 
-  else {
-    const seed = parseInt(today.replace(/-/g, ''), 10), sortedWords = [...ALL_WORDS].sort((a, b) => a.word.localeCompare(b.word));
-    wotdIndex = seed % sortedWords.length; w = sortedWords[wotdIndex];
-    cachedWotd = { date: today, word: w, exampleHtml: '', meaning: '' }; safeSet('study_wotd_cache', cachedWotd);
-  }
-  
-  $('wotd-word').textContent = w.word; 
-  $('wotd-meaning').textContent = w.meaning || cachedWotd.meaning || '意味解析中...'; 
-  $('wotd-speak').onclick = () => speakWord(w.word);
-  
-  const isSaved = savedWords.includes(w.word), sBtn = $('wotd-save-btn');
-  sBtn.textContent = isSaved ? (customTexts['dash_wotd_saved'] || '保存済') : (customTexts['dash_wotd_save'] || 'Vocabに追加'); 
-  sBtn.className = `action-btn mb-0 flex-1 btn-md ${isSaved ? 'btn-secondary' : ''}`;
-  sBtn.onclick = () => { toggleWordSave(w.word); renderWordOfTheDay(); };
-
-  const exBox = $('wotd-example');
-  if (cachedWotd.exampleHtml) { 
-    exBox.innerHTML = cachedWotd.exampleHtml; 
-    if(!w.meaning && cachedWotd.meaning) {
-       w.meaning = cachedWotd.meaning;
-       $('wotd-meaning').textContent = w.meaning;
-       save.words();
-    }
-  } else {
-    exBox.innerHTML = '<span class="loading-dots"></span>';
-    try {
-      const prompt = `英単語「${w.word}」の主要な意味を簡潔に1〜2語で、またシンプルで分かりやすい英語の例文を1つとその自然な和訳を生成し、以下のJSON形式で出力してください。
-{"meaning": "主な意味", "exampleHtml": "例文<br>和訳"}`;
-      const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
-      const json = extractJSON(rep);
-      if (json && json.exampleHtml) {
-        const html = clean(json.exampleHtml); 
-        exBox.innerHTML = html; 
-        cachedWotd.exampleHtml = html; 
-        if (json.meaning) {
-          cachedWotd.meaning = json.meaning;
-          if (!w.meaning) {
-            w.meaning = json.meaning;
-            $('wotd-meaning').textContent = w.meaning;
-            save.words();
-          }
-        }
-        safeSet('study_wotd_cache', cachedWotd);
-      } else {
-        throw new Error('Invalid JSON');
-      }
-    } catch (e) { 
-      const fallbackMeaning = await fetchFreeDictFallback(w.word);
-      if (fallbackMeaning) {
-        exBox.innerHTML = `[Fallback] ${esc(fallbackMeaning)}`;
-        if (!w.meaning) { w.meaning = fallbackMeaning; $('wotd-meaning').textContent = w.meaning; save.words(); }
-      } else {
-        exBox.textContent = '例文の取得に失敗しました。'; 
-      }
-    }
-  }
-  applyCustomTexts();
-};
-const nextWordOfTheDay = () => { if (!ALL_WORDS.length) return; const w = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)]; cachedWotd = { date: todayDateStr(), word: w, exampleHtml: '', meaning: '' }; safeSet('study_wotd_cache', cachedWotd); renderWordOfTheDay(); };
-
 const toggleWordSave = w => { const idx = savedWords.indexOf(w), add = idx === -1; if (add) savedWords.push(w); else savedWords.splice(idx, 1); save.saved(); showToast(add ? '保存' : '解除'); document.querySelectorAll(`[data-word="${CSS.escape(w)}"]`).forEach(b => { b.className = add ? 'save-btn saved' : 'save-btn unsaved'; b.textContent = add ? '保存済' : '保存'; }); };
 const getWordProgress = w => wordProgress[w.toLowerCase()] || 'new';
 const setWordProgress = (w, p) => { wordProgress[w.toLowerCase()] = p; save.prog(); };
@@ -1835,10 +1826,56 @@ const addWordManual = () => {
   if (old) { closeModal('detail-modal'); setTimeout(() => showWordModal(w, m), 300); }
 };
 
+window.addDerivedWord = (word, meaning) => {
+  if (ALL_WORDS.some(w => w.word.toLowerCase() === word.toLowerCase())) {
+    showToast('既に登録されています');
+    return;
+  }
+  ALL_WORDS.unshift({ word, meaning, example: '', tags: [] });
+  save.words();
+  showToast(`${word} を追加しました`);
+  updateTagFilters();
+  renderVocab(true);
+  renderVocabStats();
+};
+
 window.regenerateSearchWord = async (w) => {
   const i = $('word-input');
   if(i) i.value = w;
   searchWord();
+};
+
+const buildWordDetailHtml = (json) => {
+  let html = `<div class="vocab-detail-section">`;
+  if (json.nuance) {
+    html += `<h4>意味・ニュアンス</h4><p>${esc(json.nuance)}</p>`;
+  }
+  if (json.etymology) {
+    html += `<h4>語源</h4><p>${esc(json.etymology)}</p>`;
+  }
+  if (json.derivatives && json.derivatives.length) {
+    html += `<h4>派生語</h4><ul>`;
+    json.derivatives.forEach(d => {
+      html += `<li><b>${esc(d.word)}</b>: ${esc(d.meaning)} <button class="add-derived-btn" onclick="addDerivedWord('${escJS(d.word)}', '${escJS(d.meaning)}')">+ 追加</button></li>`;
+    });
+    html += `</ul>`;
+  }
+  if (json.synonyms && json.synonyms.length) {
+    html += `<h4>類義語</h4><ul>`;
+    json.synonyms.forEach(s => {
+      html += `<li><b>${esc(s.word)}</b>: ${esc(s.meaning)} <span class="text-xs text-muted">(${esc(s.diff)})</span> <button class="add-derived-btn" onclick="addDerivedWord('${escJS(s.word)}', '${escJS(s.meaning)}')">+ 追加</button></li>`;
+    });
+    html += `</ul>`;
+  }
+  if (json.antonyms && json.antonyms.length) {
+    html += `<h4>対義語</h4><ul>`;
+    json.antonyms.forEach(a => {
+      html += `<li><b>${esc(a.word)}</b>: ${esc(a.meaning)} <button class="add-derived-btn" onclick="addDerivedWord('${escJS(a.word)}', '${escJS(a.meaning)}')">+ 追加</button></li>`;
+    });
+    html += `</ul>`;
+  }
+  html += `</div>`;
+  return html;
 };
 
 const searchWord = async (isSuggest = false) => {
@@ -1857,26 +1894,31 @@ const searchWord = async (isSuggest = false) => {
   
   const fd = ALL_WORDS.find(x => x.word.toLowerCase() === w.toLowerCase()), hint = fd && fd.meaning ? `（基本意味: ${fd.meaning}）` : '';
   try {
-    const prompt = `英単語「${w}」${hint}について、単語帳形式で客観的に解説してください。挨拶や語りかけは一切不要です。HTMLのみで出力し、以下のh4見出しを必ず含めてください。特に「意味・よく使われる表現」と「派生語」については、細かいニュアンスや品詞ごとの意味、考えられるすべての派生語をもれなく網羅して詳細に書き出してください。
-見出し:
-<h4>意味・よく使われる表現</h4> (多義語の場合は全て網羅し、熟語も詳細に記載)
-<h4>語源</h4>
-<h4>派生語</h4> (もれなく全て書き出すこと)
-<h4>類義語</h4> (語源も簡潔に)
-<h4>対義語</h4> (語源も簡潔に)`;
+    const prompt = `英単語「${w}」${hint}について、単語帳形式で解説してください。
+以下のJSON形式で出力してください。HTMLタグは使用しないでください。
+{
+  "meaning": "主な意味（簡潔に1〜2語で）",
+  "etymology": "語源（ラテン語などの由来だけでなく、現代の日本人が感覚的にイメージしやすいように、パーツごとに分解してわかりやすく解説してください）",
+  "nuance": "細かいニュアンスや使われる文脈、熟語など",
+  "derivatives": [{"word": "派生語1", "meaning": "意味"}, {"word": "派生語2", "meaning": "意味"}],
+  "synonyms": [{"word": "類義語1", "meaning": "意味", "diff": "ニュアンスの違い"}],
+  "antonyms": [{"word": "対義語1", "meaning": "意味"}]
+}`;
     
-    let html = await callGemini([{ role: 'user', content: prompt }], 8192);
-    html = clean(html.replace(/```html?/g, '').replace(/```/g, ''));
+    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
+    const json = extractJSON(rep);
+    if (!json) throw new Error('Invalid JSON');
+    
+    const html = buildWordDetailHtml(json);
     if (ld) ld.classList.add('hidden');
     
-    let extractMeaning = html.match(/<h4>意味・よく使われる表現<\/h4>\s*<p>(.*?)<\/p>/) || html.match(/<li>([^<]{2,40})<\/li>/);
-    let meaningText = (fd && fd.meaning) ? fd.meaning : (extractMeaning ? extractMeaning[1].replace(/<[^>]+>/g, '').trim() : '解析完了');
+    let meaningText = (fd && fd.meaning) ? fd.meaning : (json.meaning || '解析完了');
 
     if (!fd) { ALL_WORDS.push({ word: w, meaning: meaningText, detailHtml: html }); save.words(); showToast(`追加: ${w}`); updateTagFilters(); } 
     else { fd.detailHtml = html; if(!fd.meaning) fd.meaning = meaningText; save.words(); }
     
     const isSaved = savedWords.includes(w), pt = `${w}\n${meaningText}\n${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`;
-    if (sr) sr.innerHTML = `<div class="card result-box"><div class="flex-between mb-1"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">発音</button></div><div class="flex-gap-8"><button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? '保存済' : '保存'}</button><button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">コピー</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">削除</button></div></div><div class="result-meaning-badge">${esc(meaningText)}</div>${html}<div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateSearchWord('${escJS(w)}')">途切れた場合は再生成</button></div></div>`;
+    if (sr) sr.innerHTML = `<div class="card result-box"><div class="flex-between mb-1"><div class="result-word-header"><div class="result-word-title">${esc(w)}</div><button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">発音</button></div><div class="flex-gap-8"><button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? '保存済' : '保存'}</button><button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">コピー</button><button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">削除</button></div></div><div class="result-meaning-badge">${esc(meaningText)}</div>${html}<div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateSearchWord('${escJS(w)}')">再生成</button></div></div>`;
   } catch (e) { 
     const fallbackMeaning = await fetchFreeDictFallback(w);
     if (ld) ld.classList.add('hidden');
@@ -1895,18 +1937,24 @@ window.regenerateWordDetail = async (w) => {
   if (!mc) return;
   mc.innerHTML = '<div class="text-center p-20"><span class="loading-dots">AIが再生成中</span></div>';
   try {
-    const prompt = `英単語「${w}」について、単語帳形式で客観的に解説してください。挨拶や語りかけは一切不要です。HTMLのみで出力し、以下のh4見出しを必ず含めてください。特に「意味・よく使われる表現」と「派生語」については、細かいニュアンスや品詞ごとの意味、考えられるすべての派生語をもれなく網羅して詳細に書き出してください。
-見出し:
-<h4>意味・よく使われる表現</h4> (多義語の場合は全て網羅し、熟語も詳細に記載)
-<h4>語源</h4>
-<h4>派生語</h4> (もれなく全て書き出すこと)
-<h4>類義語</h4> (語源も簡潔に)
-<h4>対義語</h4> (語源も簡潔に)`;
-    const html = await callGemini([{ role: 'user', content: prompt }], 8192);
-    const parsedHtml = clean(html.replace(/```html?/g, '').replace(/```/g, ''));
+    const prompt = `英単語「${w}」について、単語帳形式で解説してください。
+以下のJSON形式で出力してください。HTMLタグは使用しないでください。
+{
+  "meaning": "主な意味（簡潔に1〜2語で）",
+  "etymology": "語源（ラテン語などの由来だけでなく、現代の日本人が感覚的にイメージしやすいように、パーツごとに分解してわかりやすく解説してください）",
+  "nuance": "細かいニュアンスや使われる文脈、熟語など",
+  "derivatives": [{"word": "派生語1", "meaning": "意味"}, {"word": "派生語2", "meaning": "意味"}],
+  "synonyms": [{"word": "類義語1", "meaning": "意味", "diff": "ニュアンスの違い"}],
+  "antonyms": [{"word": "対義語1", "meaning": "意味"}]
+}`;
+    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
+    const json = extractJSON(rep);
+    if (!json) throw new Error('Invalid JSON');
+    const parsedHtml = buildWordDetailHtml(json);
+    
     const fd = ALL_WORDS.find(x => x.word === w);
     if (fd) { fd.detailHtml = parsedHtml; save.words(); }
-    mc.innerHTML = `<div class="mt-4">${parsedHtml}</div><div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">途切れた場合は再生成</button></div>`;
+    mc.innerHTML = `<div class="mt-4">${parsedHtml}</div><div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">再生成</button></div>`;
   } catch (e) { handleApiError(e, 'modal-detail-content'); }
 };
 
@@ -1967,7 +2015,7 @@ window.showWordModal = async (w, m) => {
   }
   
   if (fd && fd.detailHtml) {
-    mc.innerHTML = customHtml + `<div class="mt-4">${clean(fd.detailHtml)}</div><div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">途切れた場合は再生成</button></div>`;
+    mc.innerHTML = customHtml + `<div class="mt-4">${clean(fd.detailHtml)}</div><div class="text-center mt-3"><button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">再生成</button></div>`;
   } else {
     regenerateWordDetail(w);
   }
@@ -2168,6 +2216,10 @@ const exportVocabPDF = () => {
   const html = `<!DOCTYPE html><html lang="ja"><head><title>単語リスト</title><style>body{font-family:sans-serif;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f5f5f5}.mastered{color:#1a6038;font-weight:bold}.learning{color:#8a6200;font-weight:bold}.new{color:#999}.btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#2D2B27;color:#fff;border-radius:50px;cursor:pointer}@media print{.btn{display:none}}</style></head><body><button class="btn" onclick="window.print()">印刷</button><h1>単語リスト（${ALL_WORDS.length}語）</h1><table><tr><th>単語</th><th>意味</th><th>進捗</th></tr>${ALL_WORDS.map(w => { const p = getWordProgress(w.word); return `<tr><td><b>${esc(w.word)}</b></td><td>${esc(w.meaning || '')}</td><td class="${p}">${p}</td></tr>` }).join('')}</table></body></html>`;
   printHtml(html);
 };
+
+// ============================================================
+// [11] CARDS
+// ============================================================
 const toggleVoiceCommand = () => {
   const btn = $('voice-cmd-btn');
   if (cardVoiceActive) {
@@ -2221,14 +2273,14 @@ const renderCard = () => {
   const sb = $('srs-card-buttons'), ss = $('srs-card-status'), cw = $('card-word'), cm = $('card-meaning'), ci = $('card-idx'), ct = $('card-total'), imgC = $('card-image-container');
   
   if (!cardList.length) {
-    if (cw) cw.textContent = '—'; if (cm) cm.textContent = 'Empty'; if (ci) ci.textContent = '0'; if (ct) ct.textContent = '0';
+    if (cw) cw.textContent = '—'; if (cm) cm.innerHTML = 'Empty'; if (ci) ci.textContent = '0'; if (ct) ct.textContent = '0';
     if (sb) sb.classList.add('hidden'); if (imgC) imgC.innerHTML = ''; return;
   }
   const c = cardList[currentCardIdx];
   if (cw) cw.textContent = c.word; 
   
   let backHtml = '';
-  if (c.meaning) backHtml += `<div>${esc(c.meaning)}</div>`;
+  if (c.meaning) backHtml += `<div style="font-size:1.2em; font-weight:bold; margin-bottom:8px;">${esc(c.meaning)}</div>`;
   
   const showEx = $('card-show-example') && $('card-show-example').checked;
   const showImg = $('card-show-image') && $('card-show-image').checked;
@@ -2358,7 +2410,7 @@ if (cInner) {
 }
 
 // ============================================================
-// [11] SKILL UP
+// [12] SKILL UP
 // ============================================================
 const switchWritingTab = t => {
   ['input', 'daily', 'quiz', 'media', 'shadowing', 'syntax', 'history'].forEach(x => {
@@ -2415,12 +2467,14 @@ const submitWriting = async type => {
   const sb = $('writing-submit-btn'), ab = $('writing-analyze-btn'), pb = $('writing-paraphrase-btn'), eb = $('writing-essay-btn'), ld = $('writing-loading'), rs = $('writing-result');
   if (sb) sb.classList.add('hidden'); if (ab) ab.classList.add('hidden'); if (pb) pb.classList.add('hidden'); if (eb) eb.classList.add('hidden'); if (ld) ld.classList.remove('hidden'); if (rs) rs.innerHTML = '';
   try {
-    let sys = '提出された英文を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。文法や自然な表現の解説、100点満点のスコアを含めてください。';
-    if (type === 'analyze') sys = '客観的な構文解析をHTMLで出力してください。挨拶不要。SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切ってください。特殊構文の解説と和訳を含めてください。';
-    else if (type === 'paraphrase') sys = '入力された英文をより洗練された学術的な英語に言い換え、HTMLで出力してください。挨拶不要。言い換えた理由とニュアンスの違いを客観的に解説してください。';
-    else if (type === 'essay') sys = '提出されたエッセイを「論理性」「語彙」「文法」の観点から客観的に評価し、HTMLで出力してください。挨拶不要。改善案と100点満点のスコアを含めてください。';
+    let sys = '提出された英文を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。必ず以下の構造に従ってください：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>文法・語法の解説</h4>\n<ul><li>...</li></ul>\n<h4>より自然な表現</h4>\n<p>...</p>';
+    if (type === 'analyze') sys = '客観的な構文解析をHTMLで出力してください。挨拶不要。必ず以下の構造に従ってください：\n<h4>SVOC解析</h4>\n<p>SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切って表示</p>\n<h4>特殊構文の解説</h4>\n<ul><li>...</li></ul>\n<h4>和訳</h4>\n<p>...</p>';
+    else if (type === 'paraphrase') sys = '入力された英文をより洗練された学術的な英語に言い換え、HTMLで出力してください。挨拶不要。必ず以下の構造に従ってください：\n<h4>言い換え案</h4>\n<p>...</p>\n<h4>理由とニュアンスの違い</h4>\n<ul><li>...</li></ul>';
+    else if (type === 'essay') sys = '提出されたエッセイを「論理性」「語彙」「文法」の観点から客観的に評価し、HTMLで出力してください。挨拶不要。必ず以下の構造に従ってください：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>評価（論理性・語彙・文法）</h4>\n<ul><li>...</li></ul>\n<h4>改善案</h4>\n<p>...</p>';
     
-    const rep = await callGemini([{ role: 'user', content: c }], 8192, sys), ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '')), newId = generateId();
+    const rep = await callGemini([{ role: 'user', content: c }], 8192, sys);
+    const ht = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
+    const newId = generateId();
     writingHistory.unshift({ id: newId, type, date: new Date().toLocaleString('ja-JP'), original: histTxt.substring(0, 100), fullOriginal: histTxt, result: ht, score: (type === 'correct' || type === 'essay') ? (ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null) : null, imageId });
     save.writing();
     if (rs) { if (type === 'analyze') rs.innerHTML = `<div class="card"><div class="text-xs font-bold text-muted mb-2">白文テスト</div><div class="text-base mb-3" style="line-height:1.6;">${esc(histTxt).replace(/\n/g, '<br>')}</div><button class="action-btn mb-0 bg-accent" onclick="document.getElementById('res-analyzed-${newId}').classList.remove('hidden');this.classList.add('hidden');">正解を見る</button><div id="res-analyzed-${newId}" class="hidden mt-14"><div class="correction-box mt-0">${ht}</div><button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button></div></div>`; else rs.innerHTML = `<div class="correction-box">${ht}</div>${(type === 'correct' || type === 'essay') ? `<button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">重要構文抽出</button>` : ''}`; }
@@ -2542,9 +2596,9 @@ const submitDailyAnswer = async id => {
   const i = $('daily-ans-' + id); if (!i || !i.value.trim()) return; const task = dailyChallenges.find(d => String(d.id) === String(id)); if (!task) return;
   const sb = $('daily-submit-' + id), ld = $('daily-load-' + id); if (sb) sb.classList.add('hidden'); if (ld) ld.classList.remove('hidden');
   let sys = '';
-  if (task.taskType === 'comp') sys = '提出された英作文を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。なぜその表現になるのか詳しく解説し、より自然な模範解答を複数提示してください。最後に100点満点でスコアをつけてください。';
-  else if (task.taskType === 'parse') sys = '和訳解答を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切ってください。特殊構文の構造を図解するように詳しく解説し、100点満点でスコアをつけてください。';
-  else if (task.taskType === 'reading') sys = '長文読解の解答を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。本文の全訳、要旨、設問の論理的な解答プロセスを詳しく解説し、100点満点でスコアをつけてください。';
+  if (task.taskType === 'comp') sys = '提出された英作文を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。必ず以下の構造に従ってください：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>解説</h4>\n<ul><li>...</li></ul>\n<h4>模範解答</h4>\n<p>...</p>';
+  else if (task.taskType === 'parse') sys = '和訳解答を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。必ず以下の構造に従ってください：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>SVOC解析</h4>\n<p>SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切って表示</p>\n<h4>解説</h4>\n<ul><li>...</li></ul>';
+  else if (task.taskType === 'reading') sys = '長文読解の解答を客観的かつ丁寧に添削しHTMLで出力してください。挨拶や語りかけは不要です。必ず以下の構造に従ってください：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>解説（論理的な解答プロセス）</h4>\n<ul><li>...</li></ul>\n<h4>要旨</h4>\n<p>...</p>';
   try { const rep = await callGemini([{ role: 'user', content: `問題:\n${task.question}\n解答:\n${i.value}` }], 8192, sys); const ht = clean(rep.replace(/```html?/g, '').replace(/```/g, '')); task.answer = i.value; task.feedback = ht; task.score = ht.match(/(\d{1,3})\s*(?:点|\/\s*100)/i) ? parseInt(RegExp.$1) : null; save.daily(); renderDaily(); } catch (e) { showToast('通信エラー'); if (sb) sb.classList.remove('hidden'); if (ld) ld.classList.add('hidden'); }
 };
 
@@ -2686,7 +2740,7 @@ const submitDailyDictation = async id => {
   const i = $('dict-ans-' + id); if (!i || !i.value.trim()) return; const task = listenHistory.find(x => String(x.id) === String(id)); if (!task) return;
   const sb = $('dict-submit-' + id), ld = $('dict-load-' + id); if (sb) sb.classList.add('hidden'); if (ld) ld.classList.remove('hidden');
   try {
-    const sys = `生徒のディクテーション（書き取り）を客観的かつ丁寧に添削し、HTMLで出力してください。挨拶や語りかけは不要です。元の正解文と生徒の解答を比較し、間違えた部分（スペルミス、聞き逃しなど）を指摘し、100点満点でスコアをつけてください。最後に和訳と解説も添えてください。\n正解文: ${task.transcript}\n和訳: ${task.translation}\n解説: ${task.explanation}`;
+    const sys = `生徒のディクテーション（書き取り）を客観的かつ丁寧に添削し、HTMLで出力してください。挨拶や語りかけは不要です。必ず以下の構造に従ってください：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>間違えた部分の指摘</h4>\n<ul><li>...</li></ul>\n<h4>和訳と解説</h4>\n<p>...</p>\n正解文: ${task.transcript}\n和訳: ${task.translation}\n解説: ${task.explanation}`;
     const rep = await callGemini([{ role: 'user', content: `生徒の解答:\n${i.value.trim()}` }], 8192, sys);
     task.userAnswer = i.value.trim(); task.feedback = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
     save.listen(); renderListenArea();
@@ -2931,7 +2985,7 @@ const exportSyntaxPDF = () => {
 };
 
 // ============================================================
-// [12] CUSTOM DECKS
+// [13] CUSTOM DECKS
 // ============================================================
 const ccInitDecks = () => { ccRenderSelects(); ccRenderDecksList(); if (ccDeckId) ccLoadDeck(); };
 const ccRenderSelects = () => { const o = `<option value="">${customTexts['cc_select_default'] || '-- 選択 --'}</option>` + customDecks.map(d => `<option value="${d.id}" ${d.id === ccDeckId ? 'selected' : ''}>${esc(d.name)}</option>`).join(''); ['cc-deck-select', 'cc-edit-deck-select'].forEach(id => { const e = $(id); if (e) e.innerHTML = o; }); };
@@ -2998,7 +3052,7 @@ const ccGenerateCardsAI = async () => {
 };
 
 // ============================================================
-// [13] SUBJECT QA
+// [14] SUBJECT QA
 // ============================================================
 const setSubject = s => { 
   curSubj = s; 
@@ -3170,7 +3224,7 @@ const showSubjectQuizHistory = id => { const h = subjectQuizzes.find(x => String
 const deleteSubjectQuizHistory = id => { if (!confirm('削除しますか？')) return; subjectQuizzes = subjectQuizzes.filter(x => String(x.id) !== String(id)); save.subQuiz(); renderSubjectQuiz(); closeModal('writing-history-modal'); };
 
 // ============================================================
-// [14] PLANNER & LOGS
+// [15] PLANNER & LOGS
 // ============================================================
 const setPlanMode = m => {
   planMode = m; ['calendar', 'yearly', 'gantt', 'score', 'ai'].forEach(x => { const el = $('plan-mode-' + x); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } });
@@ -3653,7 +3707,7 @@ const addStudyLogManual = () => {
 const deleteStudyLog = ts => { studyLogs = studyLogs.filter(l => l.ts !== ts); save.logs(); renderLogModalList(); if ($('Dashboard').classList.contains('active')) renderDashboard(); };
 
 // ============================================================
-// [15] MISTAKES
+// [16] MISTAKES
 // ============================================================
 window.switchMistakeTab = t => {
   mistakeTab = t;
@@ -3919,7 +3973,7 @@ window.deleteOtherMistake = id => {
 };
 
 // ============================================================
-// [16] IMPORT
+// [17] IMPORT (Vocab Tab)
 // ============================================================
 const openImportModal = () => { openModal('import-modal'); };
 const switchImportTab = t => { curImpTab = t; ['file', 'text', 'url', 'photo'].forEach(x => { const tb = $('itab-' + x), c = $('itab-content-' + x); if (tb) { if (x === t) tb.classList.add('active'); else tb.classList.remove('active'); } if (c) { if (x === t) c.classList.remove('hidden'); else c.classList.add('hidden'); } }); };
@@ -4038,8 +4092,9 @@ const ifi = $('import-file-input'); if (ifi) ifi.addEventListener('change', e =>
 
 const ita = $('import-textarea'); 
 if (ita) {
-  ita.addEventListener('input', debounce(function () { 
-    const w = this.value.split('\n').map(l => {
+  ita.addEventListener('input', debounce((e) => { 
+    const val = e.target.value;
+    const w = val.split('\n').map(l => {
       const sep = l.includes('\t') ? '\t' : ',';
       const idx = l.indexOf(sep);
       if (idx === -1) return { word: l.trim(), meaning: '', example: '' };
@@ -4170,7 +4225,7 @@ const applyImport = async m => {
 };
 
 // ============================================================
-// [17] SETTINGS & EXPORT
+// [18] SETTINGS & EXPORT
 // ============================================================
 const loadProfileFields = () => { const map = { targetUniv: 'target-univ', grade: 'grade', courses: 'courses' }; Object.entries(map).forEach(([k, id]) => { const e = $('profile-' + id); if (e) e.value = userProfile[k] || ''; }); };
 const saveProfile = () => { const u = $('profile-target-univ'), g = $('profile-grade'), c = $('profile-courses'); if (u) userProfile.targetUniv = u.value.trim(); if (g) userProfile.grade = g.value.trim(); if (c) userProfile.courses = c.value.trim(); save.profile(); };
@@ -4276,7 +4331,7 @@ const openWeaknessAnalysis = async () => {
   const prompt = `以下の生徒が特に苦手としている英単語TOP10のリストに基づき、HTMLでレポートを作成してください。見出し（h4タグ）として「最も復習が必要な単語TOP10」をリスト表示し、それぞれの単語の覚え方のコツや語源的アプローチを簡潔に添えてください。また「おすすめ学習法」として具体的なアドバイスを記載してください。挨拶や語りかけは一切不要です。客観的な参考書スタイルで出力してください。苦手単語: ${weaknessWords.join(', ')}`;
   try { let rep = await callGemini([{ role: 'user', content: prompt }], 8192); $('weakness-content').innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim()); $('weakness-focus-btn').classList.remove('hidden'); } catch (e) { $('weakness-content').innerHTML = '<p class="text-danger">分析に失敗しました。通信環境を確認してください。</p><button class="action-btn mt-3" onclick="openWeaknessAnalysis()">リトライ</button>'; }
 };
-const startWeaknessFocusMode = () => { closeModal('weakness-modal'); setTabByIndex(4); setCardsMode('weak'); };
+const startWeaknessFocusMode = () => { closeModal('weakness-modal'); setTabByIndex(3); setCardsMode('weak'); };
 
 window.openAutoListenModal = () => { openModal('auto-listen-modal'); };
 window.toggleAutoListen = () => {
@@ -4364,7 +4419,7 @@ window.saveShuffleSettings = () => {
 };
 
 // ============================================================
-// [18] ROUTER & INIT
+// [19] ROUTER & INIT
 // ============================================================
 const setTabByIndex = (idx) => {
   if (idx < 0 || idx >= TABS.length) return;
