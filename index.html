@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no, email=no, address=no">
@@ -34,7 +33,7 @@
   <div class="logo-wrap"><div class="logo-text" data-i18n="header_logo">Study</div><div class="logo-dot"></div></div>
   <div class="header-btns">
     <button class="dark-toggle" id="dark-toggle-btn" onclick="toggleDark()" data-i18n="header_dark_toggle">AUTO</button>
-    <button class="api-btn" onclick="setTabByIndex(10)" data-i18n="header_settings">SETTINGS</button>
+    <button class="api-btn" onclick="setTabByIndex(9)" data-i18n="header_settings">SETTINGS</button>
   </div>
 </header>
 <div class="toast" id="toast"></div>
@@ -70,6 +69,7 @@
       </div>
       <div id="wotd-meaning" class="text-sub font-bold text-base mb-2"></div>
       <div id="wotd-example" class="text-sub text-sm mb-3 example-box"></div>
+      <input type="text" id="wotd-tag-input" class="score-input mb-2" placeholder="タグ (カンマ区切り)">
       <div class="flex-gap-8">
         <button class="action-btn mb-0 flex-1 btn-md" id="wotd-save-btn" data-i18n="dash_wotd_save">Vocabに追加</button>
         <button class="action-btn btn-secondary mb-0 flex-1 btn-md" id="wotd-next-btn" onclick="nextWordOfTheDay()" data-i18n="dash_wotd_next">別の単語</button>
@@ -87,14 +87,6 @@
           <div class="dash-rank-name" id="dash-rank-name">—</div>
           <div class="dash-hours" id="dash-hours-text" data-i18n="dash_hero_hours">総学習時間: 0時間 | XP: 0</div>
         </div>
-      </div>
-    </div>
-
-    <!-- Quote Widget -->
-    <div class="card mb-14 widget-item" id="dash-quote-card" data-widget-id="quote">
-      <p class="text-xs font-bold text-muted mb-2" data-i18n="dash_quote_title">今日の名言</p>
-      <div id="dash-quote-content" class="text-center py-2">
-        <span class="loading-dots"></span>
       </div>
     </div>
 
@@ -254,7 +246,7 @@
       </label>
       <label class="flex align-center gap-2 text-sm font-bold cursor-pointer">
         <input type="checkbox" id="timer-pomodoro-auto" style="width:18px;height:18px;accent-color:var(--accent);">
-        <span data-i18n="timer_opt_pomodoro_auto">休憩・学習を自動で切り替える</span>
+        <span></span>
       </label>
     </div>
   </div>
@@ -291,9 +283,11 @@
   </div>
 </div>
 
-<!-- IMPORT / SEARCH -->
-<div id="ImportSearch" class="view">
-  <p class="page-title" data-i18n="import_title">Import &amp; Search</p>
+<!-- VOCAB -->
+<div id="Vocab" class="view">
+  <p class="page-title" data-i18n="vocab_title">Vocab List</p>
+  
+  <!-- Import & Search 統合部分 -->
   <button class="action-btn" onclick="openImportModal()" data-i18n="import_btn_add">+ 単語をインポート</button>
   <div class="search-wrap">
     <input type="text" id="word-input" placeholder="単語を検索・入力..." data-i18n-placeholder="import_search_placeholder" onkeydown="if(event.key==='Enter'){event.preventDefault();searchWord()}">
@@ -303,11 +297,8 @@
   <div id="word-suggest" class="word-quick-list"></div>
   <div id="loading" class="hidden text-center p-36 text-muted font-bold text-sm"><span class="loading-dots" data-i18n="import_loading">解析中</span></div>
   <div id="search-result"></div>
-</div>
+  <!-- 統合部分ここまで -->
 
-<!-- VOCAB -->
-<div id="Vocab" class="view">
-  <p class="page-title" data-i18n="vocab_title">Vocab List</p>
   <div class="vocab-stats-bar" id="vocab-stats-bar"></div>
   
   <div class="flex-gap-8 mb-3 flex-wrap">
@@ -1429,7 +1420,6 @@
 <nav class="nav-bar" id="bottom-nav-bar">
   <div class="nav-item active" data-tab="Dashboard" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">home</span><span data-i18n="nav_home">Home</span></div>
   <div class="nav-item" data-tab="Timer" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">timer</span><span data-i18n="nav_timer">Timer</span></div>
-  <div class="nav-item" data-tab="ImportSearch" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">download</span><span data-i18n="nav_import">Import</span></div>
   <div class="nav-item" data-tab="Vocab" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">menu_book</span><span data-i18n="nav_vocab">Vocab</span></div>
   <div class="nav-item" data-tab="Cards" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">style</span><span data-i18n="nav_cards">Cards</span></div>
   <div class="nav-item" data-tab="SkillUp" role="button" tabindex="0"><span class="nav-icon material-symbols-rounded">edit_square</span><span data-i18n="nav_skillup">Skill Up</span></div>
