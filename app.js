@@ -11,8 +11,7 @@ const clean = html => {
   if (window.DOMPurify) return DOMPurify.sanitize(html);
   const temp = document.createElement('div');
   temp.textContent = html;
-  // buttonタグを許可（派生語追加ボタン等のため）
-  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td|button)(.*?)&gt;/gi, '<$1$2$3>');
+  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td|button|mark)(.*?)&gt;/gi, '<$1$2$3>');
 };
 
 const safeSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -314,7 +313,7 @@ window.resetCustomTexts = () => {
 const TABS = ['Dashboard', 'Timer', 'Vocab', 'Cards', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Mistakes', 'Manage'];
 const ACCENTS = ['en_US', 'en_GB', 'en_AU'];
 const ACCENT_LABELS = { en_US: 'アメリカ英語', en_GB: 'イギリス英語', en_AU: 'オーストラリア英語' };
-const SCORE_SUBJECTS = { japanese: { label: '国語', details: ['現代文', '古文', '漢文', '総合'] }, math: { label: '数学', details: ['数学I・A', '数学II・B', '数学III・C', '総合'] }, english: { label: '英語', details: ['リーディング', 'リスニング', 'ライティング', '総合'] }, science: { label: '理科', details: ['物理', '化学', '生物', '地学', '基礎', '総合'] }, social: { label: '社会', details: ['歴史', '地理', '公共', '倫理', '政経', '総合'] }, total: { label: '総合', details: ['文系', '理系', '全体'] } };
+const SCORE_SUBJECTS = { japanese: { label: '国語', details: ['現代文', '古文', '漢文', '総合'] }, math: { label: '数学', details: ['数学I・A', '数学II・B', '数学III・C', '総合'] }, english: { label: '英語', details: ['リーディング', 'リスニング', 'ライティング', '総合'] }, science: { label: '理科', details: ['物理', '化学', '生物', '地学', '基礎', '総合'] }, social: { label: '社会', details: ['歴史', '地理', '公共', '倫理', '政経', '総合'] }, other: { label: 'その他', details: ['情報', '総合'] }, total: { label: '総合', details: ['文系', '理系', '全体'] } };
 const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 const ACADEMIC_YEAR_MONTHS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
 const VOCAB_PER_PAGE = 50;
@@ -367,6 +366,7 @@ let planMode = 'calendar', currentPlanMonth = new Date().getMonth() + 1, current
 let pCalYear = new Date().getFullYear(), pCalMonth = new Date().getMonth(), selectedPlanDate = todayDateStr();
 let dashCalYear = new Date().getFullYear(), dashCalMonth = new Date().getMonth();
 let dashWeeklyOffset = 0;
+let planWeeklyOffset = 0;
 let planAiHistory = [];
 let scoreLineChart = null, scoreChartMode = 'dev';
 let wInputMode = 'text', wPhotoData = null, currentDailyTab = 'comp';
@@ -393,6 +393,7 @@ let shadowingDataArray = null;
 let shadowingReqAnimFrame = null;
 
 let mistakeTab = 'saved';
+let sortableTextbooks = null;
 
 // ============================================================
 // [3] STORAGE & SYNC
@@ -1397,11 +1398,11 @@ const renderWordOfTheDay = async () => {
     exBox.innerHTML = '<span class="loading-dots"></span>';
     
     try {
-      const knownWords = ALL_WORDS.slice(0, 200).map(w => w.word).join(', ');
+      const knownWords = ALL_WORDS.map(w => w.word).join(', ');
       const prompt = `高校〜大学受験、またはTOEICレベルの英単語をランダムに1つ選び、JSONで出力してください。
 条件:
 - 以下の単語リストに含まれない、新しい単語を選んでください。
-除外リスト: ${knownWords}
+除外リスト: ${knownWords.substring(0, 3000)}
 形式: {"word":"英単語", "meaning":"主な意味", "exampleHtml":"例文<br>和訳"}`;
       
       const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '客観的かつ簡潔な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。', true);
@@ -1905,7 +1906,7 @@ const searchWord = async (isSuggest = false) => {
   "antonyms": [{"word": "対義語1", "meaning": "意味"}]
 }`;
     
-    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
+    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '客観的かつ簡潔な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。', true);
     const json = extractJSON(rep);
     if (!json) throw new Error('Invalid JSON');
     
@@ -1947,7 +1948,7 @@ window.regenerateWordDetail = async (w) => {
   "synonyms": [{"word": "類義語1", "meaning": "意味", "diff": "ニュアンスの違い"}],
   "antonyms": [{"word": "対義語1", "meaning": "意味"}]
 }`;
-    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
+    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '客観的かつ簡潔な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。', true);
     const json = extractJSON(rep);
     if (!json) throw new Error('Invalid JSON');
     const parsedHtml = buildWordDetailHtml(json);
@@ -2216,7 +2217,6 @@ const exportVocabPDF = () => {
   const html = `<!DOCTYPE html><html lang="ja"><head><title>単語リスト</title><style>body{font-family:sans-serif;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f5f5f5}.mastered{color:#1a6038;font-weight:bold}.learning{color:#8a6200;font-weight:bold}.new{color:#999}.btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#2D2B27;color:#fff;border-radius:50px;cursor:pointer}@media print{.btn{display:none}}</style></head><body><button class="btn" onclick="window.print()">印刷</button><h1>単語リスト（${ALL_WORDS.length}語）</h1><table><tr><th>単語</th><th>意味</th><th>進捗</th></tr>${ALL_WORDS.map(w => { const p = getWordProgress(w.word); return `<tr><td><b>${esc(w.word)}</b></td><td>${esc(w.meaning || '')}</td><td class="${p}">${p}</td></tr>` }).join('')}</table></body></html>`;
   printHtml(html);
 };
-
 // ============================================================
 // [11] CARDS
 // ============================================================
@@ -2280,13 +2280,13 @@ const renderCard = () => {
   if (cw) cw.textContent = c.word; 
   
   let backHtml = '';
-  if (c.meaning) backHtml += `<div style="font-size:1.2em; font-weight:bold; margin-bottom:8px;">${esc(c.meaning)}</div>`;
+  if (c.meaning) backHtml += `<div class="flip-meaning">${esc(c.meaning)}</div>`;
   
   const showEx = $('card-show-example') && $('card-show-example').checked;
   const showImg = $('card-show-image') && $('card-show-image').checked;
   const showNote = $('card-show-note') && $('card-show-note').checked;
   
-  if (showEx && c.example) backHtml += `<div class="text-sm text-muted italic mt-2" style="font-weight:400; line-height:1.4;">${esc(c.example)}</div>`;
+  if (showEx && c.example) backHtml += `<div class="flip-example">${esc(c.example)}</div>`;
   if (showNote && c.note) backHtml += `<div class="text-xs text-sub mt-2 pt-2 border-top border-dashed" style="font-weight:400;">${esc(c.note)}</div>`;
   
   if (cm) cm.innerHTML = backHtml || '—';
@@ -3227,9 +3227,10 @@ const deleteSubjectQuizHistory = id => { if (!confirm('削除しますか？')) 
 // [15] PLANNER & LOGS
 // ============================================================
 const setPlanMode = m => {
-  planMode = m; ['calendar', 'yearly', 'gantt', 'score', 'ai'].forEach(x => { const el = $('plan-mode-' + x); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } });
-  const pa = $('plan-calendar-area'), py = $('plan-yearly-area'), pg = $('plan-gantt-area'), pai = $('plan-ai-area'), ps = $('plan-score-area');
+  planMode = m; ['calendar', 'weekly', 'yearly', 'gantt', 'score', 'ai'].forEach(x => { const el = $('plan-mode-' + x); if (el) { if (x === m) el.classList.add('active'); else el.classList.remove('active'); } });
+  const pa = $('plan-calendar-area'), pw = $('plan-weekly-area'), py = $('plan-yearly-area'), pg = $('plan-gantt-area'), pai = $('plan-ai-area'), ps = $('plan-score-area');
   if (pa) { if (m === 'calendar') pa.classList.remove('hidden'); else pa.classList.add('hidden'); }
+  if (pw) { if (m === 'weekly') pw.classList.remove('hidden'); else pw.classList.add('hidden'); }
   if (py) { if (m === 'yearly') py.classList.remove('hidden'); else py.classList.add('hidden'); }
   if (pg) { if (m === 'gantt') pg.classList.remove('hidden'); else pg.classList.add('hidden'); }
   if (pai) { if (m === 'ai') pai.classList.remove('hidden'); else pai.classList.add('hidden'); }
@@ -3237,6 +3238,7 @@ const setPlanMode = m => {
   
   if (m === 'score') { renderScoreList(); renderScoreChart(); }
   if (m === 'calendar') { renderPlanCalendar(); renderPlanDateList(); }
+  if (m === 'weekly') { renderWeeklyPlan(); }
   if (m === 'yearly') { renderYearlyPlan(); }
 };
 
@@ -3376,9 +3378,159 @@ window.rebuildScheduleAI = async () => {
   }
 };
 
-const renderTextbooks = () => { const c = $('textbook-chips'); if (c) c.innerHTML = textbooks.length ? textbooks.map((t, i) => `<span class="filter-chip flex align-center gap-1">${esc(t)}<button onclick="deleteTextbook(${i})" class="btn-clear text-danger">✕</button></span>`).join('') : '<span class="text-xs text-muted">空</span>'; };
-const addTextbook = () => { const i = $('new-textbook-input'); if (!i) return; const v = i.value.trim(); if (v && !textbooks.includes(v)) { textbooks.push(v); save.books(); i.value = ''; renderTextbooks(); } };
-const deleteTextbook = i => { textbooks.splice(i, 1); save.books(); renderTextbooks(); };
+const renderTextbooks = () => { 
+  const c = $('textbook-chips'); 
+  if (!c) return; 
+  
+  // Backward compatibility: convert strings to objects
+  textbooks = textbooks.map(t => typeof t === 'string' ? { id: generateId(), name: t, subject: 'other' } : t);
+  
+  c.innerHTML = textbooks.length ? textbooks.map((t, i) => `
+    <div class="filter-chip flex-between w-full" data-id="${t.id}" style="cursor:grab; padding:8px 12px;">
+      <div class="flex align-center">
+        <span class="material-symbols-rounded text-muted mr-2" style="font-size:16px;">drag_indicator</span>
+        <span class="subj-badge ${t.subject}">${SCORE_SUBJECTS[t.subject]?.label || '他'}</span>
+        <span class="font-bold">${esc(t.name)}</span>
+      </div>
+      <button onclick="deleteTextbook('${t.id}')" class="btn-clear text-danger">✕</button>
+    </div>
+  `).join('') : '<span class="text-xs text-muted">空</span>'; 
+  
+  // Update weekly select
+  const ws = $('weekly-textbook-select');
+  if (ws) {
+    ws.innerHTML = '<option value="">参考書を選択...</option>' + textbooks.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  }
+
+  if (sortableTextbooks) sortableTextbooks.destroy();
+  sortableTextbooks = Sortable.create(c, {
+    animation: 150,
+    handle: '.material-symbols-rounded',
+    onEnd: () => {
+      const newOrderIds = Array.from(c.children).map(el => el.getAttribute('data-id'));
+      textbooks = newOrderIds.map(id => textbooks.find(t => t.id === id)).filter(Boolean);
+      save.books();
+      renderTextbooks();
+    }
+  });
+};
+
+const addTextbook = () => { 
+  const i = $('new-textbook-input'); 
+  const s = $('new-textbook-subj');
+  if (!i || !s) return; 
+  const v = i.value.trim(); 
+  if (v) { 
+    textbooks.push({ id: generateId(), name: v, subject: s.value }); 
+    save.books(); i.value = ''; renderTextbooks(); 
+  } 
+};
+
+const deleteTextbook = id => { textbooks = textbooks.filter(t => t.id !== id); save.books(); renderTextbooks(); };
+
+const planWeeklyPrev = () => { planWeeklyOffset++; renderWeeklyPlan(); };
+const planWeeklyNext = () => { if (planWeeklyOffset > 0) planWeeklyOffset--; renderWeeklyPlan(); };
+
+const renderWeeklyPlan = () => {
+  const c = $('plan-weekly-days');
+  const lbl = $('plan-weekly-label');
+  if (!c) return;
+  
+  if (lbl) {
+    if (planWeeklyOffset === 0) lbl.textContent = '今週';
+    else if (planWeeklyOffset === 1) lbl.textContent = '先週';
+    else lbl.textContent = `${planWeeklyOffset}週前`;
+  }
+
+  const now = new Date();
+  now.setDate(now.getDate() - (planWeeklyOffset * 7));
+  const currentDay = now.getDay();
+  const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday);
+  
+  const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
+  let html = '';
+  
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const isToday = ds === todayDateStr();
+    
+    const dayPlans = plans[ds] || [];
+    const planHtml = dayPlans.length ? dayPlans.map((p, idx) => `
+      <div class="plan-item-row" style="padding:6px 10px; margin-bottom:4px;">
+        <input type="checkbox" ${p.done ? 'checked' : ''} onchange="toggleWeeklyPlan('${ds}', ${idx})">
+        <div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:13px;">${esc(p.text)}</div></div>
+        <button class="plan-del" onclick="deleteWeeklyPlan('${ds}', ${idx})">✕</button>
+      </div>
+    `).join('') : '<div class="text-xs text-muted text-center py-2">予定なし</div>';
+
+    html += `
+      <div class="weekly-day-card" style="${isToday ? 'border-color:var(--accent); background:var(--bg2);' : ''}">
+        <div class="weekly-day-header">
+          <span class="weekly-day-title">${dayNames[i]}曜日</span>
+          <span class="weekly-day-date">${d.getMonth() + 1}/${d.getDate()}</span>
+        </div>
+        <div>${planHtml}</div>
+      </div>
+    `;
+  }
+  c.innerHTML = html;
+};
+
+window.toggleWeeklyPlan = (ds, idx) => {
+  if (plans[ds] && plans[ds][idx]) {
+    plans[ds][idx].done = !plans[ds][idx].done;
+    save.plans();
+    renderWeeklyPlan();
+    if (planMode === 'calendar') renderPlanCalendar();
+  }
+};
+
+window.deleteWeeklyPlan = (ds, idx) => {
+  if (plans[ds]) {
+    plans[ds].splice(idx, 1);
+    if (plans[ds].length === 0) delete plans[ds];
+    save.plans();
+    renderWeeklyPlan();
+    if (planMode === 'calendar') renderPlanCalendar();
+  }
+};
+
+window.addWeeklyPlanFromTextbook = () => {
+  const tbId = $('weekly-textbook-select').value;
+  const pages = $('weekly-plan-pages').value.trim();
+  const dayVal = parseInt($('weekly-plan-day').value);
+  
+  if (!tbId || !pages) return showToast('参考書と範囲を入力してください');
+  
+  const tb = textbooks.find(t => t.id === tbId);
+  if (!tb) return;
+
+  const now = new Date();
+  now.setDate(now.getDate() - (planWeeklyOffset * 7));
+  const currentDay = now.getDay();
+  const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday);
+  
+  // Calculate target date based on selected day of week (1=Mon, 0=Sun)
+  let targetOffset = dayVal === 0 ? 6 : dayVal - 1;
+  const targetDate = new Date(monday);
+  targetDate.setDate(monday.getDate() + targetOffset);
+  
+  const ds = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+  
+  if (!plans[ds]) plans[ds] = [];
+  plans[ds].push({ text: `[${tb.name}] ${pages}`, done: false, time: '' });
+  save.plans();
+  
+  $('weekly-plan-pages').value = '';
+  renderWeeklyPlan();
+  showToast('追加しました');
+};
 
 const getAcademicYearLabel = m => { const now = new Date(), curCalMonth = now.getMonth() + 1, acadStartYear = curCalMonth >= 4 ? now.getFullYear() : now.getFullYear() - 1, displayYear = (m >= 1 && m <= 3) ? (acadStartYear + 1) : acadStartYear; return `${m}月 (${displayYear})`; };
 const renderYearlyPlan = () => {
@@ -4435,7 +4587,12 @@ const triggerTabEffects = (id) => {
   if (id === 'Dashboard') renderDashboard();
   if (id === 'Timer') { updateTimerDisplay(); renderTimerPresets(); }
   if (id === 'Vocab') { renderVocab(true); renderVocabStats(); updateTagFilters(); }
-  if (id === 'Plan') { setPlanMode('calendar'); renderTextbooks(); loadProfileFields(); renderYearlyPlan(); }
+  if (id === 'Plan') { 
+    setPlanMode(planMode); 
+    renderTextbooks(); 
+    loadProfileFields(); 
+    renderYearlyPlan(); 
+  }
   if (id === 'Cards') { updateTagFilters(); initCards(); }
   if (id === 'CustomCards') ccInitDecks();
   if (id === 'Manage') {
