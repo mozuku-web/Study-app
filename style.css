@@ -413,11 +413,52 @@ header {
 .word-chip .wc-right { display: flex; align-items: center; gap: 8px; }
 .word-chip .wc-mean { font-size: calc(12px * var(--text-scale)); color: var(--text-muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.result-box h3, .result-box h4 { color: var(--text-muted); font-size: calc(11px * var(--text-scale)); font-weight: 700; margin: 16px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 1.5px; }
-.result-box ul { list-style: none; display: flex; flex-direction: column; gap: 4px; padding-left: 0; }
-.result-box li { padding: 7px 10px 7px 14px; border-left: 2px solid var(--border2); font-size: calc(13.5px * var(--text-scale)); line-height: 1.7; color: var(--text-sub); }
+/* 単語の意味表示部分のスタイル改善 */
+.result-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-top: 14px;
+}
+.result-box h3, .result-box h4 { 
+  color: var(--text-muted); 
+  font-size: calc(12px * var(--text-scale)); 
+  font-weight: 700; 
+  margin: 16px 0 8px; 
+  padding-bottom: 5px; 
+  border-bottom: 1px solid var(--border); 
+  text-transform: uppercase; 
+  letter-spacing: 1px; 
+}
+.result-box p {
+  font-size: calc(14px * var(--text-scale));
+  line-height: 1.6;
+  color: var(--text-sub);
+  margin-bottom: 12px;
+}
+.result-box ul { 
+  list-style: none; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 6px; 
+  padding-left: 0; 
+  margin-bottom: 12px;
+}
+.result-box li { 
+  padding: 8px 12px; 
+  border-left: 3px solid var(--accent); 
+  background: var(--bg);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  font-size: calc(13.5px * var(--text-scale)); 
+  line-height: 1.5; 
+  color: var(--text-sub); 
+}
+.result-box li b {
+  color: var(--text);
+}
 .result-word-title { font-size: calc(36px * var(--text-scale)); font-weight: 700; color: var(--text); letter-spacing: 2px; margin-bottom: 6px; line-height: 1; font-family: var(--font-block); }
-.result-meaning-badge { display: inline-block; background: var(--bg); color: var(--text-sub); font-size: calc(12px * var(--text-scale)); font-weight: 500; padding: 4px 12px; border-radius: 20px; margin-bottom: 14px; border: 1px solid var(--border); }
+.result-meaning-badge { display: inline-block; background: var(--bg); color: var(--text-sub); font-size: calc(14px * var(--text-scale)); font-weight: 700; padding: 6px 14px; border-radius: 20px; margin-bottom: 14px; border: 1px solid var(--border); }
 .result-word-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 
 .loading-dots::after { content: ''; animation: dots 1.2s infinite; }
@@ -436,7 +477,8 @@ header {
 .flip-front, .flip-back { position: absolute; inset: 0; backface-visibility: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px; text-align: center; }
 .flip-back { transform: rotateY(180deg); background: var(--bg2); }
 .flip-word { font-size: calc(38px * var(--text-scale)); font-weight: 700; color: var(--text); letter-spacing: 2px; font-family: var(--font-block); }
-.flip-meaning { font-size: calc(17px * var(--text-scale)); color: var(--text-sub); font-weight: 500; line-height: 1.5; }
+.flip-meaning { font-size: calc(18px * var(--text-scale)); color: var(--text); font-weight: 700; line-height: 1.5; margin-bottom: 12px; }
+.flip-example { font-size: calc(14px * var(--text-scale)); color: var(--text-sub); font-style: italic; line-height: 1.4; }
 .flip-hint { font-size: calc(10px * var(--text-scale)); color: var(--text-muted); margin-top: 10px; font-weight: 700; letter-spacing: 1px; }
 .swipe-indicator { position:absolute; top:20px; font-size:calc(12px * var(--text-scale)); font-weight:bold; opacity:0; transition:opacity 0.2s; padding:6px 12px; border-radius:20px; }
 .swipe-left { left:20px; background:var(--danger); color:#fff; }
@@ -453,9 +495,38 @@ header {
 .prog-badge.learning { background: #fff3cd; color: #8a6200; }
 .prog-badge.new { background: var(--bg2); color: var(--text-muted); }
 
-.mode-toggle { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-/* 横スクロール可能なタブ群の touch-action を修正 */
-.month-tabs, .week-day-tabs, .chat-subject-tabs, .import-tab-bar, .writing-tabs { display: flex; gap: 5px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; touch-action: auto; }
+/* 科目バッジ */
+.subj-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  margin-right: 6px;
+  display: inline-block;
+}
+.subj-badge.english { background: #2980B9; }
+.subj-badge.math { background: #C0392B; }
+.subj-badge.japanese { background: #8E44AD; }
+.subj-badge.science { background: #27AE60; }
+.subj-badge.social { background: #E67E22; }
+.subj-badge.other { background: #7F8C8D; }
+
+/* 横スクロール可能なタブ群 */
+.mode-toggle, .writing-tabs, .chat-subject-tabs, .import-tab-bar, .month-tabs, .week-day-tabs { 
+  display: flex; 
+  gap: 6px; 
+  margin-bottom: 14px; 
+  flex-wrap: nowrap; 
+  overflow-x: auto; 
+  padding-bottom: 4px; 
+  scrollbar-width: none; 
+  -webkit-overflow-scrolling: touch;
+}
+.mode-toggle::-webkit-scrollbar, .writing-tabs::-webkit-scrollbar, .chat-subject-tabs::-webkit-scrollbar, .import-tab-bar::-webkit-scrollbar, .month-tabs::-webkit-scrollbar, .week-day-tabs::-webkit-scrollbar { 
+  display: none; 
+}
+
 .ptab, .stab, .itab { flex-shrink: 0; padding: 7px 13px; border-radius: 50px; font-size: calc(12px * var(--text-scale)); font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; text-align: center; }
 .ptab.active, .stab.active, .itab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 .ptab { flex: 1; min-width: fit-content; }
@@ -564,6 +635,31 @@ header {
 .plan-add-row input { flex: 1; min-width: 0; border: 1.5px solid var(--border); background: var(--bg); padding: 11px 14px; border-radius: var(--radius-sm); font-size: 16px; outline: none; }
 .plan-add-row .add-btn { flex: none; width: auto; background: var(--accent); color: var(--bg); border: none; padding: 11px 18px; border-radius: var(--radius-sm); font-size: calc(13px * var(--text-scale)); font-weight: 600; cursor: pointer; }
 
+/* Weekly Plan Styles */
+.weekly-day-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.weekly-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+.weekly-day-title {
+  font-size: calc(14px * var(--text-scale));
+  font-weight: 700;
+}
+.weekly-day-date {
+  font-size: calc(12px * var(--text-scale));
+  color: var(--text-muted);
+}
+
 .chat-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 340px; overflow-y: auto; touch-action: pan-y; }
 .chat-bubble { padding: 11px 14px; border-radius: 14px; font-size: calc(13.5px * var(--text-scale)); line-height: 1.65; max-width: 92%; word-break: break-word; }
 .chat-bubble.user { background: var(--accent); color: var(--bg); align-self: flex-end; border-radius: 14px 14px 4px 14px; }
@@ -572,7 +668,6 @@ header {
 .chat-input-row textarea { flex: 1; border: 1.5px solid var(--border); background: var(--bg); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 16px; outline: none; resize: none; max-height: 120px; }
 .chat-send-btn { background: var(--accent); color: var(--bg); border: none; padding: 0 14px; height: 36px; border-radius: 50px; font-size: calc(13px * var(--text-scale)); font-weight: 700; cursor: pointer; flex-shrink: 0; }
 
-.writing-tabs::-webkit-scrollbar { display: none; }
 .writing-tab { flex-shrink: 0; min-width: 68px; padding: 9px 12px; text-align: center; border-radius: var(--radius-xs); font-size: calc(11px * var(--text-scale)); font-weight: 700; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; white-space: nowrap; }
 .writing-tab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 .writing-pane { display: none; }
