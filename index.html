@@ -246,7 +246,7 @@
       </label>
       <label class="flex align-center gap-2 text-sm font-bold cursor-pointer">
         <input type="checkbox" id="timer-pomodoro-auto" style="width:18px;height:18px;accent-color:var(--accent);">
-        <span></span>
+        <span>自動で次のタイマーを開始する</span>
       </label>
     </div>
   </div>
@@ -287,7 +287,6 @@
 <div id="Vocab" class="view">
   <p class="page-title" data-i18n="vocab_title">Vocab List</p>
   
-  <!-- Import & Search 統合部分 -->
   <button class="action-btn" onclick="openImportModal()" data-i18n="import_btn_add">+ 単語をインポート</button>
   <div class="search-wrap">
     <input type="text" id="word-input" placeholder="単語を検索・入力..." data-i18n-placeholder="import_search_placeholder" onkeydown="if(event.key==='Enter'){event.preventDefault();searchWord()}">
@@ -297,7 +296,6 @@
   <div id="word-suggest" class="word-quick-list"></div>
   <div id="loading" class="hidden text-center p-36 text-muted font-bold text-sm"><span class="loading-dots" data-i18n="import_loading">解析中</span></div>
   <div id="search-result"></div>
-  <!-- 統合部分ここまで -->
 
   <div class="vocab-stats-bar" id="vocab-stats-bar"></div>
   
@@ -408,7 +406,7 @@
       <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" id="card-show-image" checked onchange="renderCard()"> 画像</label>
       <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" id="card-show-note" checked onchange="renderCard()"> メモ</label>
     </div>
-    <div class="mode-toggle">
+    <div class="mode-toggle" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
       <button class="ptab active" id="cards-mode-all" onclick="setCardsMode('all')" data-i18n="cards_mode_all">All</button>
       <button class="ptab" id="cards-mode-saved" onclick="setCardsMode('saved')" data-i18n="cards_mode_saved">Saved</button>
       <button class="ptab" id="cards-mode-srs" onclick="setCardsMode('srs')" data-i18n="cards_mode_srs">Review</button>
@@ -426,7 +424,7 @@
 <!-- SKILL UP -->
 <div id="SkillUp" class="view">
   <p class="page-title" data-i18n="skillup_title">Writing &amp; Reading &amp; Listening &amp; Quiz</p>
-  <div class="writing-tabs">
+  <div class="writing-tabs" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
     <button class="writing-tab active" id="wtab-input" onclick="switchWritingTab('input')" data-i18n="skillup_tab_input">Correct</button>
     <button class="writing-tab" id="wtab-daily" onclick="switchWritingTab('daily')" data-i18n="skillup_tab_daily">Problems</button>
     <button class="writing-tab" id="wtab-quiz" onclick="switchWritingTab('quiz')" data-i18n="skillup_tab_quiz">Quiz</button>
@@ -438,7 +436,7 @@
 
   <div class="writing-pane active" id="wpane-input">
     <p class="section-note" data-i18n="skillup_input_note">英作文や英文写真からAIが添削・構文解析を行います。</p>
-    <div class="mode-toggle mb-3">
+    <div class="mode-toggle mb-3" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
       <button class="ptab active" id="wmode-text" onclick="setWritingInputMode('text')" data-i18n="skillup_mode_text">Text</button>
       <button class="ptab" id="wmode-file" onclick="setWritingInputMode('file')" data-i18n="skillup_mode_file">File</button>
       <button class="ptab" id="wmode-photo" onclick="setWritingInputMode('photo')" data-i18n="skillup_mode_photo">Photo</button>
@@ -467,7 +465,7 @@
   </div>
 
   <div class="writing-pane" id="wpane-daily">
-    <div class="mode-toggle mb-3">
+    <div class="mode-toggle mb-3" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
       <button class="ptab active" id="dtab-comp" onclick="switchDailyTab('comp')" data-i18n="skillup_daily_comp">Writing</button>
       <button class="ptab" id="dtab-parse" onclick="switchDailyTab('parse')" data-i18n="skillup_daily_parse">Parse</button>
       <button class="ptab" id="dtab-reading" onclick="switchDailyTab('reading')" data-i18n="skillup_daily_reading">Reading</button>
@@ -489,7 +487,7 @@
     <div id="daily-area-reading" class="daily-sub-area hidden">
     </div>
     <div id="daily-area-listen" class="daily-sub-area hidden">
-      <div class="mode-toggle mb-3">
+      <div class="mode-toggle mb-3" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
         <button class="ptab active" id="listen-mode-mc" onclick="setListenMode('mc')" data-i18n="skillup_listen_mc">Multiple</button>
         <button class="ptab" id="listen-mode-dict" onclick="setListenMode('dict')" data-i18n="skillup_listen_dict">Dictation</button>
       </div>
@@ -586,7 +584,7 @@
 <!-- CUSTOM CARDS -->
 <div id="CustomCards" class="view">
   <p class="page-title" data-i18n="cc_title">Custom Decks</p>
-  <div class="mode-toggle mb-3"><button class="ptab active" id="cc-mode-study" onclick="setCCMode('study')" data-i18n="cc_mode_study">Study</button><button class="ptab" id="cc-mode-edit" onclick="setCCMode('edit')" data-i18n="cc_mode_edit">Edit</button><button class="ptab" id="cc-mode-decks" onclick="setCCMode('decks')" data-i18n="cc_mode_decks">Decks</button></div>
+  <div class="mode-toggle mb-3" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;"><button class="ptab active" id="cc-mode-study" onclick="setCCMode('study')" data-i18n="cc_mode_study">Study</button><button class="ptab" id="cc-mode-edit" onclick="setCCMode('edit')" data-i18n="cc_mode_edit">Edit</button><button class="ptab" id="cc-mode-decks" onclick="setCCMode('decks')" data-i18n="cc_mode_decks">Decks</button></div>
   <div id="cc-study-area">
     <select id="cc-deck-select" class="score-input mb-3" onchange="ccLoadDeck()"><option value="" data-i18n="cc_select_default">-- 選択 --</option></select>
     <div class="flip-card hidden" onclick="ccFlipCard()" id="cc-flip-card"><div class="flip-inner" id="cc-flip-inner"><div class="flip-front"><div class="flip-word text-28" id="cc-card-front">—</div></div><div class="flip-back"><div class="flip-meaning" id="cc-card-back">—</div></div></div></div>
@@ -600,7 +598,7 @@
     <div id="cc-card-editor" class="hidden">
       <div class="card mb-3">
         <p class="text-xs font-bold mb-3" data-i18n="cc_ai_title">AIで自動生成</p>
-        <div class="mode-toggle mb-3"><button class="ptab active" id="cc-ai-mode-text" onclick="setCCAiMode('text')" data-i18n="cc_ai_mode_text">Text</button><button class="ptab" id="cc-ai-mode-file" onclick="setCCAiMode('file')" data-i18n="cc_ai_mode_file">File</button><button class="ptab" id="cc-ai-mode-photo" onclick="setCCAiMode('photo')" data-i18n="cc_ai_mode_photo">Photo</button></div>
+        <div class="mode-toggle mb-3" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;"><button class="ptab active" id="cc-ai-mode-text" onclick="setCCAiMode('text')" data-i18n="cc_ai_mode_text">Text</button><button class="ptab" id="cc-ai-mode-file" onclick="setCCAiMode('file')" data-i18n="cc_ai_mode_file">File</button><button class="ptab" id="cc-ai-mode-photo" onclick="setCCAiMode('photo')" data-i18n="cc_ai_mode_photo">Photo</button></div>
         <div id="cc-ai-text-area"><input type="text" id="cc-ai-prompt" class="score-input mb-2" placeholder="例: 高校基礎レベルの英単語10個" data-i18n-placeholder="cc_ai_prompt_text"></div>
         <div id="cc-ai-file-area" class="hidden"><label class="writing-upload-btn" for="cc-ai-file-input"><span class="mb-1 font-bold" data-i18n="cc_ai_file_select">[ ファイルを選択 ]</span><input type="file" id="cc-ai-file-input" accept="*/*" class="hidden" onchange="handleCCAiFile(event)" onclick="this.value=null"></label><div id="cc-ai-file-name" class="mb-2 text-xs text-muted"></div><input type="text" id="cc-ai-file-prompt" class="score-input mb-2" placeholder="追加指示" data-i18n-placeholder="cc_ai_prompt_extra"></div>
         <div id="cc-ai-photo-area" class="hidden"><label class="writing-upload-btn" for="cc-ai-photo-input"><span class="mb-1 font-bold" data-i18n="cc_ai_photo_select">[ 写真を選択 ]</span><input type="file" id="cc-ai-photo-input" accept="image/*" class="hidden" onchange="handleCCAiPhoto(event)" onclick="this.value=null"></label><div id="cc-ai-photo-preview" class="mb-2"></div><input type="text" id="cc-ai-photo-prompt" class="score-input mb-2" placeholder="追加指示" data-i18n-placeholder="cc_ai_prompt_extra"></div>
@@ -616,7 +614,7 @@
 <!-- SUBJECT AI -->
 <div id="Subject" class="view">
   <p class="page-title" data-i18n="subj_title">Question</p>
-  <div class="chat-subject-tabs" id="subject-tabs">
+  <div class="chat-subject-tabs" id="subject-tabs" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
     <button class="stab active" onclick="setSubject('japanese')" data-i18n="subj_tab_ja">国語</button>
     <button class="stab" onclick="setSubject('math')" data-i18n="subj_tab_math">数学</button>
     <button class="stab" onclick="setSubject('english')" data-i18n="subj_tab_en">英語</button>
@@ -625,10 +623,10 @@
     <button class="stab" onclick="setSubject('other')" data-i18n="subj_tab_other">その他</button>
   </div>
   <div class="flex-between mb-2"><span id="subject-label" class="text-sub font-bold text-xs-plus" data-i18n="subj_label">国語モード</span><button class="chat-clear-btn mb-0 btn-text-muted" onclick="clearSubjectChat()" data-i18n="subj_btn_clear">クリア</button></div>
-  <div class="mode-toggle mb-2"><button class="ptab active" id="sview-chat" onclick="switchSubjectView('chat')" data-i18n="subj_view_chat">Chat</button><button class="ptab" id="sview-history" onclick="switchSubjectView('history')" data-i18n="subj_view_saved">Saved</button><button class="ptab" id="sview-quiz" onclick="switchSubjectView('quiz')" data-i18n="subj_view_quiz">Quiz</button></div>
+  <div class="mode-toggle mb-2" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;"><button class="ptab active" id="sview-chat" onclick="switchSubjectView('chat')" data-i18n="subj_view_chat">Chat</button><button class="ptab" id="sview-history" onclick="switchSubjectView('history')" data-i18n="subj_view_saved">Saved</button><button class="ptab" id="sview-quiz" onclick="switchSubjectView('quiz')" data-i18n="subj_view_quiz">Quiz</button></div>
   <div id="subject-chat-view">
     <div class="chat-container" id="subject-chat"></div>
-    <div class="mode-toggle gap-2 mb-2"><button class="ptab active p-8" id="sqmode-text" onclick="setSubjectInputMode('text')" data-i18n="subj_mode_text">Text</button><button class="ptab p-8" id="sqmode-file" onclick="setSubjectInputMode('file')" data-i18n="subj_mode_file">File</button><button class="ptab p-8" id="sqmode-photo" onclick="setSubjectInputMode('photo')" data-i18n="subj_mode_photo">Photo</button></div>
+    <div class="mode-toggle gap-2 mb-2" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;"><button class="ptab active p-8" id="sqmode-text" onclick="setSubjectInputMode('text')" data-i18n="subj_mode_text">Text</button><button class="ptab p-8" id="sqmode-file" onclick="setSubjectInputMode('file')" data-i18n="subj_mode_file">File</button><button class="ptab p-8" id="sqmode-photo" onclick="setSubjectInputMode('photo')" data-i18n="subj_mode_photo">Photo</button></div>
     <div id="sq-text-area"><div class="chat-input-row"><textarea id="subject-input" placeholder="質問を入力..." data-i18n-placeholder="subj_input_placeholder" rows="1" oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSubjectMessage();}"></textarea><button class="chat-send-btn" id="subject-send" onclick="sendSubjectMessage()" data-i18n="subj_btn_send">送信</button></div></div>
     <div id="sq-file-area" class="hidden"><label class="writing-upload-btn" for="subject-file-input"><span class="mb-1 font-bold" data-i18n="subj_file_select">[ ファイルを選択 ]</span><input type="file" id="subject-file-input" accept="*/*" class="hidden" onchange="handleSubjectFile(event)" onclick="this.value=null"></label><div id="subject-file-name" class="mb-2 text-xs text-muted"></div><div class="chat-input-row"><textarea id="subject-file-extra" placeholder="追加コメント..." data-i18n-placeholder="subj_file_extra" rows="1" oninput="autoResize(this)"></textarea><button class="chat-send-btn" onclick="sendSubjectFileMessage()" data-i18n="subj_btn_send">送信</button></div></div>
     <div id="sq-photo-area" class="hidden">
@@ -659,8 +657,9 @@
 <!-- PLAN -->
 <div id="Plan" class="view">
   <p class="page-title" data-i18n="plan_title">Study Schedule</p>
-  <div class="mode-toggle mb-3">
+  <div class="mode-toggle mb-3" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
     <button class="ptab active" id="plan-mode-calendar" onclick="setPlanMode('calendar')" data-i18n="plan_mode_cal">Calendar</button>
+    <button class="ptab" id="plan-mode-weekly" onclick="setPlanMode('weekly')">Weekly</button>
     <button class="ptab" id="plan-mode-yearly" onclick="setPlanMode('yearly')" data-i18n="plan_mode_yearly">Yearly</button>
     <button class="ptab" id="plan-mode-gantt" onclick="setPlanMode('gantt')" data-i18n="plan_mode_gantt">Gantt</button>
     <button class="ptab" id="plan-mode-score" onclick="setPlanMode('score')" data-i18n="plan_mode_exam">Exam</button>
@@ -697,7 +696,58 @@
         </div>
       </div>
     </div>
-    <div class="card" id="textbook-card"><p class="text-sm font-bold mb-2" data-i18n="plan_book_title">使用参考書</p><div id="textbook-chips" class="flex-gap-wrap mb-2"></div><div class="plan-add-row"><input type="text" id="new-textbook-input" placeholder="参考書追加" data-i18n-placeholder="plan_book_input" onkeydown="if(event.key==='Enter')addTextbook()"><button onclick="addTextbook()" class="add-btn" data-i18n="plan_book_add">追加</button></div></div>
+    <div class="card" id="textbook-card">
+      <p class="text-sm font-bold mb-2" data-i18n="plan_book_title">使用参考書</p>
+      <div id="textbook-chips" class="flex-col gap-2 mb-3"></div>
+      <div class="plan-add-row flex-wrap">
+        <select id="new-textbook-subj" class="score-input w-auto p-8 text-xs">
+          <option value="english">英語</option>
+          <option value="math">数学</option>
+          <option value="japanese">国語</option>
+          <option value="science">理科</option>
+          <option value="social">社会</option>
+          <option value="other">その他</option>
+        </select>
+        <input type="text" id="new-textbook-input" class="flex-1" placeholder="参考書追加" data-i18n-placeholder="plan_book_input" onkeydown="if(event.key==='Enter')addTextbook()">
+        <button onclick="addTextbook()" class="add-btn" data-i18n="plan_book_add">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="plan-weekly-area" class="hidden">
+    <div class="card mb-3">
+      <div class="flex-between mb-2">
+        <p class="text-sm font-bold">週間計画 (Weekly)</p>
+        <div class="flex align-center">
+          <button class="btn-pill btn-outline" onclick="planWeeklyPrev()">‹</button>
+          <span id="plan-weekly-label" class="text-xs font-bold ml-2 mr-2">今週</span>
+          <button class="btn-pill btn-outline" onclick="planWeeklyNext()">›</button>
+        </div>
+      </div>
+      <div class="flex-col gap-2" id="plan-weekly-days">
+      </div>
+    </div>
+    <div class="card">
+      <p class="text-sm font-bold mb-2">参考書から計画に追加</p>
+      <div class="flex-gap-8 mb-2">
+        <select id="weekly-textbook-select" class="score-input flex-1">
+          <option value="">参考書を選択...</option>
+        </select>
+        <input type="text" id="weekly-plan-pages" class="score-input w-70" placeholder="範囲/P">
+      </div>
+      <div class="flex-gap-8 mb-2">
+        <select id="weekly-plan-day" class="score-input flex-1">
+          <option value="1">月曜日</option>
+          <option value="2">火曜日</option>
+          <option value="3">水曜日</option>
+          <option value="4">木曜日</option>
+          <option value="5">金曜日</option>
+          <option value="6">土曜日</option>
+          <option value="0">日曜日</option>
+        </select>
+        <button class="action-btn mb-0 flex-1" onclick="addWeeklyPlanFromTextbook()">追加</button>
+      </div>
+    </div>
   </div>
 
   <div id="plan-yearly-area" class="hidden">
@@ -763,7 +813,7 @@
     <div class="card mb-3" id="score-chart-card">
       <div class="flex-between mb-2">
         <p class="text-xs font-bold" data-i18n="plan_score_graph">Graph</p>
-        <div class="mode-toggle mb-0">
+        <div class="mode-toggle mb-0" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
           <button class="ptab active p-8 text-xs" id="score-chart-mode-dev" onclick="setScoreChartMode('dev')" data-i18n="plan_score_chart_dev">偏差値</button>
           <button class="ptab p-8 text-xs" id="score-chart-mode-judge" onclick="setScoreChartMode('judge')" data-i18n="plan_score_chart_judge">判定</button>
         </div>
@@ -778,7 +828,7 @@
 <!-- MISTAKES -->
 <div id="Mistakes" class="view">
   <p class="page-title">Mistakes</p>
-  <div class="mode-toggle mb-3">
+  <div class="mode-toggle mb-3" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
     <button class="ptab active" id="mistake-tab-saved" onclick="switchMistakeTab('saved')">Saved</button>
     <button class="ptab" id="mistake-tab-exam" onclick="switchMistakeTab('exam')">Exam</button>
     <button class="ptab" id="mistake-tab-calc" onclick="switchMistakeTab('calc')">Calculation</button>
@@ -1136,7 +1186,7 @@
   <div class="modal-sheet max-h-92vh">
     <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('import-modal')" data-i18n="modal_close">✕</button>
     <p class="font-bold mb-3 text-lg" data-i18n="modal_import_title">インポート</p>
-    <div class="import-tab-bar">
+    <div class="import-tab-bar" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
       <button class="itab active" id="itab-file" onclick="switchImportTab('file')" data-i18n="modal_import_tab_file">File</button>
       <button class="itab" id="itab-text" onclick="switchImportTab('text')" data-i18n="modal_import_tab_text">Text</button>
       <button class="itab" id="itab-url" onclick="switchImportTab('url')" data-i18n="modal_import_tab_url">URL</button>
