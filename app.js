@@ -11,6 +11,7 @@ const clean = html => {
   if (window.DOMPurify) return DOMPurify.sanitize(html);
   const temp = document.createElement('div');
   temp.textContent = html;
+  // buttonタグやmarkタグを許可（派生語追加ボタンやハイライトのため）
   return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td|button|mark)(.*?)&gt;/gi, '<$1$2$3>');
 };
 
@@ -1906,7 +1907,7 @@ const searchWord = async (isSuggest = false) => {
   "antonyms": [{"word": "対義語1", "meaning": "意味"}]
 }`;
     
-    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '客観的かつ簡潔な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。', true);
+    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
     const json = extractJSON(rep);
     if (!json) throw new Error('Invalid JSON');
     
@@ -1948,7 +1949,7 @@ window.regenerateWordDetail = async (w) => {
   "synonyms": [{"word": "類義語1", "meaning": "意味", "diff": "ニュアンスの違い"}],
   "antonyms": [{"word": "対義語1", "meaning": "意味"}]
 }`;
-    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '客観的かつ簡潔な参考書スタイルで出力してください。挨拶や語りかけは一切不要です。', true);
+    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
     const json = extractJSON(rep);
     if (!json) throw new Error('Invalid JSON');
     const parsedHtml = buildWordDetailHtml(json);
