@@ -413,50 +413,88 @@ header {
 .word-chip .wc-right { display: flex; align-items: center; gap: 8px; }
 .word-chip .wc-mean { font-size: calc(12px * var(--text-scale)); color: var(--text-muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* 単語の意味表示部分のスタイル改善 */
-.result-box {
+/* ==========================
+   AI Output Styles (参考書風)
+   ========================== */
+.result-box, .correction-box {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 18px;
+  padding: 20px;
   margin-top: 14px;
-}
-.result-box h3, .result-box h4 { 
-  color: var(--text-muted); 
-  font-size: calc(12px * var(--text-scale)); 
-  font-weight: 700; 
-  margin: 16px 0 8px; 
-  padding-bottom: 5px; 
-  border-bottom: 1px solid var(--border); 
-  text-transform: uppercase; 
-  letter-spacing: 1px; 
-}
-.result-box p {
-  font-size: calc(14px * var(--text-scale));
-  line-height: 1.6;
   color: var(--text-sub);
-  margin-bottom: 12px;
+  line-height: 1.6;
 }
-.result-box ul { 
-  list-style: none; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 6px; 
-  padding-left: 0; 
-  margin-bottom: 12px;
-}
-.result-box li { 
-  padding: 8px 12px; 
-  border-left: 3px solid var(--accent); 
-  background: var(--bg);
-  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
-  font-size: calc(13.5px * var(--text-scale)); 
-  line-height: 1.5; 
-  color: var(--text-sub); 
-}
-.result-box li b {
+
+.result-box h3, .result-box h4,
+.correction-box h3, .correction-box h4 {
   color: var(--text);
+  font-size: calc(14px * var(--text-scale));
+  font-weight: 700;
+  margin: 20px 0 10px;
+  padding: 6px 10px;
+  background: var(--bg2);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  letter-spacing: 0.5px;
 }
+
+.result-box h3:first-child, .result-box h4:first-child,
+.correction-box h3:first-child, .correction-box h4:first-child {
+  margin-top: 0;
+}
+
+.result-box p, .correction-box p {
+  font-size: calc(14px * var(--text-scale));
+  margin-bottom: 12px;
+}
+
+.result-box ul, .correction-box ul {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-box li, .correction-box li {
+  position: relative;
+  padding: 10px 14px 10px 16px;
+  background: var(--bg);
+  border-radius: var(--radius-xs);
+  font-size: calc(13.5px * var(--text-scale));
+  border-left: 3px solid var(--border2);
+}
+
+.result-box li::before, .correction-box li::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 3px 0 0 3px;
+  opacity: 0.5;
+}
+
+.result-box b, .result-box strong,
+.correction-box b, .correction-box strong {
+  color: var(--text);
+  font-weight: 700;
+  background: linear-gradient(transparent 60%, rgba(230, 126, 34, 0.2) 60%);
+  padding: 0 2px;
+}
+
+/* SVOC解析用のスタイル */
+.svoc-s { color: #E74C3C; font-weight: bold; }
+.svoc-v { color: #2980B9; font-weight: bold; }
+.svoc-o { color: #27AE60; font-weight: bold; }
+.svoc-c { color: #8E44AD; font-weight: bold; }
+.svoc-m { color: #F39C12; font-weight: bold; }
+.slash { color: var(--border2); margin: 0 2px; font-weight: bold; }
+
 .result-word-title { font-size: calc(36px * var(--text-scale)); font-weight: 700; color: var(--text); letter-spacing: 2px; margin-bottom: 6px; line-height: 1; font-family: var(--font-block); }
 .result-meaning-badge { display: inline-block; background: var(--bg); color: var(--text-sub); font-size: calc(14px * var(--text-scale)); font-weight: 700; padding: 6px 14px; border-radius: 20px; margin-bottom: 14px; border: 1px solid var(--border); }
 .result-word-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
@@ -675,9 +713,6 @@ header {
 .writing-textarea { width: 100%; min-height: 150px; border: 1.5px solid var(--border); background: var(--bg); padding: 13px 15px; border-radius: var(--radius-sm); font-size: 16px; outline: none; resize: vertical; margin-bottom: 10px; }
 .writing-upload-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 16px; border-radius: var(--radius-sm); font-size: calc(13px * var(--text-scale)); font-weight: bold; cursor: pointer; border: 2px dashed var(--border2); background: var(--bg); margin-bottom: 10px; text-align: center; width: 100%; }
 
-.correction-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-top: 14px; }
-.correction-box h3, .correction-box h4 { font-size: calc(11px * var(--text-scale)); font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin: 14px 0 8px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
-.correction-box li { padding: 7px 10px 7px 14px; border-left: 2px solid var(--border2); font-size: calc(13.5px * var(--text-scale)); color: var(--text-sub); margin-bottom: 4px; }
 .writing-history-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 15px; margin-bottom: 8px; cursor: pointer; }
 
 .audio-btn { padding: 6px 12px; border-radius: 50px; font-size: calc(11px * var(--text-scale)); font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-sub); cursor: pointer; transition: all .15s; }
