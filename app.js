@@ -1114,14 +1114,87 @@ const updateFsrsRetention = (val) => {
   safeSet('study_fsrs_retention', fsrsRetention);
 };
 
-const saveGeminiModel = () => {
-  localStorage.setItem('study_gemini_model', $('gemini-model-select').value);
-  showToast('Saved');
+window.saveGeminiModel = () => {
+  const select = $('gemini-model-select');
+  const customContainer = $('custom-model-input-container');
+  
+  if (select.value === 'custom') {
+    customContainer.classList.remove('hidden');
+    localStorage.setItem('study_gemini_model_type', 'custom');
+  } else {
+    customContainer.classList.add('hidden');
+    localStorage.setItem('study_gemini_model_type', 'preset');
+    localStorage.setItem('study_gemini_model', select.value);
+    showToast('Saved');
+  }
+};
+
+window.saveCustomGeminiModel = () => {
+  const customInput = $('custom-gemini-model');
+  if (customInput.value.trim()) {
+    localStorage.setItem('study_gemini_model', customInput.value.trim());
+    showToast('Custom model saved');
+  }
 };
 
 const initModelSelect = () => {
   const s = $('gemini-model-select');
-  if (s) s.value = localStorage.getItem('study_gemini_model') || 'gemini-2.5-flash';
+  const customContainer = $('custom-model-input-container');
+  const customInput = $('custom-gemini-model');
+  
+  const savedModel = localStorage.getItem('study_gemini_model') || 'gemini-2.5-flash';
+  const modelType = localStorage.getItem('study_gemini_model_type') || 'preset';
+  
+  if (s) {
+    let optionExists = Array.from(s.options).some(opt => opt.value === savedModel);
+    
+    if (modelType === 'custom' || (!optionExists && savedModel)) {
+      s.value = 'custom';
+      if (customContainer) customContainer.classList.remove('hidden');
+      if (customInput) customInput.value = savedModel;
+    } else {
+      s.value = savedModel;
+      if (customContainer) customContainer.classList.add('hidden');
+    }
+  }
+};
+
+window.fetchAvailableModels = async () => {
+  const apiKey = localStorage.getItem('study_gemini_api_key');
+  if (!apiKey) return showToast('Please set API Key first');
+  
+  showToast('Fetching models...');
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!res.ok) throw new Error('Failed to fetch');
+    const data = await res.json();
+    
+    const models = data.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'));
+    const select = $('gemini-model-select');
+    if (!select) return;
+    
+    const customOpt = select.querySelector('option[value="custom"]');
+    select.innerHTML = '';
+    
+    models.forEach(m => {
+      const modelId = m.name.replace('models/', '');
+      // 1.5と2.0は除外する
+      if (modelId.includes('1.5') || modelId.includes('2.0')) return;
+      
+      const option = document.createElement('option');
+      option.value = modelId;
+      option.textContent = m.displayName || modelId;
+      select.appendChild(option);
+    });
+    
+    if (customOpt) select.appendChild(customOpt);
+    
+    initModelSelect();
+    showToast('Model list updated');
+  } catch (e) {
+    showToast('Error fetching models');
+    console.error(e);
+  }
 };
 
 window.saveApiKey = () => {
