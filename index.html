@@ -32,6 +32,8 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+  <!-- PDF.js for robust PDF parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -65,7 +67,7 @@
       <div class="flex-between align-center mb-3">
         <p class="page-title mb-0" data-i18n="dash_title">ダッシュボード</p>
         <div class="flex-gap-8">
-          <button class="btn-pill btn-outline" onclick="openWidgetSettingsModal()" data-i18n="dash_widget_settings">表示設定</button>
+          <button class="btn-pill btn-outline" onclick="setTabByIndex(9); setTimeout(()=>document.getElementById('widget-settings-panel').classList.remove('hidden'), 100);" data-i18n="dash_widget_settings">表示設定</button>
           <button class="btn-pill btn-outline" id="toggle-widget-sort-btn" onclick="toggleWidgetSortMode()" data-i18n="dash_sort_btn">並び替え</button>
         </div>
       </div>
@@ -340,9 +342,9 @@
       <div class="vocab-stats-bar" id="vocab-stats-bar"></div>
       
       <div class="flex-gap-8 mb-3 flex-wrap">
-        <button class="action-btn mb-0 flex-1 bg-purple" onclick="openAutoListenModal()" data-i18n="vocab_btn_listen">ながら聴き</button>
-        <button class="action-btn mb-0 flex-1 bg-blue" onclick="openStoryGenModal()" data-i18n="vocab_btn_story">AIストーリー</button>
-        <button class="action-btn mb-0 flex-1 btn-secondary" onclick="openSimulationModal()" data-i18n="vocab_btn_sim">忘却曲線予測</button>
+        <button class="action-btn mb-0 flex-1 bg-purple" onclick="openAutoListenModal()" data-i18n="vocab_btn_listen">Auto-Listen</button>
+        <button class="action-btn mb-0 flex-1 bg-blue" onclick="openStoryGenModal()" data-i18n="vocab_btn_story">Contextual Story</button>
+        <button class="action-btn mb-0 flex-1 btn-secondary" onclick="openSimulationModal()" data-i18n="vocab_btn_sim">Retention Forecast</button>
       </div>
 
       <div class="flex-gap-8 mb-3">
@@ -478,7 +480,7 @@
           <button class="ptab active" id="cards-mode-all" onclick="setCardsMode('all')" data-i18n="cards_mode_all">すべて</button>
           <button class="ptab" id="cards-mode-saved" onclick="setCardsMode('saved')" data-i18n="cards_mode_saved">保存済</button>
           <button class="ptab" id="cards-mode-srs" onclick="setCardsMode('srs')" data-i18n="cards_mode_srs">復習</button>
-          <button class="ptab hidden btn-danger-tab" id="cards-mode-weak" onclick="setCardsMode('weak')" data-i18n="cards_mode_weak">弱点集中</button>
+          <button class="ptab hidden btn-danger-tab" id="cards-mode-weak" onclick="setCardsMode('weak')" data-i18n="cards_mode_weak">Weakness Focus</button>
         </div>
         <div class="flex align-center gap-2 mt-2">
           <span class="text-xs font-bold text-muted" data-i18n="cards_tag_filter">タグ絞り込み:</span>
@@ -534,7 +536,7 @@
           <button class="action-btn mb-0 flex-1 min-w-100" id="writing-submit-btn" onclick="submitWriting('correct')" data-i18n="skillup_btn_correct">添削</button>
           <button class="action-btn mb-0 flex-1 min-w-100 bg-green" id="writing-analyze-btn" onclick="submitWriting('analyze')" data-i18n="skillup_btn_parse">構文解析</button>
           <button class="action-btn mb-0 flex-1 min-w-100 bg-streak" id="writing-paraphrase-btn" onclick="submitWriting('paraphrase')" data-i18n="skillup_btn_para">言い換え</button>
-          <button class="action-btn mb-0 flex-1 min-w-100 bg-purple" id="writing-essay-btn" onclick="submitWriting('essay')" data-i18n="skillup_btn_essay">エッセイ評価</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 bg-purple" id="writing-essay-btn" onclick="submitWriting('essay')" data-i18n="skillup_btn_essay">Essay Analysis</button>
         </div>
         
         <div id="writing-loading" class="hidden text-center p-28"><span class="loading-dots" data-i18n="skillup_loading">処理中</span></div>
@@ -577,7 +579,7 @@
           </div>
           <div class="card text-center p-36">
             <p class="text-sm mb-3" data-i18n="skillup_trick_note">過去のミス傾向から、あえて間違えやすい「ひっかけ問題」を生成します。</p>
-            <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-danger" id="generate-trick-drill-btn" onclick="generateTrickDrill()" data-i18n="skillup_trick_btn">ひっかけ問題に挑戦</button>
+            <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-danger" id="generate-trick-drill-btn" onclick="generateTrickDrill()" data-i18n="skillup_trick_btn">Hardcore Drill</button>
           </div>
           <div id="drill-loading" class="hidden text-center p-28"><span class="loading-dots" data-i18n="skillup_drill_loading">分析・生成中</span></div>
           <div id="drill-content-area"></div>
@@ -611,7 +613,7 @@
 
       <div class="writing-pane" id="wpane-media">
         <div class="card mb-3">
-          <p class="text-xs font-bold text-muted mb-2" data-i18n="skillup_media_yt_title">YouTube 完全学習化</p>
+          <p class="text-xs font-bold text-muted mb-2" data-i18n="skillup_media_yt_title">YouTube to Lesson</p>
           <p class="text-xs text-muted mb-3" data-i18n="skillup_media_yt_note">動画URLから要約、和訳、内容理解クイズを一括生成します。</p>
           <input type="url" id="media-yt-url" class="score-input mb-2" placeholder="YouTube URL" data-i18n-placeholder="skillup_media_yt_ph">
           <button class="action-btn mb-0 bg-danger" onclick="generateYouTubeLesson()" data-i18n="skillup_media_yt_btn">レッスン生成</button>
@@ -628,7 +630,7 @@
       <div class="writing-pane" id="wpane-shadowing">
         <div class="card text-center p-36">
           <p class="text-sm mb-3" data-i18n="skillup_shadow_note">AIのお手本音声と自分の発音の「波形」を視覚的に比較し、リズムやイントネーションを改善します。</p>
-          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-blue" onclick="openShadowingModal()" data-i18n="skillup_shadow_btn">波形比較モードを開始</button>
+          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-blue" onclick="openShadowingModal()" data-i18n="skillup_shadow_btn">Shadowing Studio</button>
         </div>
       </div>
 
@@ -958,7 +960,7 @@
         <div class="card mb-3">
           <div class="flex-between mb-2">
             <p class="text-sm font-bold" data-i18n="plan_yearly_main">年間大目標</p>
-            <button class="btn-pill btn-outline" onclick="generateMilestonesAI()" data-i18n="plan_yearly_milestone">AIマイルストーン分割</button>
+            <button class="btn-pill btn-outline" onclick="generateMilestonesAI()" data-i18n="plan_yearly_milestone">Milestone Generator</button>
           </div>
           <input type="text" id="yearly-main-goal" class="score-input" placeholder="例: 第一志望校合格、TOEIC 800点" data-i18n-placeholder="plan_yearly_placeholder" oninput="saveYearlyPlanDebounced()">
         </div>
@@ -968,7 +970,7 @@
       <div id="plan-gantt-area" class="hidden">
         <div class="card mb-3">
           <div class="flex-between mb-2">
-            <p class="text-sm font-bold" data-i18n="plan_gantt_title">逆算スケジュール自動作成 (AI)</p>
+            <p class="text-sm font-bold" data-i18n="plan_gantt_title">Backcasting Planner</p>
             <button class="btn-pill btn-outline" onclick="slideGanttSchedule()">Delay Slide</button>
           </div>
           <p class="text-xs text-muted mb-3 line-height-15" data-i18n="plan_gantt_note">目標日と使用する参考書・タスク量を入力すると、AIが試験日までの日数を計算し、今日やるべき日割りスケジュールをカレンダーに登録します。</p>
@@ -1031,7 +1033,7 @@
         <div class="card mb-3">
           <p class="text-sm font-bold mb-3" data-i18n="plan_score_title">成績を追加</p>
           <label class="action-btn w-full text-center mb-3 block bg-accent2">
-            <span data-i18n="plan_score_ocr">成績表をAIで自動入力</span>
+            <span data-i18n="plan_score_ocr">Smart Scan (成績表)</span>
             <input type="file" accept="image/*" class="hidden" onchange="ocrScore(event)" onclick="this.value=null">
           </label>
           <div class="flex-gap-8 mb-3">
@@ -1188,8 +1190,28 @@
       </div>
 
       <div class="card mb-4">
+        <p class="text-xs font-bold text-muted mb-2" data-i18n="manage_widget_title">ダッシュボード表示設定</p>
+        <button class="manage-btn mb-0" onclick="document.getElementById('widget-settings-panel').classList.toggle('hidden')" data-i18n="manage_widget_btn">ウィジェット設定を開く</button>
+        <div id="widget-settings-panel" class="hidden mt-3 p-14 bg-bg2 radius-sm border">
+          <p class="text-sm text-muted mb-3">ダッシュボードに表示する項目をON/OFFできます。</p>
+          <div id="widget-settings-list" class="flex-col gap-3 mb-4"></div>
+          <p class="text-xs font-bold text-muted mb-2 mt-4">レイアウト設定</p>
+          <select id="widget-column-select" class="score-input mb-3">
+            <option value="1">1カラム表示</option>
+            <option value="2">2カラム表示 (PC/タブレット推奨)</option>
+          </select>
+          <button class="action-btn mb-0" onclick="saveWidgetSettings()">保存</button>
+        </div>
+      </div>
+
+      <div class="card mb-4">
         <p class="text-xs font-bold text-muted mb-2" data-i18n="manage_text_custom">表示テキストのカスタマイズ</p>
-        <button class="manage-btn mb-0" onclick="openTextCustomizerModal()" data-i18n="manage_text_custom_btn">テキストを変更する</button>
+        <button class="manage-btn mb-0" onclick="document.getElementById('text-customizer-panel').classList.toggle('hidden'); if(typeof openTextCustomizerPanel === 'function') openTextCustomizerPanel();" data-i18n="manage_text_custom_btn">テキストを変更する</button>
+        <div id="text-customizer-panel" class="hidden mt-3 p-14 bg-bg2 radius-sm border">
+          <div id="text-customizer-list" class="flex-col gap-6 mb-3"></div>
+          <button class="action-btn mb-0" onclick="saveCustomTexts()">保存</button>
+          <button class="action-btn btn-secondary mt-2 mb-0" onclick="resetCustomTexts()">初期値に戻す</button>
+        </div>
       </div>
 
       <div class="card">
@@ -1428,7 +1450,7 @@
       <div id="weakness-content" class="text-base line-height-16 text-main">
         <div class="text-center p-40"><span class="loading-dots" data-i18n="modal_weak_loading">AIが分析中</span></div>
       </div>
-      <button class="action-btn btn-danger mt-4 hidden" id="weakness-focus-btn" onclick="startWeaknessFocusMode()" data-i18n="modal_weak_btn">弱点集中モード開始</button>
+      <button class="action-btn btn-danger mt-4 hidden" id="weakness-focus-btn" onclick="startWeaknessFocusMode()" data-i18n="modal_weak_btn">Weakness Focus 開始</button>
     </div>
   </div>
 
@@ -1562,22 +1584,10 @@
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeModal('simulation-modal')" data-i18n="modal_close">✕</button>
-      <p class="font-bold mb-3 text-lg" data-i18n="modal_sim_title">忘却曲線シミュレーター</p>
+      <p class="font-bold mb-3 text-lg" data-i18n="modal_sim_title">Retention Forecast</p>
       <p class="text-sm mb-3" data-i18n="modal_sim_note">現在のあなたの学習データに基づき、もし今日復習しなかった場合の記憶の減衰を予測します。</p>
       <div class="chart-container-220 mb-3"><canvas id="simulation-chart"></canvas></div>
       <p class="text-xs text-muted text-center" data-i18n="modal_sim_note2">※FSRSアルゴリズムに基づく予測値です。</p>
-    </div>
-  </div>
-
-  <!-- テキストカスタマイズモーダル -->
-  <div class="modal-overlay" id="text-customizer-modal" onclick="if(event.target===this) closeModal('text-customizer-modal')">
-    <div class="modal-sheet max-h-92vh">
-      <div class="modal-handle"></div>
-      <button class="modal-close" onclick="closeModal('text-customizer-modal')" data-i18n="modal_close">✕</button>
-      <p class="font-bold mb-3 text-lg" data-i18n="modal_text_custom_title">表示テキストのカスタマイズ</p>
-      <div id="text-customizer-list" class="flex-col gap-6 mb-3"></div>
-      <button class="action-btn mb-0" onclick="saveCustomTexts()" data-i18n="modal_text_custom_save">保存</button>
-      <button class="action-btn btn-secondary mt-2 mb-0" onclick="resetCustomTexts()" data-i18n="modal_text_custom_reset">初期値に戻す</button>
     </div>
   </div>
 
@@ -1598,7 +1608,7 @@
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeModal('auto-listen-modal')">✕</button>
-      <p class="font-bold mb-3 text-lg" data-i18n="modal_listen_title">ながら聴きモード</p>
+      <p class="font-bold mb-3 text-lg" data-i18n="modal_listen_title">Auto-Listen</p>
       <p class="text-sm text-muted mb-3" data-i18n="modal_listen_note">画面を見ずに、単語の発音・意味・例文を自動ループ再生します。</p>
       <div class="card text-center p-28-18 mb-3">
         <div id="auto-listen-word" class="text-28 font-bold mb-2">—</div>
@@ -1620,7 +1630,7 @@
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeModal('story-gen-modal')">✕</button>
-      <p class="font-bold mb-3 text-lg" data-i18n="modal_story_title">AIオリジナルストーリー</p>
+      <p class="font-bold mb-3 text-lg" data-i18n="modal_story_title">Contextual Story</p>
       <p class="text-sm text-muted mb-3" data-i18n="modal_story_note">学習中・苦手な単語を組み込んだ短い物語を生成し、文脈で記憶します。</p>
       <button class="action-btn mb-3 bg-blue" onclick="generateStory()" data-i18n="modal_story_btn">物語を生成する</button>
       <div id="story-loading" class="hidden text-center p-20"><span class="loading-dots">執筆中</span></div>
@@ -1662,23 +1672,6 @@
     </div>
   </div>
 
-  <!-- ウィジェット表示設定モーダル -->
-  <div class="modal-overlay" id="widget-settings-modal" onclick="if(event.target===this) closeModal('widget-settings-modal')">
-    <div class="modal-sheet max-h-92vh">
-      <div class="modal-handle"></div>
-      <button class="modal-close" onclick="closeModal('widget-settings-modal')">✕</button>
-      <p class="font-bold mb-3 text-lg" data-i18n="modal_widget_title">ウィジェット表示設定</p>
-      <p class="text-sm text-muted mb-3" data-i18n="modal_widget_note">ダッシュボードに表示する項目をON/OFFできます。</p>
-      <div id="widget-settings-list" class="flex-col gap-3 mb-4"></div>
-      <p class="text-xs font-bold text-muted mb-2 mt-4">レイアウト設定</p>
-      <select id="widget-column-select" class="score-input mb-3">
-        <option value="1">1カラム表示</option>
-        <option value="2">2カラム表示 (PC/タブレット推奨)</option>
-      </select>
-      <button class="action-btn mb-0" onclick="saveWidgetSettings()" data-i18n="modal_widget_save">保存</button>
-    </div>
-  </div>
-
   <!-- PDFリーダーモーダル -->
   <div class="modal-overlay" id="pdf-reader-modal" onclick="if(event.target===this) closeModal('pdf-reader-modal')">
     <div class="modal-sheet max-h-92vh" style="height: 90vh; display: flex; flex-direction: column;">
@@ -1704,7 +1697,7 @@
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeModal('shadowing-modal')">✕</button>
-      <p class="font-bold mb-3 text-lg" data-i18n="modal_shadow_title">シャドーイング波形比較</p>
+      <p class="font-bold mb-3 text-lg" data-i18n="modal_shadow_title">Shadowing Studio</p>
       <textarea id="shadowing-text-input" class="score-input mb-3 h-72" placeholder="練習したい英文を入力..." data-i18n-placeholder="modal_shadow_ph"></textarea>
       <div class="flex-gap-8 mb-3">
         <button class="action-btn mb-0 flex-1 bg-accent" onclick="playShadowingModel()" data-i18n="modal_shadow_play">お手本再生</button>
@@ -1759,7 +1752,8 @@
       <span data-i18n="nav_skillup">スキルアップ</span>
     </div>
     <div class="nav-item" data-tab="CustomCards" role="button" tabindex="0">
-      <span class="nav-icon material-symbols-rounded">folder_copy</span>
+
+<span class="nav-icon material-symbols-rounded">folder_copy</span>
       <span data-i18n="nav_decks">デッキ</span>
     </div>
     <div class="nav-item" data-tab="Subject" role="button" tabindex="0">
@@ -1782,12 +1776,18 @@
 
   <!-- AI System Prompts (Hidden) -->
   <div id="ai-system-prompts" style="display: none;">
-    <div id="prompt-base">あなたはプロの予備校講師です。客観的かつ簡潔な参考書スタイルで出力してください。語尾は「〜だ」「〜である」に統一し、挨拶や語りかけは一切不要です。絵文字は使用しないでください。視覚的にわかりやすいHTML構造（h4, ul, li, p, b）を使用してください。</div>
-    <div id="prompt-vocab">単語の意味は単語帳のように明確に記載し、語源、ニュアンス、派生語、類義語、対義語を箇条書きで整理してください。</div>
-    <div id="prompt-correction">提出された英文を客観的かつ丁寧に添削し、スコア（100点満点）、文法・語法の解説、より自然な表現を提示してください。</div>
-    <div id="prompt-parse">英文のSVOC解析を行い、特殊構文の解説と自然な和訳を提示してください。</div>
-    <div id="prompt-essay">エッセイを論理性、語彙、文法の観点から評価し、スコアと改善案を提示してください。</div>
-    <div id="prompt-qa">質問に対して、ステップバイステップで論理的に解説してください。</div>
+    <div id="prompt-base">あなたはプロの予備校講師だ。客観的かつ簡潔な参考書スタイルで出力せよ。
+【絶対ルール】
+1. 語尾は必ず「〜だ」「〜である」に統一すること。「〜です」「〜ます」は使用禁止。
+2. 挨拶、語りかけ、前置き、後書き、解説以外の余分なテキストは一切出力しないこと。
+3. 絵文字や顔文字は使用禁止。
+4. HTMLを出力する場合は、必ず &lt;h4&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;b&gt;, &lt;strong&gt;, &lt;mark&gt; のみを使用し、独自のクラス名やインラインスタイルは付与しないこと。
+5. JSONを出力する場合は、Markdownのコードブロック(```json)で囲まず、純粋なJSON文字列のみを出力すること。</div>
+    <div id="prompt-vocab">単語の意味は単語帳のように明確に記載し、語源、ニュアンス、派生語、類義語、対義語、よく使われる表現や熟語を箇条書きで整理せよ。派生語、類義語、対義語は受験で必要なものを網羅的に複数提示すること。</div>
+    <div id="prompt-correction">提出された英文を客観的かつ丁寧に添削し、スコア（100点満点）、文法・語法の解説、より自然な表現を提示せよ。</div>
+    <div id="prompt-parse">英文のSVOC解析を行い、特殊構文の解説と自然な和訳を提示せよ。</div>
+    <div id="prompt-essay">エッセイを論理性、語彙、文法の観点から評価し、スコアと改善案を提示せよ。</div>
+    <div id="prompt-qa">質問に対して、ステップバイステップで論理的に解説せよ。</div>
   </div>
 
   <script>
