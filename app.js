@@ -26,7 +26,6 @@ const clean = html => {
   }
   const temp = document.createElement('div');
   temp.textContent = html;
-  // buttonタグやmarkタグを許可（派生語追加ボタンやハイライトのため）
   return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td|button|mark)(.*?)&gt;/gi, '<$1$2$3>');
 };
 
@@ -126,7 +125,6 @@ const processToastQueue = () => {
   }, 2200);
 };
 
-// Undo (元に戻す) 機能
 let undoTimeout = null;
 let pendingUndoAction = null;
 
@@ -276,7 +274,6 @@ const resizeImage = (file, maxWidth = 1024, maxHeight = 1024, skipResize = false
   });
 };
 
-// Cropper.js 連携
 let cropperInstance = null;
 let cropTargetCallback = null;
 
@@ -311,7 +308,6 @@ window.applyImageCrop = () => {
   cropTargetCallback = null;
 };
 
-// KaTeX レンダリング
 const renderMath = (el) => {
   if (window.renderMathInElement && el) {
     renderMathInElement(el, {
@@ -366,7 +362,7 @@ const loadCustomTexts = () => {
   applyCustomTexts();
 };
 
-window.openTextCustomizerModal = () => {
+window.openTextCustomizerPanel = () => {
   const list = $('text-customizer-list');
   if (!list) return;
   
@@ -394,7 +390,6 @@ window.openTextCustomizerModal = () => {
     `;
   });
   list.innerHTML = html;
-  openModal('text-customizer-modal');
 };
 
 window.saveCustomTexts = () => {
@@ -409,7 +404,7 @@ window.saveCustomTexts = () => {
   });
   safeSet('study_custom_texts', customTexts);
   applyCustomTexts();
-  closeModal('text-customizer-modal');
+  $('text-customizer-panel').classList.add('hidden');
   showToast('テキストを保存しました');
 };
 
@@ -423,7 +418,13 @@ window.resetCustomTexts = () => {
 // ============================================================
 // [2] CONSTANTS & STATE
 // ============================================================
-const BASE_SYSTEM_PROMPT = "あなたはプロの予備校講師だ。客観的かつ簡潔な参考書スタイルで出力せよ。語尾は「〜だ」「〜である」に統一し、挨拶や語りかけは一切不要だ。絵文字は使用するな。視覚的にわかりやすいHTML構造（h4, ul, li, p, b）を使用せよ。";
+const BASE_SYSTEM_PROMPT = `あなたはプロの予備校講師だ。客観的かつ簡潔な参考書スタイルで出力せよ。
+【絶対ルール】
+1. 語尾は必ず「〜だ」「〜である」に統一すること。「〜です」「〜ます」は使用禁止。
+2. 挨拶、語りかけ、前置き、後書き、解説以外の余分なテキストは一切出力しないこと。
+3. 絵文字や顔文字は使用禁止。
+4. HTMLを出力する場合は、必ず <h4>, <p>, <ul>, <li>, <b>, <strong>, <mark> のみを使用し、独自のクラス名やインラインスタイルは付与しないこと。
+5. JSONを出力する場合は、Markdownのコードブロック(\`\`\`json)で囲まず、純粋なJSON文字列のみを出力すること。`;
 
 const TABS = ['Dashboard', 'Timer', 'Vocab', 'Cards', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Mistakes', 'Manage'];
 const ACCENTS = ['en_US', 'en_GB', 'en_AU'];
@@ -1037,6 +1038,9 @@ const applyTheme = () => {
   if (currentTabIndex === 8 && mistakeTab === 'exam') renderMistakeRadarChart();
 };
 
+// 1分ごとにテーマ（スケジュール）をチェック
+setInterval(applyTheme, 60000);
+
 const toggleDark = () => {
   darkThemeMode = darkThemeMode === 'auto' ? 'dark' : darkThemeMode === 'dark' ? 'light' : 'auto';
   safeSet('study_dark_mode', darkThemeMode);
@@ -1253,7 +1257,7 @@ const srsGetNewWords = () => {
 // ============================================================
 // [6] GEMINI API
 // ============================================================
-window.callGemini = async (msgs, maxT = 8192, sys = '', expectJson = false) => {
+window.callGemini = async (msgs, maxT = 8192, sys = '', expectJson = false, retries = 3, backoff = 1000) => {
   if (!navigator.onLine) throw new Error('Offline');
   const apiKey = localStorage.getItem('study_gemini_api_key');
   if (!apiKey) throw new Error('API Key未設定');
@@ -1296,21 +1300,34 @@ window.callGemini = async (msgs, maxT = 8192, sys = '', expectJson = false) => {
     body.generationConfig.responseMimeType = "application/json";
   }
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  
-  if (!res.ok) {
-    if (res.status === 429) throw new Error('429');
-    if (res.status === 400) throw new Error('400');
-    if (res.status === 401) throw new Error('401');
-    throw new Error(`API Error ${res.status}`);
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      
+      if (!res.ok) {
+        if (res.status === 429) {
+          if (i < retries - 1) {
+            await sleep(backoff * Math.pow(2, i));
+            continue;
+          }
+          throw new Error('429');
+        }
+        if (res.status === 400) throw new Error('400');
+        if (res.status === 401) throw new Error('401');
+        throw new Error(`API Error ${res.status}`);
+      }
+      
+      const d = await res.json();
+      return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      await sleep(backoff * Math.pow(2, i));
+    }
   }
-  
-  const d = await res.json();
-  return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
 };
 
 // ============================================================
@@ -1768,7 +1785,7 @@ const loadWidgetOrder = () => {
   });
 };
 
-window.openWidgetSettingsModal = () => {
+window.renderWidgetSettingsPanel = () => {
   const list = $('widget-settings-list');
   if (!list) return;
   
@@ -1801,8 +1818,6 @@ window.openWidgetSettingsModal = () => {
   
   const colSelect = $('widget-column-select');
   if (colSelect) colSelect.value = widgetColumnMode;
-  
-  openModal('widget-settings-modal');
 };
 
 window.saveWidgetSettings = () => {
@@ -1816,7 +1831,7 @@ window.saveWidgetSettings = () => {
     safeSet('study_widget_column_mode', widgetColumnMode);
   }
   
-  closeModal('widget-settings-modal');
+  $('widget-settings-panel').classList.add('hidden');
   renderDashboard();
   showToast('表示設定を保存しました');
 };
@@ -1998,7 +2013,7 @@ const renderWordOfTheDay = async () => {
 条件:
 - 以下の単語リストに含まれない、新しい単語を選ぶこと。
 除外リスト: ${knownWords.substring(0, 3000)}
-形式: {"word":"英単語", "meaning":"主な意味", "exampleHtml":"例文<br>和訳"}`;
+形式: {"word":"英単語", "meaning":"主な意味（体言止め）", "exampleHtml":"例文<br>和訳"}`;
       
       const rep = await callGemini([{ role: 'user', content: prompt }], 8192, 'JSON形式で出力せよ。', true);
       const json = extractJSON(rep);
@@ -2755,6 +2770,13 @@ const buildWordDetailHtml = (json) => {
   if (json.etymology) {
     html += `<h4>語源</h4><p>${esc(json.etymology)}</p>`;
   }
+  if (json.phrases && json.phrases.length) {
+    html += `<h4>よく使われる表現・熟語</h4><ul>`;
+    json.phrases.forEach(p => {
+      html += `<li><b>${esc(p.phrase)}</b>: ${esc(p.meaning)}</li>`;
+    });
+    html += `</ul>`;
+  }
   if (json.derivatives && json.derivatives.length) {
     html += `<h4>派生語</h4><ul>`;
     json.derivatives.forEach(d => {
@@ -2820,13 +2842,15 @@ const searchWord = async (isSuggest = false) => {
     const prompt = `英単語「${w}」${hint}について、単語帳形式で解説せよ。
 以下のJSON形式で出力せよ。HTMLタグは使用するな。
 {
-  "meaning": "主な意味（簡潔に1〜2語で）",
-  "etymology": "語源（ラテン語などの由来だけでなく、現代の日本人が感覚的にイメージしやすいように、パーツごとに分解してわかりやすく解説すること）",
-  "nuance": "細かいニュアンスや使われる文脈、熟語など",
-  "derivatives": [{"word": "派生語1", "meaning": "意味"}, {"word": "派生語2", "meaning": "意味"}],
-  "synonyms": [{"word": "類義語1", "meaning": "意味", "diff": "ニュアンスの違い"}],
-  "antonyms": [{"word": "対義語1", "meaning": "意味"}]
-}`;
+  "meaning": "主な意味（簡潔に1〜2語で。必ず体言止めにすること。例: 実行する、りんご）",
+  "etymology": "語源（パーツごとに分解して解説。文末は必ず「〜である。」で終わること）",
+  "nuance": "細かいニュアンスや使われる文脈。（文末は必ず「〜だ。」で終わること）",
+  "phrases": [{"phrase": "よく使われる熟語や表現1", "meaning": "意味（体言止め）"}],
+  "derivatives": [{"word": "派生語1", "meaning": "意味（体言止め）"}],
+  "synonyms": [{"word": "類義語1", "meaning": "意味（体言止め）", "diff": "ニュアンスの違い（文末は「〜だ。」）"}],
+  "antonyms": [{"word": "対義語1", "meaning": "意味（体言止め）"}]
+}
+※phrases, derivatives, synonyms, antonyms は、大学受験やTOEICで重要なものを網羅的に複数（最低でも各2〜3個）提示すること。`;
     
     const rep = await callGemini([{ role: 'user', content: prompt }], 8192, 'JSON形式で出力せよ。', true);
     const json = extractJSON(rep);
@@ -2916,13 +2940,15 @@ window.regenerateWordDetail = async (w) => {
     const prompt = `英単語「${w}」について、単語帳形式で解説せよ。
 以下のJSON形式で出力せよ。HTMLタグは使用するな。
 {
-  "meaning": "主な意味（簡潔に1〜2語で）",
-  "etymology": "語源（ラテン語などの由来だけでなく、現代の日本人が感覚的にイメージしやすいように、パーツごとに分解してわかりやすく解説すること）",
-  "nuance": "細かいニュアンスや使われる文脈、熟語など",
-  "derivatives": [{"word": "派生語1", "meaning": "意味"}, {"word": "派生語2", "meaning": "意味"}],
-  "synonyms": [{"word": "類義語1", "meaning": "意味", "diff": "ニュアンスの違い"}],
-  "antonyms": [{"word": "対義語1", "meaning": "意味"}]
-}`;
+  "meaning": "主な意味（簡潔に1〜2語で。必ず体言止めにすること。例: 実行する、りんご）",
+  "etymology": "語源（パーツごとに分解して解説。文末は必ず「〜である。」で終わること）",
+  "nuance": "細かいニュアンスや使われる文脈。（文末は必ず「〜だ。」で終わること）",
+  "phrases": [{"phrase": "よく使われる熟語や表現1", "meaning": "意味（体言止め）"}],
+  "derivatives": [{"word": "派生語1", "meaning": "意味（体言止め）"}],
+  "synonyms": [{"word": "類義語1", "meaning": "意味（体言止め）", "diff": "ニュアンスの違い（文末は「〜だ。」）"}],
+  "antonyms": [{"word": "対義語1", "meaning": "意味（体言止め）"}]
+}
+※phrases, derivatives, synonyms, antonyms は、大学受験やTOEICで重要なものを網羅的に複数（最低でも各2〜3個）提示すること。`;
     const rep = await callGemini([{ role: 'user', content: prompt }], 8192, 'JSON形式で出力せよ。', true);
     const json = extractJSON(rep);
     if (!json) throw new Error('Invalid JSON');
@@ -3900,11 +3926,23 @@ window.generateQuizFromPhoto = async () => {
   if (rs) rs.innerHTML = '';
   
   try {
+    const prompt = `この画像内の英文や内容から、内容理解を問う4択クイズを3問作成し、HTMLで出力せよ。必ず以下の構造に従うこと：
+<h4>問題1</h4>
+<p>[問題文]</p>
+<ul>
+  <li>[選択肢1]</li>
+  <li>[選択肢2]</li>
+  <li>[選択肢3]</li>
+  <li>[選択肢4]</li>
+</ul>
+<h4>解答と解説</h4>
+<p>正解: [正解]<br>解説: [解説。文末は「〜だ。」]</p>`;
+
     const rep = await callGemini([{
       role: 'user',
       content: [
         { type: 'image', source: { type: 'base64', media_type: m, data: b } },
-        { type: 'text', text: 'この画像内の英文や内容から、内容理解を問う4択クイズを3問作成し、HTMLで出力せよ。解答と解説も必ず含めること。' }
+        { type: 'text', text: prompt }
       ]
     }], 8192);
     if (rs) rs.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
@@ -3918,7 +3956,7 @@ window.generateQuizFromPhoto = async () => {
 const extractSyntaxFromText = async text => {
   showToast('構文抽出中...');
   try {
-    const rep = await callGemini([{ role: 'user', content: text }], 8192, '大学受験レベルの重要構文抽出。JSON配列:[{"syntax":"...","meaning":"...","note":"..."}]。', true);
+    const rep = await callGemini([{ role: 'user', content: text }], 8192, '大学受験レベルの重要構文を抽出し、JSON配列のみで出力せよ。形式:[{"syntax":"...","meaning":"...（体言止め）","note":"...（文末は「〜だ。」）"}]', true);
     const arr = extractJSON(rep);
     if (!arr || !arr.length) return showToast('構文なし');
     
@@ -3995,13 +4033,38 @@ const submitWriting = async type => {
   if (rs) rs.innerHTML = '';
   
   try {
-    let sys = '提出された英文を客観的かつ丁寧に添削しHTMLで出力せよ。必ず以下の構造に従うこと：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>文法・語法の解説</h4>\n<ul><li>...</li></ul>\n<h4>より自然な表現</h4>\n<p>...</p>';
-    if (type === 'analyze') {
-      sys = '客観的な構文解析をHTMLで出力せよ。必ず以下の構造に従うこと：\n<h4>SVOC解析</h4>\n<p>SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切って表示</p>\n<h4>特殊構文の解説</h4>\n<ul><li>...</li></ul>\n<h4>和訳</h4>\n<p>...</p>';
+    let sys = '';
+    if (type === 'correct') {
+      sys = `提出された英文を客観的かつ丁寧に添削し、以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。独自のタグ追加は禁止。
+<h4>スコア</h4>
+<p>[ここに0〜100の数字]/100点</p>
+<h4>文法・語法の解説</h4>
+<ul><li>[解説1。文末は「〜だ。」]</li></ul>
+<h4>より自然な表現</h4>
+<p>[模範解答となる英文]</p>
+<p>[その理由。文末は「〜である。」]</p>`;
+    } else if (type === 'analyze') {
+      sys = `客観的な構文解析を行い、以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>SVOC解析</h4>
+<p>SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切って表示</p>
+<h4>特殊構文の解説</h4>
+<ul><li>[解説。文末は「〜だ。」]</li></ul>
+<h4>和訳</h4>
+<p>[自然な和訳。文末は「〜である。」]</p>`;
     } else if (type === 'paraphrase') {
-      sys = '入力された英文をより洗練された学術的な英語に言い換え、HTMLで出力せよ。必ず以下の構造に従うこと：\n<h4>言い換え案</h4>\n<p>...</p>\n<h4>理由とニュアンスの違い</h4>\n<ul><li>...</li></ul>';
+      sys = `入力された英文をより洗練された学術的な英語に言い換え、以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>言い換え案</h4>
+<p>[英文]</p>
+<h4>理由とニュアンスの違い</h4>
+<ul><li>[解説。文末は「〜だ。」]</li></ul>`;
     } else if (type === 'essay') {
-      sys = '提出されたエッセイを「論理性」「語彙」「文法」の観点から客観的に評価し、HTMLで出力せよ。必ず以下の構造に従うこと：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>評価（論理性・語彙・文法）</h4>\n<ul><li>...</li></ul>\n<h4>改善案</h4>\n<p>...</p>';
+      sys = `提出されたエッセイを「論理性」「語彙」「文法」の観点から客観的に評価し、以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>スコア</h4>
+<p>[ここに0〜100の数字]/100点</p>
+<h4>評価（論理性・語彙・文法）</h4>
+<ul><li>[評価。文末は「〜だ。」]</li></ul>
+<h4>改善案</h4>
+<p>[改善案。文末は「〜である。」]</p>`;
     }
     
     const rep = await callGemini([{ role: 'user', content: c }], 8192, sys);
@@ -4296,11 +4359,29 @@ const submitDailyAnswer = async id => {
   
   let sys = '';
   if (task.taskType === 'comp') {
-    sys = '提出された英作文を客観的かつ丁寧に添削しHTMLで出力せよ。必ず以下の構造に従うこと：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>解説</h4>\n<ul><li>...</li></ul>\n<h4>模範解答</h4>\n<p>...</p>';
+    sys = `提出された英作文を客観的かつ丁寧に添削し、以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>スコア</h4>
+<p>[ここに0〜100の数字]/100点</p>
+<h4>解説</h4>
+<ul><li>[解説。文末は「〜だ。」]</li></ul>
+<h4>模範解答</h4>
+<p>[英文]</p>`;
   } else if (task.taskType === 'parse') {
-    sys = '和訳解答を客観的かつ丁寧に添削しHTMLで出力せよ。必ず以下の構造に従うこと：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>SVOC解析</h4>\n<p>SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切って表示</p>\n<h4>解説</h4>\n<ul><li>...</li></ul>';
+    sys = `和訳解答を客観的かつ丁寧に添削し、以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>スコア</h4>
+<p>[ここに0〜100の数字]/100点</p>
+<h4>SVOC解析</h4>
+<p>SVOCを<span class="svoc-s">S</span>等で色付、<span class="slash">/</span>で区切って表示</p>
+<h4>解説</h4>
+<ul><li>[解説。文末は「〜だ。」]</li></ul>`;
   } else if (task.taskType === 'reading') {
-    sys = '長文読解の解答を客観的かつ丁寧に添削しHTMLで出力せよ。必ず以下の構造に従うこと：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>解説（論理的な解答プロセス）</h4>\n<ul><li>...</li></ul>\n<h4>要旨</h4>\n<p>...</p>';
+    sys = `長文読解の解答を客観的かつ丁寧に添削し、以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>スコア</h4>
+<p>[ここに0〜100の数字]/100点</p>
+<h4>解説（論理的な解答プロセス）</h4>
+<ul><li>[解説。文末は「〜だ。」]</li></ul>
+<h4>要旨</h4>
+<p>[要旨。文末は「〜である。」]</p>`;
   }
   
   try {
@@ -4378,7 +4459,11 @@ const generateWeaknessDrill = async () => {
   const context = `【過去の添削ミス】\n${mistakes.join('\n')}\n【過去の問題ミス】\n${dailyMistakes.join('\n')}\n【苦手単語】\n${weakWords.join(', ')}`;
   
   try {
-    const sys = `生徒の過去のミス傾向と苦手単語を分析し、それらを克服するための「弱点特化ドリル（文法・語法・単語の穴埋め問題など）」を3問作成せよ。HTMLのみで出力。解答解説も必ず含めること。`;
+    const sys = `生徒の過去のミス傾向と苦手単語を分析し、それらを克服するための「弱点特化ドリル（文法・語法・単語の穴埋め問題など）」を3問作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>問題1</h4>
+<p>...</p>
+<h4>解答と解説</h4>
+<p>正解: ...<br>解説: ...（文末は「〜だ。」）</p>`;
     const rep = await callGemini([{ role: 'user', content: context }], 8192, sys);
     const html = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
     if (area) {
@@ -4406,7 +4491,12 @@ window.generateTrickDrill = async () => {
   const mistakes = writingHistory.filter(h => h.score !== null && h.score < 80).slice(0, 3).map(h => h.result.replace(/<[^>]+>/g, '').substring(0, 200));
   
   try {
-    const rep = await callGemini([{ role: 'user', content: `過去のミス: ${mistakes.join('\n')}` }], 8192, '過去のミスを分析し、あえて間違えやすいダミー選択肢を混ぜた「ひっかけ問題」を3問作成し、HTMLで出力せよ。客観的な解説付き。');
+    const sys = `過去のミスを分析し、あえて間違えやすいダミー選択肢を混ぜた「ひっかけ問題」を3問作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>問題1</h4>
+<p>...</p>
+<h4>解答と解説</h4>
+<p>正解: ...<br>解説: ...（文末は「〜だ。」）</p>`;
+    const rep = await callGemini([{ role: 'user', content: `過去のミス: ${mistakes.join('\n')}` }], 8192, sys);
     area.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch (e) {
     area.innerHTML = '<p class="text-danger">生成失敗</p>';
@@ -4599,7 +4689,7 @@ const generateDailyListen = async () => {
   const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
   
   try {
-    const sys = `高校生向けの英語リスニング問題を作成せよ。難易度は「${diffText}」レベル。日常的な対話（2人の会話）や短いアナウンス（100〜150語程度）をスクリプトとし、その内容に関する4択問題を作成せよ。JSONのみ:{"transcript":"英文スクリプト","question":"内容を問う設問","options":["1","2","3","4"],"answer":0,"explanation":"正解の根拠となる聞き取るべきキーワードと詳しい解説"}`;
+    const sys = `高校生向けの英語リスニング問題を作成せよ。難易度は「${diffText}」レベル。日常的な対話（2人の会話）や短いアナウンス（100〜150語程度）をスクリプトとし、その内容に関する4択問題を作成せよ。JSONのみ:{"transcript":"英文スクリプト","question":"内容を問う設問","options":["1","2","3","4"],"answer":0,"explanation":"正解の根拠となる聞き取るべきキーワードと詳しい解説（文末は「〜だ。」）"}`;
     const rep = await callGemini([{ role: 'user', content: '作成' }], 8192, sys, true);
     const js = extractJSON(rep);
     const ts = new Date().toLocaleDateString('ja-JP');
@@ -4642,7 +4732,7 @@ const generateDailyDictation = async () => {
   const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
   
   try {
-    const sys = `高校生向けのディクテーション（書き取り）用の自然な英語パッセージを作成せよ。難易度は「${diffText}」レベル。長さは2〜3文（30〜40語程度）。ネイティブの自然な発音（音の連結や脱落など）を意識した実践的な英文にすること。JSONのみ:{"transcript":"英文","translation":"和訳","explanation":"日本人が聞き取りにくい音声変化のポイントや文法の解説"}`;
+    const sys = `高校生向けのディクテーション（書き取り）用の自然な英語パッセージを作成せよ。難易度は「${diffText}」レベル。長さは2〜3文（30〜40語程度）。ネイティブの自然な発音（音の連結や脱落など）を意識した実践的な英文にすること。JSONのみ:{"transcript":"英文","translation":"和訳（文末は「〜である。」）","explanation":"日本人が聞き取りにくい音声変化のポイントや文法の解説（文末は「〜だ。」）"}`;
     const rep = await callGemini([{ role: 'user', content: '作成' }], 8192, sys, true);
     const js = extractJSON(rep);
     const ts = new Date().toLocaleDateString('ja-JP');
@@ -4676,7 +4766,16 @@ const submitDailyDictation = async id => {
   if (ld) ld.classList.remove('hidden');
   
   try {
-    const sys = `生徒のディクテーション（書き取り）を客観的かつ丁寧に添削し、HTMLで出力せよ。必ず以下の構造に従うこと：\n<h4>スコア</h4>\n<p>〇〇/100点</p>\n<h4>間違えた部分の指摘</h4>\n<ul><li>...</li></ul>\n<h4>和訳と解説</h4>\n<p>...</p>\n正解文: ${task.transcript}\n和訳: ${task.translation}\n解説: ${task.explanation}`;
+    const sys = `生徒のディクテーション（書き取り）を客観的かつ丁寧に添削し、以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>スコア</h4>
+<p>[ここに0〜100の数字]/100点</p>
+<h4>間違えた部分の指摘</h4>
+<ul><li>[指摘。文末は「〜だ。」]</li></ul>
+<h4>和訳と解説</h4>
+<p>[和訳と解説。文末は「〜である。」]</p>
+正解文: ${task.transcript}
+和訳: ${task.translation}
+解説: ${task.explanation}`;
     const rep = await callGemini([{ role: 'user', content: `生徒の解答:\n${i.value.trim()}` }], 8192, sys);
     task.userAnswer = i.value.trim();
     task.feedback = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
@@ -4987,7 +5086,16 @@ window.generateYouTubeLesson = async () => {
   area.innerHTML = '';
   
   try {
-    const rep = await callGemini([{ role: 'user', content: `以下のYouTube動画URLの内容を推測・取得し、英語学習用の「要約」「重要単語」「内容理解クイズ」をHTMLで作成せよ。URL: ${url}` }], 8192);
+    const sys = `以下のYouTube動画URLの内容を推測・取得し、英語学習用の「要約」「重要単語」「内容理解クイズ」を作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>要約</h4>
+<p>[要約。文末は「〜である。」]</p>
+<h4>重要単語</h4>
+<ul><li><b>[単語]</b>: [意味（体言止め）]</li></ul>
+<h4>内容理解クイズ</h4>
+<p>[問題]</p>
+<p>正解: [正解]<br>解説: [解説。文末は「〜だ。」]</p>
+URL: ${url}`;
+    const rep = await callGemini([{ role: 'user', content: sys }], 8192);
     area.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch (e) {
     area.innerHTML = '<p class="text-danger">生成失敗</p>';
@@ -5002,7 +5110,7 @@ window.openPdfReaderModal = () => {
   openModal('pdf-reader-modal');
 };
 
-window.loadPdfFile = (e) => {
+window.loadPdfFile = async (e) => {
   const f = e.target.files[0];
   if (!f) return;
   const url = URL.createObjectURL(f);
@@ -5473,7 +5581,7 @@ const ccGenerateCardsAI = async () => {
   }
   
   try {
-    const rep = await callGemini(c, 8192, 'JSON配列。キーは "front" と "back"。フロントとバックを簡潔に。', true);
+    const rep = await callGemini(c, 8192, 'JSON配列のみ出力。キーは "front" と "back"。フロントとバックを簡潔に。', true);
     const arr = extractJSON(rep);
     if (arr && arr.length) {
       let added = 0;
@@ -5603,7 +5711,7 @@ const _sendSubj = async (c, dt) => {
   ct.scrollTop = ct.scrollHeight;
   
   try {
-    const rep = await callGemini(subjHist[curSubj].slice(0, -1).concat([{ role: 'user', content: c }]), 8192, 'ステップバイステップで論理的に解説せよ。');
+    const rep = await callGemini(subjHist[curSubj].slice(0, -1).concat([{ role: 'user', content: c }]), 8192, 'ステップバイステップで論理的に解説せよ。文末は必ず「〜だ」「〜である」に統一すること。');
     const cleanRep = clean(rep);
     subjHist[curSubj].push({ role: 'assistant', content: cleanRep });
     
@@ -5724,7 +5832,7 @@ const generateSimilarSubject = async id => {
   if (!x) return;
   showToast('類題生成中...');
   try {
-    const rep = await callGemini([{ role: 'user', content: `以下の問題と解答を参考にして、状況や数値を変えた類題を1つ出題し、その解答解説も出力せよ。JSONのみ: {"question":"...","answer":"..."}\nQ: ${x.question}\nA: ${x.answer}` }], 8192, '', true);
+    const rep = await callGemini([{ role: 'user', content: `以下の問題と解答を参考にして、状況や数値を変えた類題を1つ出題し、その解答解説も出力せよ。JSONのみ: {"question":"...","answer":"...（文末は「〜だ。」）"}\nQ: ${x.question}\nA: ${x.answer}` }], 8192, '', true);
     const json = extractJSON(rep);
     subjectSaved.unshift({
       id: generateId(),
@@ -5920,7 +6028,15 @@ const submitSubjectQuiz = async id => {
   const ls = subjectSaved.filter(x => x.subject === curSubj).slice(0, 5).map(x => `Q: ${x.question}\nA: ${x.answer}`).join('\n\n');
   
   try {
-    const rep = await callGemini([{ role: 'user', content: `問題:\n${quiz.question}\n解答:\n${ans}` }], 8192, `非常に丁寧な添削と解説をHTML出力せよ。100点満点スコア。参考:\n${ls}`);
+    const sys = `非常に丁寧な添削と解説を作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>スコア</h4>
+<p>[ここに0〜100の数字]/100点</p>
+<h4>解説</h4>
+<ul><li>[解説。文末は「〜だ。」]</li></ul>
+<h4>模範解答</h4>
+<p>[解答]</p>
+参考:\n${ls}`;
+    const rep = await callGemini([{ role: 'user', content: `問題:\n${quiz.question}\n解答:\n${ans}` }], 8192, sys);
     const html = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
     quiz.answer = ans;
     quiz.feedback = html;
@@ -6628,7 +6744,7 @@ const sendPlanAiMessage = async () => {
   c.scrollTop = c.scrollHeight;
   
   try {
-    const rep = await callGemini(planAiHistory.slice(), 8192, `学習アドバイザーとして回答せよ。プロフ:${userProfile.targetUniv},${userProfile.grade}${buildScoreContext()}。`);
+    const rep = await callGemini(planAiHistory.slice(), 8192, `学習アドバイザーとして回答せよ。文末は必ず「〜だ」「〜である」に統一すること。プロフ:${userProfile.targetUniv},${userProfile.grade}${buildScoreContext()}。`);
     const cleanRep = clean(rep);
     planAiHistory.push({ role: 'assistant', content: cleanRep });
     
@@ -6652,7 +6768,14 @@ const generateRoadmapReport = async () => {
   if (!r) return;
   r.innerHTML = '<div class="text-center"><span class="loading-dots">作成中</span></div>';
   try {
-    const rep = await callGemini([{ role: 'user', content: '合格ロードマップを作成' }], 8192, `客観的なデータ分析に基づき、合格ロードマップを作成せよ。プロフ(${JSON.stringify(userProfile)})と成績(${JSON.stringify(examScores.slice(0, 3))})からHTMLで出力せよ。`);
+    const sys = `客観的なデータ分析に基づき、合格ロードマップを作成せよ。プロフ(${JSON.stringify(userProfile)})と成績(${JSON.stringify(examScores.slice(0, 3))})から以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>現状分析</h4>
+<p>[分析。文末は「〜である。」]</p>
+<h4>月別ロードマップ</h4>
+<ul><li><b>[月]</b>: [目標。文末は「〜だ。」]</li></ul>
+<h4>優先すべき課題</h4>
+<p>[課題。文末は「〜である。」]</p>`;
+    const rep = await callGemini([{ role: 'user', content: '合格ロードマップを作成' }], 8192, sys);
     r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch (e) {
     handleApiError(e, 'ai-weakness-report');
@@ -6668,7 +6791,12 @@ const generatePersonalizedExam = async () => {
   const recentMistakes = dailyChallenges.filter(d => d.score !== null && d.score < 80).slice(0, 3).map(d => d.question).join('\n');
   const pastExams = examScores.slice(0, 2).map(s => s.subjects.map(x => `${x.detail}:${x.dev}`).join(', ')).join('\n');
   
-  const prompt = `以下の生徒の過去の学習データから、完全カスタマイズされた模試問題（英語長文または和文英訳などを1題）を作成し、HTMLで出力せよ。\n【弱点単語】${weakWords}\n【最近の誤答傾向】${recentMistakes}\n【過去の成績】${pastExams}`;
+  const prompt = `以下の生徒の過去の学習データから、完全カスタマイズされた模試問題（英語長文または和文英訳などを1題）を作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>カスタム模試</h4>
+<p>[問題文]</p>
+<h4>解答と解説</h4>
+<p>正解: [正解]<br>解説: [解説。文末は「〜だ。」]</p>
+【弱点単語】${weakWords}\n【最近の誤答傾向】${recentMistakes}\n【過去の成績】${pastExams}`;
   
   try {
     const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '');
@@ -7351,7 +7479,12 @@ window.generateMistakeRootCauseReport = async () => {
   const dataStr = examMistakes.map(m => `[${m.tags.join(',')}] 原因:${m.reason} 対策:${m.action}`).join('\n');
   
   try {
-    const rep = await callGemini([{ role: 'user', content: `以下の生徒のミス履歴から、根本的な原因と具体的な改善アクションをHTMLでレポートせよ。\n${dataStr}` }], 8192);
+    const sys = `以下の生徒のミス履歴から、根本的な原因と具体的な改善アクションをレポートせよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>根本原因の分析</h4>
+<p>[分析。文末は「〜である。」]</p>
+<h4>具体的な改善アクション</h4>
+<ul><li>[アクション。文末は「〜だ。」]</li></ul>`;
+    const rep = await callGemini([{ role: 'user', content: `${sys}\n${dataStr}` }], 8192);
     r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
   } catch (e) {
     r.innerHTML = '<p class="text-danger">分析に失敗しました</p>';
@@ -7565,6 +7698,24 @@ const parseCSV = (text) => {
   return result;
 };
 
+// PDF.js text extraction helper
+const extractTextFromPDF = async (dataUrl) => {
+  try {
+    const loadingTask = pdfjsLib.getDocument(dataUrl);
+    const pdf = await loadingTask.promise;
+    let text = '';
+    for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) { // Limit to 10 pages to avoid token overflow
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    return text;
+  } catch (e) {
+    console.error('PDF extraction error:', e);
+    return '';
+  }
+};
+
 const ifi = $('import-file-input');
 if (ifi) {
   ifi.addEventListener('change', e => {
@@ -7611,9 +7762,11 @@ if (ifi) {
     } else if (isPdf) {
       const r = new FileReader();
       r.onload = async ev => {
-        const b64 = ev.target.result.split(',')[1];
         try {
-          const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: 'application/pdf', data: b64 } }, { type: 'text', text: 'このPDFの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力せよ。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]。' }] }], 8192, '', true);
+          const text = await extractTextFromPDF(ev.target.result);
+          if (!text) throw new Error('No text extracted');
+          const prompt = `以下のテキスト内容から、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）","example":"元の文章での使用例(文脈)"}]\n\nテキスト:\n${text.substring(0, 5000)}`;
+          const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
           const w = extractJSON(rep);
           if (w && Array.isArray(w)) {
             renderPreview(w, 'file-preview');
@@ -7633,7 +7786,7 @@ if (ifi) {
         const b64 = ev.target.result.split(',')[1];
         const mimeType = f.type || 'application/octet-stream';
         try {
-          const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: mimeType, data: b64 } }, { type: 'text', text: 'このファイルの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力せよ。形式: [{"word":"...","meaning":"...","example":"元の文章での使用例(文脈)"}]。' }] }], 8192, '', true);
+          const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: mimeType, data: b64 } }, { type: 'text', text: 'このファイルの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）","example":"元の文章での使用例(文脈)"}]。' }] }], 8192, '', true);
           const w = extractJSON(rep);
           if (w && Array.isArray(w)) {
             renderPreview(w, 'file-preview');
@@ -7685,7 +7838,7 @@ const fetchAndParseUrl = async () => {
       textContent = "URLの内容を取得できませんでした。URLの文字列から推測してください。";
     }
     
-    let prompt = `以下のテキスト内容から、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${textContent}`;
+    let prompt = `以下のテキスト内容から、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${textContent}`;
     const raw = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
     const w = extractJSON(raw);
     renderPreview(w, 'url-preview');
@@ -7704,7 +7857,7 @@ window.parseManualTranscript = async () => {
   const extractContext = $('import-extract-context-url') && $('import-extract-context-url').checked;
   
   try {
-    let prompt = `以下のYouTube字幕テキストから、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${i.value.substring(0, 5000)}`;
+    let prompt = `以下のYouTube字幕テキストから、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${i.value.substring(0, 5000)}`;
     const raw = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
     const w = extractJSON(raw);
     renderPreview(w, 'url-preview');
@@ -7730,7 +7883,7 @@ const handleImportPhoto = async e => {
     const m = resized.match(/data:([^;]+)/)[1];
     const unknownOnly = $('import-unknown-only') && $('import-unknown-only').checked;
     const extractContext = $('import-extract-context-photo') && $('import-extract-context-photo').checked;
-    let prompt = `画像内のテキストを読み取り、重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"..."${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]`;
+    let prompt = `画像内のテキストを読み取り、重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]`;
     
     const raw = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: prompt }] }], 8192, '', true);
     let wd = extractJSON(raw);
@@ -7771,7 +7924,7 @@ const applyImport = async m => {
       for (let i = 0; i < toFill.length; i += chunkSize) {
         const chunk = toFill.slice(i, i + chunkSize);
         try {
-          const rep = await callGemini([{ role: 'user', content: `以下の英単語の意味と例文を補完しJSON配列で出力せよ。形式:[{"word":"...","meaning":"...","example":"..."}]\n単語: ${chunk.map(w => w.word).join(', ')}` }], 8192, '', true);
+          const rep = await callGemini([{ role: 'user', content: `以下の英単語の意味と例文を補完しJSON配列で出力せよ。形式:[{"word":"...","meaning":"...（体言止め）","example":"..."}]\n単語: ${chunk.map(w => w.word).join(', ')}` }], 8192, '', true);
           const filled = extractJSON(rep);
           if (filled && Array.isArray(filled)) {
             filled.forEach(fw => {
@@ -8014,7 +8167,16 @@ const openWeeklyReport = async () => {
   });
   
   const logStr = Object.entries(subjMap).map(([k, v]) => `${SCORE_SUBJECTS[k]?.label || k}:${v}分`).join(', ');
-  const prompt = `以下の生徒の過去7日間の学習データに基づき、HTMLで週次レポートを作成せよ。見出し（h4タグ）として「総学習時間とバランス」「ストロングポイント」「改善点」「来週のおすすめ学習プラン」を含め、pタグやul/liタグでわかりやすく記述すること。データ: ${logStr}`;
+  const prompt = `以下の生徒の過去7日間の学習データに基づき、週次レポートを作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>総学習時間とバランス</h4>
+<p>[分析。文末は「〜である。」]</p>
+<h4>ストロングポイント</h4>
+<ul><li>[ポイント。文末は「〜だ。」]</li></ul>
+<h4>改善点</h4>
+<ul><li>[改善点。文末は「〜だ。」]</li></ul>
+<h4>来週のおすすめ学習プラン</h4>
+<p>[プラン。文末は「〜である。」]</p>
+データ: ${logStr}`;
   
   try {
     let rep = await callGemini([{ role: 'user', content: prompt }], 8192);
@@ -8062,7 +8224,12 @@ const openWeaknessAnalysis = async () => {
   }
   
   weaknessWords = overdue.map(x => x.word);
-  const prompt = `以下の生徒が特に苦手としている英単語TOP10のリストに基づき、HTMLでレポートを作成せよ。見出し（h4タグ）として「最も復習が必要な単語TOP10」をリスト表示し、それぞれの単語の覚え方のコツや語源的アプローチを簡潔に添えること。また「おすすめ学習法」として具体的なアドバイスを記載せよ。苦手単語: ${weaknessWords.join(', ')}`;
+  const prompt = `以下の生徒が特に苦手としている英単語TOP10のリストに基づき、レポートを作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>最も復習が必要な単語TOP10</h4>
+<ul><li><b>[単語]</b>: [覚え方のコツや語源的アプローチ。文末は「〜だ。」]</li></ul>
+<h4>おすすめ学習法</h4>
+<p>[アドバイス。文末は「〜である。」]</p>
+苦手単語: ${weaknessWords.join(', ')}`;
   
   try {
     let rep = await callGemini([{ role: 'user', content: prompt }], 8192);
@@ -8157,7 +8324,15 @@ window.generateStory = async () => {
   if (!words.length) words.push(...ALL_WORDS.slice(0, 10).map(w => w.word));
   
   try {
-    const rep = await callGemini([{ role: 'user', content: `以下の単語を全て使って、面白い英語のショートストーリーを作成し、和訳と解説をHTMLで出力せよ。単語: ${words.join(', ')}` }], 8192);
+    const sys = `以下の単語を全て使って、面白い英語のショートストーリーを作成し、和訳と解説を出力せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
+<h4>Contextual Story</h4>
+<p>[英語のストーリー]</p>
+<h4>和訳</h4>
+<p>[和訳。文末は「〜である。」]</p>
+<h4>使用単語の解説</h4>
+<ul><li><b>[単語]</b>: [解説。文末は「〜だ。」]</li></ul>
+単語: ${words.join(', ')}`;
+    const rep = await callGemini([{ role: 'user', content: sys }], 8192);
     area.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
   } catch (e) {
     area.innerHTML = '<p class="text-danger">生成失敗</p>';
@@ -8399,7 +8574,8 @@ async function initAppData() {
     const today = todayDateStr();
     let carriedOver = 0;
     Object.keys(plans).forEach(date => {
-      if (date < today) {
+
+if (date < today) {
         const incomplete = plans[date].filter(p => !p.done);
         if (incomplete.length > 0) {
           if (!plans[today]) plans[today] = [];
