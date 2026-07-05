@@ -1262,16 +1262,24 @@
           <p class="text-xs text-muted" data-i18n="manage_fsrs_note">Higher increases review frequency, lower decreases it.</p>
         </div>
 
-        <p class="text-xs font-bold text-muted mb-2" data-i18n="manage_model_title">Gemini Model Selection</p>
-        <select id="gemini-model-select" class="score-input mb-4" onchange="saveGeminiModel()">
-          <option value="gemini-2.5-flash" data-i18n="manage_model_gemini_2_5_flash">Gemini 2.5 Flash</option>
-          <option value="gemini-2.5-pro" data-i18n="manage_model_gemini_2_5_pro">Gemini 2.5 Pro</option>
-          <option value="gemini-2.0-flash" data-i18n="manage_model_gemini_2_0_flash">Gemini 2.0 Flash</option>
-          <option value="gemini-2.0-flash-lite" data-i18n="manage_model_gemini_2_0_flash_lite">Gemini 2.0 Flash-Lite</option>
-          <option value="gemini-2.0-pro-exp-02-05" data-i18n="manage_model_gemini_2_0_pro_exp">Gemini 2.0 Pro Exp</option>
-          <option value="gemini-1.5-pro" data-i18n="manage_model_gemini_1_5_pro">Gemini 1.5 Pro</option>
-          <option value="gemini-1.5-flash" data-i18n="manage_model_gemini_1_5_flash">Gemini 1.5 Flash</option>
-        </select>
+   <p class="text-xs font-bold text-muted mb-2" data-i18n="manage_model_title">Gemini Model Selection</p>
+        <div class="flex-gap-8 mb-2">
+          <select id="gemini-model-select" class="score-input flex-1" onchange="saveGeminiModel()">
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+            <option value="gemini-3.0-flash">Gemini 3.0 Flash</option>
+            <option value="gemini-3.0-pro">Gemini 3.0 Pro</option>
+            <option value="gemini-3.1-flash">Gemini 3.1 Flash</option>
+            <option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
+            <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+            <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
+            <option value="custom">Custom (Enter manually)</option>
+          </select>
+          <button class="action-btn mb-0 btn-auto-width" onclick="fetchAvailableModels()" title="Fetch latest models from API">Fetch API</button>
+        </div>
+        <div id="custom-model-input-container" class="hidden mb-4">
+          <input type="text" id="custom-gemini-model" class="score-input w-full" placeholder="Enter model name (e.g. gemini-4.0-pro)" onchange="saveCustomGeminiModel()">
+        </div>
         
         <p class="text-xs font-bold text-muted mb-2" data-i18n="manage_remind_title">Reminder Settings (Push Notifications)</p>
         <div class="flex-gap-8 align-center mb-2">
