@@ -1,3 +1,4 @@
+
 'use strict';
 
 // ============================================================
@@ -204,10 +205,10 @@ const copyText = (txt, btn) => {
     if (btn) {
       btn.classList.add('copied');
       const old = btn.textContent;
-      btn.textContent = customTexts['copied'] || 'Copied';
+      btn.textContent = 'Copied';
       setTimeout(() => btn.textContent = old, 1800);
     }
-    showToast(customTexts['copied'] || 'Copied');
+    showToast('Copied');
   }).catch(() => {
     showToast('Failed');
   });
@@ -336,83 +337,6 @@ const handleApiError = (e, containerId) => {
     msg = 'Bad request. Image size may be too large or prompt too long.';
   }
   c.innerHTML = `<div class="card text-danger font-bold">${esc(msg)}</div>`;
-};
-
-let customTexts = safeGet('study_custom_texts', {});
-
-const applyCustomTexts = () => {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (customTexts[key]) {
-      if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') {
-        el.textContent = customTexts[key];
-      }
-    }
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (customTexts[key]) {
-      el.setAttribute('placeholder', customTexts[key]);
-    }
-  });
-};
-
-const loadCustomTexts = () => {
-  customTexts = safeGet('study_custom_texts', {});
-  applyCustomTexts();
-};
-
-window.openTextCustomizerPanel = () => {
-  const list = $('text-customizer-list');
-  if (!list) return;
-  
-  const keys = new Set();
-  const map = {};
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const k = el.getAttribute('data-i18n');
-    keys.add(k);
-    if (!map[k]) map[k] = el.textContent.trim();
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const k = el.getAttribute('data-i18n-placeholder');
-    keys.add(k);
-    if (!map[k]) map[k] = el.getAttribute('placeholder');
-  });
-
-  let html = '';
-  keys.forEach(k => {
-    const currentVal = customTexts[k] || map[k] || '';
-    html += `
-      <div class="mb-2">
-        <label class="text-xs font-bold text-muted mb-1 block">${k}</label>
-        <input type="text" class="score-input custom-text-input" data-key="${k}" value="${esc(currentVal)}">
-      </div>
-    `;
-  });
-  list.innerHTML = html;
-};
-
-window.saveCustomTexts = () => {
-  document.querySelectorAll('.custom-text-input').forEach(input => {
-    const k = input.getAttribute('data-key');
-    const v = input.value.trim();
-    if (v) {
-      customTexts[k] = v;
-    } else {
-      delete customTexts[k];
-    }
-  });
-  safeSet('study_custom_texts', customTexts);
-  applyCustomTexts();
-  $('text-customizer-panel').classList.add('hidden');
-  showToast('Text saved');
-};
-
-window.resetCustomTexts = () => {
-  if (!confirm('Reset all texts to default?')) return;
-  customTexts = {};
-  localStorage.removeItem('study_custom_texts');
-  location.reload();
 };
 
 // ============================================================
@@ -988,7 +912,7 @@ const toggleAutoSync = () => {
 const updateAutoSyncBtn = () => {
   const b = $('auto-sync-btn');
   if (b) {
-    b.textContent = (customTexts['manage_sync_btn'] || 'Auto Sync (Real-time):') + ` ${userProfile.autoSync ? 'ON' : 'OFF'}`;
+    b.textContent = `Auto Sync (Real-time): ${userProfile.autoSync ? 'ON' : 'OFF'}`;
   }
 };
 
@@ -1038,7 +962,6 @@ const applyTheme = () => {
   if (currentTabIndex === 8 && mistakeTab === 'exam') renderMistakeRadarChart();
 };
 
-// Check theme schedule every minute
 setInterval(applyTheme, 60000);
 
 const toggleDark = () => {
@@ -1178,7 +1101,6 @@ window.fetchAvailableModels = async () => {
     
     models.forEach(m => {
       const modelId = m.name.replace('models/', '');
-      // 1.5と2.0は除外する
       if (modelId.includes('1.5') || modelId.includes('2.0')) return;
       
       const option = document.createElement('option');
@@ -1650,17 +1572,17 @@ const timerStartStop = () => {
     timerRunning = false;
     timerTime = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
     const s = $('timer-status');
-    if (s) s.textContent = isPomodoroBreak ? (customTexts['timer_status_break_stop'] || 'Break Stopped') : (customTexts['timer_status_stopped'] || 'Stopped');
+    if (s) s.textContent = isPomodoroBreak ? 'Break Stopped' : 'Stopped';
     const b = $('timer-start-btn');
-    if (b) b.textContent = customTexts['timer_btn_start'] || 'Start';
+    if (b) b.textContent = 'Start';
   } else {
     timerRunning = true;
     timerEndTime = Date.now() + (timerTime * 1000);
     localStorage.setItem('study_timer_end', timerEndTime.toString());
     const s = $('timer-status');
-    if (s) s.textContent = isPomodoroBreak ? (customTexts['timer_status_break'] || 'Break') : (customTexts['timer_status_running'] || 'Running');
+    if (s) s.textContent = isPomodoroBreak ? 'Break' : 'Running';
     const b = $('timer-start-btn');
-    if (b) b.textContent = customTexts['timer_btn_stop'] || 'Stop';
+    if (b) b.textContent = 'Stop';
     
     timerInt = setInterval(() => {
       const remain = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
@@ -1688,9 +1610,9 @@ const timerStartStop = () => {
               timerStartStop();
             } else {
               const s = $('timer-status');
-              if (s) s.textContent = customTexts['timer_status_break_stop'] || 'Break Stopped';
+              if (s) s.textContent = 'Break Stopped';
               const b = $('timer-start-btn');
-              if (b) b.textContent = customTexts['timer_btn_start'] || 'Start';
+              if (b) b.textContent = 'Start';
             }
           } else {
             showToast('Break finished! Resume study');
@@ -1702,9 +1624,9 @@ const timerStartStop = () => {
               timerStartStop();
             } else {
               const s = $('timer-status');
-              if (s) s.textContent = customTexts['timer_status_stopped'] || 'Stopped';
+              if (s) s.textContent = 'Stopped';
               const b = $('timer-start-btn');
-              if (b) b.textContent = customTexts['timer_btn_start'] || 'Start';
+              if (b) b.textContent = 'Start';
             }
           }
         } else {
@@ -1712,9 +1634,9 @@ const timerStartStop = () => {
           studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: timerInitial, ts: Date.now() });
           save.logs();
           const s = $('timer-status');
-          if (s) s.textContent = customTexts['timer_status_stopped'] || 'Stopped';
+          if (s) s.textContent = 'Stopped';
           const b = $('timer-start-btn');
-          if (b) b.textContent = customTexts['timer_btn_start'] || 'Start';
+          if (b) b.textContent = 'Start';
         }
       }
     }, 1000);
@@ -1812,7 +1734,7 @@ window.toggleWidgetSortMode = () => {
   
   if (container.classList.contains('widget-sort-mode')) {
     container.classList.remove('widget-sort-mode');
-    btn.textContent = customTexts['dash_sort_btn'] || 'Sort';
+    btn.textContent = 'Sort';
     btn.classList.remove('bg-accent', 'text-bg');
     if (sortableWidgets) {
       sortableWidgets.option("disabled", true);
@@ -1820,7 +1742,7 @@ window.toggleWidgetSortMode = () => {
     saveWidgetOrder();
   } else {
     container.classList.add('widget-sort-mode');
-    btn.textContent = customTexts['dash_sort_done'] || 'Done';
+    btn.textContent = 'Done';
     btn.classList.add('bg-accent', 'text-bg');
     
     if (!sortableWidgets) {
@@ -1936,7 +1858,7 @@ const renderCountdown = () => {
   if (!display) return;
   
   if (!countdownData.name || !countdownData.date) {
-    display.innerHTML = '<p class="text-sm text-muted" data-i18n="dash_countdown_empty">Target date not set</p>';
+    display.innerHTML = '<p class="text-sm text-muted">Target date not set</p>';
     return;
   }
   
@@ -2117,7 +2039,7 @@ const renderWordOfTheDay = async () => {
   
   if (cachedWotd.word) {
     const isSaved = ALL_WORDS.some(x => x.word.toLowerCase() === cachedWotd.word.word.toLowerCase());
-    sBtn.textContent = isSaved ? (customTexts['dash_wotd_saved'] || 'Saved') : (customTexts['dash_wotd_save'] || 'Add to Vocab'); 
+    sBtn.textContent = isSaved ? 'Saved' : 'Add to Vocab'; 
     sBtn.className = `action-btn mb-0 flex-1 btn-md ${isSaved ? 'btn-secondary' : ''}`;
     sBtn.onclick = () => { 
       if (!isSaved) {
@@ -2140,7 +2062,6 @@ const renderWordOfTheDay = async () => {
       }
     };
   }
-  applyCustomTexts();
 };
 
 const nextWordOfTheDay = () => { 
@@ -2154,7 +2075,7 @@ const renderDashboard = () => {
   const tH = Math.floor(getTotalStudySeconds() / 3600);
   const h = $('dash-hours-text');
   if (h) {
-    h.textContent = (customTexts['dash_hero_hours'] || 'Total Study Time: 0h | XP: 0').replace('0h', `${tH}h`).replace('0', userProfile.xp || 0);
+    h.textContent = `Total Study Time: ${tH}h | XP: ${userProfile.xp || 0}`;
   }
   
   const curLv = Math.floor(Math.sqrt((userProfile.xp || 0) / 100)) + 1;
@@ -2238,7 +2159,7 @@ const renderDashboard = () => {
       
       const lbl = $('dash-weekly-label');
       if (lbl) {
-        if (dashWeeklyOffset === 0) lbl.textContent = customTexts['dash_chart_weekly_this'] || 'This Week';
+        if (dashWeeklyOffset === 0) lbl.textContent = 'This Week';
         else if (dashWeeklyOffset === 1) lbl.textContent = 'Last Week';
         else lbl.textContent = `${dashWeeklyOffset} weeks ago`;
       }
@@ -2537,8 +2458,6 @@ const renderDashboard = () => {
       tdL.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px">No logs</div>';
     }
   }
-  
-  applyCustomTexts();
 };
 
 const toggleDashPlan = i => {
@@ -2713,7 +2632,7 @@ const openAddWordModal = (editWord = null) => {
       tg.value = (fd.tags || []).join(', ');
     }
   } else {
-    t.textContent = customTexts['modal_add_word_title'] || 'Add Word Manually';
+    t.textContent = 'Add Word Manually';
     w.value = '';
     m.value = '';
     old.value = '';
@@ -2837,7 +2756,9 @@ window.regenerateSearchWord = async (w) => {
 
 const buildWordDetailHtml = (json) => {
   let html = `<div class="vocab-detail-section">`;
-  if (json.nuance) {
+  if (json.meaning_and_nuance) {
+    html += `<h4>Meaning & Nuance</h4><p>${esc(json.meaning_and_nuance)}</p>`;
+  } else if (json.nuance) {
     html += `<h4>Meaning & Nuance</h4><p>${esc(json.nuance)}</p>`;
   }
   if (json.etymology) {
@@ -2860,7 +2781,7 @@ const buildWordDetailHtml = (json) => {
   if (json.synonyms && json.synonyms.length) {
     html += `<h4>Synonyms</h4><ul>`;
     json.synonyms.forEach(s => {
-      html += `<li><b>${esc(s.word)}</b>: ${esc(s.meaning)} <span class="text-xs text-muted">(${esc(s.diff)})</span> <button class="add-derived-btn" onclick="addDerivedWord('${escJS(s.word)}', '${escJS(s.meaning)}')">+ Add</button></li>`;
+      html += `<li><b>${esc(s.word)}</b>: ${esc(s.meaning)} <button class="add-derived-btn" onclick="addDerivedWord('${escJS(s.word)}', '${escJS(s.meaning)}')">+ Add</button></li>`;
     });
     html += `</ul>`;
   }
@@ -2915,13 +2836,12 @@ const searchWord = async (isSuggest = false) => {
     const prompt = `英単語「${w}」${hint}について、単語帳形式で解説せよ。
 以下のJSON形式で出力せよ。HTMLタグは使用するな。
 {
-  "meaning": "主な意味（簡潔に1〜2語で。必ず体言止めにすること。例: 実行する、りんご）",
+  "meaning_and_nuance": "主な意味（例: 〜に従う、りんご）と、細かいニュアンスや使われる文脈。（文末は必ず「〜だ。」で終わること）",
   "etymology": "語源（パーツごとに分解して解説。文末は必ず「〜である。」で終わること）",
-  "nuance": "細かいニュアンスや使われる文脈。（文末は必ず「〜だ。」で終わること）",
   "phrases": [{"phrase": "よく使われる熟語や表現1", "meaning": "意味（体言止め）"}],
-  "derivatives": [{"word": "派生語1", "meaning": "意味（体言止め）"}],
-  "synonyms": [{"word": "類義語1", "meaning": "意味（体言止め）", "diff": "ニュアンスの違い（文末は「〜だ。」）"}],
-  "antonyms": [{"word": "対義語1", "meaning": "意味（体言止め）"}]
+  "derivatives": [{"word": "派生語1", "meaning": "意味と語源のみ（体言止め）"}],
+  "synonyms": [{"word": "類義語1", "meaning": "意味と語源のみ（体言止め）"}],
+  "antonyms": [{"word": "対義語1", "meaning": "意味と語源のみ（体言止め）"}]
 }
 ※phrases, derivatives, synonyms, antonyms は、大学受験やTOEICで重要なものを網羅的に複数（最低でも各2〜3個）提示すること。`;
     
@@ -2932,7 +2852,7 @@ const searchWord = async (isSuggest = false) => {
     const html = buildWordDetailHtml(json);
     if (ld) ld.classList.add('hidden');
     
-    let meaningText = (fd && fd.meaning) ? fd.meaning : (json.meaning || 'Analysis Complete');
+    let meaningText = (fd && fd.meaning) ? fd.meaning : (json.meaning_and_nuance ? json.meaning_and_nuance.split('。')[0] : 'Analysis Complete');
 
     if (!fd) {
       ALL_WORDS.push({ word: w, meaning: meaningText, detailHtml: html });
@@ -3013,13 +2933,12 @@ window.regenerateWordDetail = async (w) => {
     const prompt = `英単語「${w}」について、単語帳形式で解説せよ。
 以下のJSON形式で出力せよ。HTMLタグは使用するな。
 {
-  "meaning": "主な意味（簡潔に1〜2語で。必ず体言止めにすること。例: 実行する、りんご）",
+  "meaning_and_nuance": "主な意味（例: 〜に従う、りんご）と、細かいニュアンスや使われる文脈。（文末は必ず「〜だ。」で終わること）",
   "etymology": "語源（パーツごとに分解して解説。文末は必ず「〜である。」で終わること）",
-  "nuance": "細かいニュアンスや使われる文脈。（文末は必ず「〜だ。」で終わること）",
   "phrases": [{"phrase": "よく使われる熟語や表現1", "meaning": "意味（体言止め）"}],
-  "derivatives": [{"word": "派生語1", "meaning": "意味（体言止め）"}],
-  "synonyms": [{"word": "類義語1", "meaning": "意味（体言止め）", "diff": "ニュアンスの違い（文末は「〜だ。」）"}],
-  "antonyms": [{"word": "対義語1", "meaning": "意味（体言止め）"}]
+  "derivatives": [{"word": "派生語1", "meaning": "意味と語源のみ（体言止め）"}],
+  "synonyms": [{"word": "類義語1", "meaning": "意味と語源のみ（体言止め）"}],
+  "antonyms": [{"word": "対義語1", "meaning": "意味と語源のみ（体言止め）"}]
 }
 ※phrases, derivatives, synonyms, antonyms は、大学受験やTOEICで重要なものを網羅的に複数（最低でも各2〜3個）提示すること。`;
     const rep = await callGemini([{ role: 'user', content: prompt }], 8192, 'JSON形式で出力せよ。', true);
@@ -3061,15 +2980,13 @@ window.showWordModal = async (w, m) => {
   }
   
   mb.innerHTML = `
-    <div class="flex-between mb-2">
-      <div class="result-word-header">
+    <div class="word-detail-header">
+      <div class="word-detail-title-row">
         <div class="result-word-title">${esc(w)}</div>
-        <div class="flex-gap-8">
-          <button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">Pronounce</button>
-        </div>
+        <button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">Pronounce</button>
       </div>
-      <div class="flex-gap-8">
-        <span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w)}',event)" style="cursor:pointer;padding:5px 10px">${p}</span>
+      <div class="word-detail-actions">
+        <span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w)}',event)" style="cursor:pointer;">${p}</span>
         <button data-word="${esc(w)}" class="save-btn ${isS ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isS ? 'Saved' : 'Save'}</button>
         <button class="copy-btn" onclick="openAddWordModal('${escJS(w)}')">Edit</button>
         <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">Delete</button>
@@ -3255,7 +3172,7 @@ const updateTagFilters = () => {
   
   if (c) {
     c.innerHTML = `
-      <button class="filter-chip ${vocabTagFilter === 'all' ? 'active' : ''}" data-tag="all" onclick="setTagFilter('all')" data-i18n="vocab_filter_tag_all">All</button>
+      <button class="filter-chip ${vocabTagFilter === 'all' ? 'active' : ''}" data-tag="all" onclick="setTagFilter('all')">All</button>
     ` + Array.from(tags).map(t => `
       <button class="filter-chip ${vocabTagFilter === t ? 'active' : ''}" data-tag="${esc(t)}" onclick="setTagFilter('${escJS(t)}')">${esc(t)}</button>
     `).join('');
@@ -3263,7 +3180,7 @@ const updateTagFilters = () => {
   
   if (cs) {
     cs.innerHTML = `
-      <option value="all" data-i18n="cards_tag_all">All</option>
+      <option value="all">All</option>
     ` + Array.from(tags).map(t => `
       <option value="${esc(t)}">${esc(t)}</option>
     `).join('');
@@ -3312,7 +3229,7 @@ const analyzeVocabMeta = async () => {
   } finally {
     if (b) {
       b.disabled = false;
-      b.textContent = customTexts['vocab_btn_analyze'] || 'Analyze POS & Etymology';
+      b.textContent = 'Analyze POS & Etymology';
     }
     if (s) s.textContent = 'Complete';
     renderVocab(true);
@@ -3331,11 +3248,11 @@ const renderVocabStats = () => {
       </div>
       <div class="vsb-item">
         <div class="vsb-num text-green">${m}</div>
-        <div class="vsb-label">${customTexts['vocab_filter_prog_mastered'] || 'Mastered'}</div>
+        <div class="vsb-label">Mastered</div>
       </div>
       <div class="vsb-item">
         <div class="vsb-num text-streak">${l}</div>
-        <div class="vsb-label">${customTexts['vocab_filter_prog_learning'] || 'Learning'}</div>
+        <div class="vsb-label">Learning</div>
       </div>
     `;
   }
@@ -3437,7 +3354,6 @@ const renderVocab = (reset = false) => {
     if (vocabPage * VOCAB_PER_PAGE < ls.length) btn.classList.remove('hidden');
     else btn.classList.add('hidden');
   }
-  applyCustomTexts();
 };
 
 const loadMoreVocab = () => {
@@ -3565,12 +3481,12 @@ const exportVocabPDF = () => {
 // ============================================================
 // [11] CARDS
 // ============================================================
-const toggleVoiceCommand = () => {
+window.toggleVoiceCommand = () => {
   const btn = $('voice-cmd-btn');
   if (cardVoiceActive) {
     cardVoiceActive = false;
     if (cardVoiceRec) cardVoiceRec.stop();
-    btn.textContent = customTexts['cards_btn_voice'] || 'Voice Cmd: OFF';
+    btn.textContent = 'Voice Cmd: OFF';
     btn.style.background = '';
     btn.style.color = '';
   } else {
@@ -3588,10 +3504,10 @@ const toggleVoiceCommand = () => {
     cardVoiceRec.onresult = (e) => {
       const transcript = e.results[e.resultIndex][0].transcript.trim();
       if (transcript.includes('次') || transcript.includes('右')) {
-        changeCard(1);
+        window.changeCard(1);
         showToast('Next');
       } else if (transcript.includes('前') || transcript.includes('左')) {
-        changeCard(-1);
+        window.changeCard(-1);
         showToast('Prev');
       } else if (transcript.includes('覚え') || transcript.includes('正解')) {
         srsRateCurrentCard(2);
@@ -3617,7 +3533,7 @@ const toggleVoiceCommand = () => {
   }
 };
 
-const setCardsMode = m => {
+window.setCardsMode = m => {
   cardsMode = m;
   ['all', 'saved', 'srs', 'weak'].forEach(x => {
     const el = $('cards-mode-' + x);
@@ -3626,10 +3542,10 @@ const setCardsMode = m => {
       else el.classList.remove('active');
     }
   });
-  initCards();
+  window.initCards();
 };
 
-const initCards = () => {
+window.initCards = () => {
   const tagSel = $('cards-tag-select');
   const tag = tagSel ? tagSel.value : 'all';
   
@@ -3655,10 +3571,10 @@ const initCards = () => {
   }
   
   currentCardIdx = 0;
-  renderCard();
+  window.renderCard();
 };
 
-const renderCard = () => {
+window.renderCard = () => {
   const cInner = $('flip-inner');
   if (cInner) {
     cInner.classList.remove('flipped');
@@ -3728,19 +3644,19 @@ const renderCard = () => {
   }
 };
 
-const flipCard = () => {
+window.flipCard = () => {
   const cInner = $('flip-inner');
   if (cInner) cInner.classList.toggle('flipped');
 };
 
-const changeCard = d => {
+window.changeCard = d => {
   if (cardList.length) {
     currentCardIdx = (currentCardIdx + d + cardList.length) % cardList.length;
-    renderCard();
+    window.renderCard();
   }
 };
 
-const shuffleCards = () => {
+window.shuffleCards = () => {
   if (shuffleSettings.mode === 'weighted') {
     cardList.sort((a, b) => {
       const sa = srsData[a.word.toLowerCase()]?.stability || 0;
@@ -3760,17 +3676,17 @@ const shuffleCards = () => {
     }
   }
   currentCardIdx = 0;
-  renderCard();
+  window.renderCard();
 };
 
-const toggleAutoPlay = () => {
+window.toggleAutoPlay = () => {
   const b = $('autoplay-btn');
   if (!b) return;
   
   if (autoPlayInt) {
     clearInterval(autoPlayInt);
     autoPlayInt = null;
-    b.textContent = customTexts['cards_btn_auto'] || 'Auto: OFF';
+    b.textContent = 'Auto: OFF';
     b.style.background = '';
     b.style.color = '';
   } else {
@@ -3779,11 +3695,11 @@ const toggleAutoPlay = () => {
     b.style.color = '#fff';
     autoPlayInt = setInterval(() => {
       if (apState === 0) {
-        flipCard();
+        window.flipCard();
         speakCurrentCard();
         apState = 1;
       } else {
-        changeCard(1);
+        window.changeCard(1);
         apState = 0;
       }
     }, 3500);
@@ -3838,7 +3754,7 @@ if (cInner) {
             if (navigator.vibrate) navigator.vibrate(30);
             if (window.confetti) confetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } });
             showToast('Remembered');
-            changeCard(1);
+            window.changeCard(1);
           }
         }
       } else if (dx < -100) {
@@ -3849,7 +3765,7 @@ if (cInner) {
             setWordProgress(cardList[currentCardIdx].word, 'learning');
             if (navigator.vibrate) navigator.vibrate(30);
             showToast('Forgot');
-            changeCard(1);
+            window.changeCard(1);
           }
         }
       }
@@ -3904,7 +3820,7 @@ if (cInner) {
             if (navigator.vibrate) navigator.vibrate(30);
             if (window.confetti) confetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } });
             showToast('Remembered');
-            changeCard(1);
+            window.changeCard(1);
           }
         }
       } else if (dx < -100) {
@@ -3915,7 +3831,7 @@ if (cInner) {
             setWordProgress(cardList[currentCardIdx].word, 'learning');
             if (navigator.vibrate) navigator.vibrate(30);
             showToast('Forgot');
-            changeCard(1);
+            window.changeCard(1);
           }
         }
       }
@@ -3923,11 +3839,10 @@ if (cInner) {
   });
 }
 
-
 // ============================================================
 // [12] SKILL UP
 // ============================================================
-const switchWritingTab = t => {
+window.switchWritingTab = t => {
   ['input', 'daily', 'quiz', 'media', 'shadowing', 'syntax', 'history'].forEach(x => {
     const tb = $('wtab-' + x);
     const pn = $('wpane-' + x);
@@ -3942,13 +3857,13 @@ const switchWritingTab = t => {
   });
   if (t === 'history') renderWritingHistory();
   if (t === 'daily') {
-    switchDailyTab(currentDailyTab);
+    window.switchDailyTab(currentDailyTab);
     renderDaily();
   }
   if (t === 'syntax') renderSyntax();
 };
 
-const setWritingInputMode = m => {
+window.setWritingInputMode = m => {
   wInputMode = m;
   ['text', 'file', 'photo'].forEach(x => {
     const btn = $('wmode-' + x);
@@ -3964,7 +3879,7 @@ const setWritingInputMode = m => {
   });
 };
 
-const handleWritingFile = e => {
+window.handleWritingFile = e => {
   const f = e.target.files[0];
   if (!f) return;
   const fn = $('writing-file-name');
@@ -3977,7 +3892,7 @@ const handleWritingFile = e => {
   r.readAsText(f);
 };
 
-const handleWritingPhoto = e => {
+window.handleWritingPhoto = e => {
   const f = e.target.files[0];
   if (!f) return;
   openImageCropper(f, (croppedDataUrl) => {
@@ -4059,13 +3974,13 @@ const extractSyntaxFromText = async text => {
   }
 };
 
-const extractSyntaxFromHistory = async id => {
+window.extractSyntaxFromHistory = async id => {
   const h = writingHistory.find(x => String(x.id) === String(id));
   if (!h) return;
   await extractSyntaxFromText(h.original + '\n' + h.result.replace(/<[^>]+>/g, ''));
 };
 
-const submitWriting = async type => {
+window.submitWriting = async type => {
   let c = [];
   let histTxt = '';
   let imageId = null;
@@ -4226,7 +4141,7 @@ $('history-filter-date')?.addEventListener('change', renderWritingHistory);
 $('history-filter-type')?.addEventListener('change', renderWritingHistory);
 $('history-filter-score')?.addEventListener('change', renderWritingHistory);
 
-const showWritingHistoryDetail = id => {
+window.showWritingHistoryDetail = id => {
   const h = writingHistory.find(x => String(x.id) === String(id));
   const mb = $('writing-history-modal-body');
   if (!h || !mb) return;
@@ -4259,7 +4174,7 @@ const showWritingHistoryDetail = id => {
   openModal('writing-history-modal');
 };
 
-const deleteWritingHistory = id => {
+window.deleteWritingHistory = id => {
   const h = writingHistory.find(x => String(x.id) === String(id));
   if (!h) return;
   writingHistory = writingHistory.filter(x => String(x.id) !== String(id));
@@ -4274,7 +4189,7 @@ const deleteWritingHistory = id => {
   }, () => {});
 };
 
-const switchDailyTab = t => {
+window.switchDailyTab = t => {
   currentDailyTab = t;
   ['comp', 'parse', 'reading', 'listen', 'drill'].forEach(x => {
     const b = $('dtab-' + x);
@@ -4297,7 +4212,7 @@ const switchDailyTab = t => {
   renderDaily();
 };
 
-const extractSyntaxFromDaily = async id => {
+window.extractSyntaxFromDaily = async id => {
   const d = dailyChallenges.find(x => String(x.id) === String(id));
   if (d) {
     await extractSyntaxFromText(d.question.replace(/<[^>]+>/g, '') + '\n' + d.feedback.replace(/<[^>]+>/g, ''));
@@ -4380,7 +4295,7 @@ const renderDaily = () => {
   }
 };
 
-const generateDailyTask = async type => {
+window.generateDailyTask = async type => {
   const a = $('daily-area-' + type);
   if (!a) return;
   a.innerHTML = '<div class="text-center p-36"><span class="loading-dots"></span></div>';
@@ -4420,7 +4335,7 @@ const generateDailyTask = async type => {
   }
 };
 
-const submitDailyAnswer = async id => {
+window.submitDailyAnswer = async id => {
   const i = $('daily-ans-' + id);
   if (!i || !i.value.trim()) return;
   const task = dailyChallenges.find(d => String(d.id) === String(id));
@@ -4473,7 +4388,7 @@ const submitDailyAnswer = async id => {
   }
 };
 
-const showDailyHistoryDetail = id => {
+window.showDailyHistoryDetail = id => {
   const h = dailyChallenges.find(x => String(x.id) === String(id));
   const mb = $('writing-history-modal-body');
   if (!h || !mb) return;
@@ -4502,7 +4417,7 @@ const showDailyHistoryDetail = id => {
   openModal('writing-history-modal');
 };
 
-const deleteDailyChallenge = id => {
+window.deleteDailyChallenge = id => {
   const d = dailyChallenges.find(x => String(x.id) === String(id));
   if (!d) return;
   dailyChallenges = dailyChallenges.filter(x => String(x.id) !== String(id));
@@ -4517,7 +4432,7 @@ const deleteDailyChallenge = id => {
   }, () => {});
 };
 
-const generateWeaknessDrill = async () => {
+window.generateWeaknessDrill = async () => {
   const btn = $('generate-weakness-drill-btn');
   const ld = $('drill-loading');
   const area = $('drill-content-area');
@@ -4579,7 +4494,7 @@ window.generateTrickDrill = async () => {
   }
 };
 
-const setListenMode = m => {
+window.setListenMode = m => {
   currentListenMode = m;
   ['mc', 'dict'].forEach(x => {
     const b = $('listen-mode-' + x);
@@ -4753,7 +4668,7 @@ const renderListenArea = () => {
   }
 };
 
-const generateDailyListen = async () => {
+window.generateDailyListen = async () => {
   const a = $('listen-mc-area');
   if (!a) return;
   a.innerHTML = '<div class="text-center p-40"><span class="loading-dots"></span></div>';
@@ -4788,7 +4703,7 @@ const generateDailyListen = async () => {
   }
 };
 
-const submitDailyListenAnswer = (id, idx) => {
+window.submitDailyListenAnswer = (id, idx) => {
   const t = listenHistory.find(x => String(x.id) === String(id));
   if (!t || t.userAnswer >= 0) return;
   t.userAnswer = idx;
@@ -4796,7 +4711,7 @@ const submitDailyListenAnswer = (id, idx) => {
   renderListenArea();
 };
 
-const generateDailyDictation = async () => {
+window.generateDailyDictation = async () => {
   const a = $('listen-dict-area');
   if (!a) return;
   a.innerHTML = '<div class="text-center p-40"><span class="loading-dots"></span></div>';
@@ -4828,7 +4743,7 @@ const generateDailyDictation = async () => {
   }
 };
 
-const submitDailyDictation = async id => {
+window.submitDailyDictation = async id => {
   const i = $('dict-ans-' + id);
   if (!i || !i.value.trim()) return;
   const task = listenHistory.find(x => String(x.id) === String(id));
@@ -4862,7 +4777,7 @@ Explanation: ${task.explanation}`;
   }
 };
 
-const playListenAudioById = (id, rate = 1.0) => {
+window.playListenAudioById = (id, rate = 1.0) => {
   const t = listenHistory.find(x => String(x.id) === String(id));
   if (!t) return;
   
@@ -4904,7 +4819,7 @@ const playListenAudioById = (id, rate = 1.0) => {
   speechSynthesis.speak(u);
 };
 
-const showListenHistoryDetail = id => {
+window.showListenHistoryDetail = id => {
   const h = listenHistory.find(x => String(x.id) === String(id));
   const mb = $('writing-history-modal-body');
   if (!h || !mb) return;
@@ -4977,7 +4892,7 @@ const showListenHistoryDetail = id => {
   openModal('writing-history-modal');
 };
 
-const deleteListenHistory = id => {
+window.deleteListenHistory = id => {
   const h = listenHistory.find(x => String(x.id) === String(id));
   if (!h) return;
   listenHistory = listenHistory.filter(x => String(x.id) !== String(id));
@@ -4992,7 +4907,7 @@ const deleteListenHistory = id => {
   }, () => {});
 };
 
-const generateWordQuiz = async () => {
+window.generateWordQuiz = async () => {
   const range = $('quiz-range').value;
   const count = parseInt($('quiz-count').value);
   const loading = $('word-quiz-loading');
@@ -5106,7 +5021,7 @@ window.handleSortClick = (e, targetContainer) => {
   $(targetId).appendChild(chip);
 };
 
-const submitWordQuiz = (type, val) => {
+window.submitWordQuiz = (type, val) => {
   if (type === 'fill') val = $('quiz-fill-input').value;
   const q = activeQuizList[activeQuizIndex];
   const fb = $('quiz-feedback-area');
@@ -5178,7 +5093,8 @@ URL: ${url}`;
   }
 };
 
-let pdfHighlightMode = false;
+// PDF Reader with Text Selection Popup
+let pdfSelectedText = '';
 
 window.openPdfReaderModal = () => {
   openModal('pdf-reader-modal');
@@ -5187,8 +5103,95 @@ window.openPdfReaderModal = () => {
 window.loadPdfFile = async (e) => {
   const f = e.target.files[0];
   if (!f) return;
-  const url = URL.createObjectURL(f);
-  $('pdf-reader-container').innerHTML = `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`;
+  const container = $('pdf-reader-container');
+  container.innerHTML = '<div class="text-center p-20"><span class="loading-dots">Loading PDF</span></div>';
+  
+  try {
+    const arrayBuffer = await f.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    container.innerHTML = '';
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      
+      const pageDiv = document.createElement('div');
+      pageDiv.style.position = 'relative';
+      pageDiv.style.marginBottom = '10px';
+      
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.width = '100%';
+      canvas.style.display = 'block';
+      
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+      
+      const textContent = await page.getTextContent();
+      const textLayerDiv = document.createElement('div');
+      textLayerDiv.style.position = 'absolute';
+      textLayerDiv.style.left = '0';
+      textLayerDiv.style.top = '0';
+      textLayerDiv.style.right = '0';
+      textLayerDiv.style.bottom = '0';
+      textLayerDiv.style.color = 'transparent';
+      textLayerDiv.style.cursor = 'text';
+      
+      pdfjsLib.renderTextLayer({
+        textContent: textContent,
+        container: textLayerDiv,
+        viewport: viewport,
+        textDivs: []
+      });
+      
+      pageDiv.appendChild(canvas);
+      pageDiv.appendChild(textLayerDiv);
+      container.appendChild(pageDiv);
+    }
+  } catch (err) {
+    container.innerHTML = '<p class="text-danger">Failed to load PDF</p>';
+  }
+};
+
+document.addEventListener('selectionchange', () => {
+  const modal = $('pdf-reader-modal');
+  if (!modal || !modal.classList.contains('open')) return;
+  
+  const selection = window.getSelection();
+  const text = selection.toString().trim();
+  const popup = $('pdf-popup-menu');
+  
+  if (text && popup) {
+    pdfSelectedText = text;
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    const modalRect = modal.querySelector('.modal-sheet').getBoundingClientRect();
+    
+    popup.style.left = `${rect.left - modalRect.left + (rect.width / 2) - (popup.offsetWidth / 2)}px`;
+    popup.style.top = `${rect.top - modalRect.top - 40}px`;
+    popup.classList.remove('hidden');
+  } else if (popup) {
+    popup.classList.add('hidden');
+  }
+});
+
+window.addPdfWord = () => {
+  if (!pdfSelectedText) return;
+  $('word-input').value = pdfSelectedText;
+  closeModal('pdf-reader-modal');
+  setTabByIndex(2); // Vocab tab
+  searchWord();
+};
+
+window.analyzePdfSyntax = () => {
+  if (!pdfSelectedText) return;
+  $('writing-text-input').value = pdfSelectedText;
+  closeModal('pdf-reader-modal');
+  setTabByIndex(4); // SkillUp tab
+  window.switchWritingTab('input');
+  window.setWritingInputMode('text');
+  window.submitWriting('analyze');
 };
 
 window.togglePdfHighlightMode = () => {
@@ -5226,7 +5229,7 @@ window.toggleShadowingRecord = async () => {
       drawRealWaveform('shadowing-user-canvas', '#E67E22');
     } catch (e) {
       showToast('Microphone permission is required');
-      toggleShadowingRecord();
+      window.toggleShadowingRecord();
     }
   } else {
     btn.textContent = 'Start Recording';
@@ -5312,7 +5315,7 @@ const renderSyntax = () => {
   }).join('');
 };
 
-const addSyntaxManual = () => {
+window.addSyntaxManual = () => {
   const nt = $('syntax-new-text');
   const nm = $('syntax-new-meaning');
   const nn = $('syntax-new-note');
@@ -5336,7 +5339,7 @@ const addSyntaxManual = () => {
   showToast('Added');
 };
 
-const deleteSyntax = id => {
+window.deleteSyntax = id => {
   const s = syntaxList.find(x => String(x.id) === String(id));
   if (!s) return;
   syntaxList = syntaxList.filter(x => String(x.id) !== String(id));
@@ -5350,7 +5353,7 @@ const deleteSyntax = id => {
   }, () => {});
 };
 
-const exportSyntaxPDF = () => {
+window.exportSyntaxPDF = () => {
   if (!syntaxList.length) return showToast('No syntax available');
   const html = `
     <!DOCTYPE html>
@@ -5389,7 +5392,7 @@ const ccInitDecks = () => {
 };
 
 const ccRenderSelects = () => {
-  const o = `<option value="">${customTexts['cc_select_default'] || '-- Select --'}</option>` + customDecks.map(d => `<option value="${d.id}" ${d.id === ccDeckId ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
+  const o = `<option value="">-- Select --</option>` + customDecks.map(d => `<option value="${d.id}" ${d.id === ccDeckId ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
   ['cc-deck-select', 'cc-edit-deck-select'].forEach(id => {
     const e = $(id);
     if (e) e.innerHTML = o;
@@ -5410,7 +5413,7 @@ const ccRenderDecksList = () => {
   }
 };
 
-const ccCreateDeck = () => {
+window.ccCreateDeck = () => {
   const i = $('cc-new-deck-name');
   if (!i || !i.value.trim()) return;
   customDecks.push({ id: 'deck_' + generateId(), name: i.value.trim(), cards: [] });
@@ -5420,7 +5423,7 @@ const ccCreateDeck = () => {
   i.value = '';
 };
 
-const ccDeleteDeck = id => {
+window.ccDeleteDeck = id => {
   if (!confirm('Delete?')) return;
   customDecks = customDecks.filter(d => d.id !== id);
   if (ccDeckId === id) {
@@ -5433,7 +5436,7 @@ const ccDeleteDeck = id => {
   ccInitDecks();
 };
 
-const setCCMode = m => {
+window.setCCMode = m => {
   ccMode = m;
   ['study', 'edit', 'decks'].forEach(x => {
     const el = $('cc-mode-' + x);
@@ -5447,11 +5450,11 @@ const setCCMode = m => {
       else a.classList.add('hidden');
     }
   });
-  if (m === 'study') ccLoadDeck();
+  if (m === 'study') window.ccLoadDeck();
   if (m === 'edit' || m === 'decks') ccInitDecks();
 };
 
-const ccLoadDeck = () => {
+window.ccLoadDeck = () => {
   const s = $('cc-deck-select');
   if (s && s.value) ccDeckId = s.value;
   
@@ -5512,19 +5515,19 @@ const ccRenderCard = () => {
   if (ct) ct.textContent = ccList.length;
 };
 
-const ccFlipCard = () => {
+window.ccFlipCard = () => {
   const fi = $('cc-flip-inner');
   if (fi) fi.classList.toggle('flipped');
 };
 
-const ccChangeCard = d => {
+window.ccChangeCard = d => {
   if (ccList.length) {
     ccIdx = (ccIdx + d + ccList.length) % ccList.length;
     ccRenderCard();
   }
 };
 
-const ccShuffleCards = () => {
+window.ccShuffleCards = () => {
   for (let i = ccList.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [ccList[i], ccList[j]] = [ccList[j], ccList[i]];
@@ -5533,7 +5536,7 @@ const ccShuffleCards = () => {
   ccRenderCard();
 };
 
-const ccRenderCards = () => {
+window.ccRenderCards = () => {
   const s = $('cc-edit-deck-select');
   if (s && s.value) ccDeckId = s.value;
   
@@ -5564,7 +5567,7 @@ const ccRenderCards = () => {
   `).join('');
 };
 
-const ccAddCard = () => {
+window.ccAddCard = () => {
   const fi = $('cc-new-front');
   const bi = $('cc-new-back');
   const d = customDecks.find(x => x.id === ccDeckId);
@@ -5572,7 +5575,7 @@ const ccAddCard = () => {
   if (fi && bi && d && fi.value.trim() && bi.value.trim()) {
     d.cards.push({ front: fi.value.trim(), back: bi.value.trim() });
     save.decks();
-    ccRenderCards();
+    window.ccRenderCards();
     fi.value = '';
     bi.value = '';
     fi.focus();
@@ -5580,16 +5583,16 @@ const ccAddCard = () => {
   }
 };
 
-const ccDeleteCard = i => {
+window.ccDeleteCard = i => {
   const d = customDecks.find(x => x.id === ccDeckId);
   if (d) {
     d.cards.splice(i, 1);
     save.decks();
-    ccRenderCards();
+    window.ccRenderCards();
   }
 };
 
-const setCCAiMode = m => {
+window.setCCAiMode = m => {
   ccAiMode = m;
   ['text', 'file', 'photo'].forEach(x => {
     const btn = $('cc-ai-mode-' + x);
@@ -5605,7 +5608,7 @@ const setCCAiMode = m => {
   });
 };
 
-const handleCCAiFile = e => {
+window.handleCCAiFile = e => {
   const f = e.target.files[0];
   if (!f) return;
   const fn = $('cc-ai-file-name');
@@ -5617,7 +5620,7 @@ const handleCCAiFile = e => {
   r.readAsText(f);
 };
 
-const handleCCAiPhoto = e => {
+window.handleCCAiPhoto = e => {
   const f = e.target.files[0];
   if (!f) return;
   openImageCropper(f, (croppedDataUrl) => {
@@ -5627,7 +5630,7 @@ const handleCCAiPhoto = e => {
   });
 };
 
-const ccGenerateCardsAI = async () => {
+window.ccGenerateCardsAI = async () => {
   const d = customDecks.find(x => x.id === ccDeckId);
   if (!d) return showToast('No deck selected');
   
@@ -5666,7 +5669,7 @@ const ccGenerateCardsAI = async () => {
         }
       });
       save.decks();
-      ccRenderCards();
+      window.ccRenderCards();
       showToast(`${added} cards generated`);
       
       if (ccAiMode === 'text') {
@@ -5692,7 +5695,7 @@ const ccGenerateCardsAI = async () => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = customTexts['cc_ai_btn'] || 'Generate with AI';
+      btn.textContent = 'Generate with AI';
     }
   }
 };
@@ -5700,7 +5703,7 @@ const ccGenerateCardsAI = async () => {
 // ============================================================
 // [14] SUBJECT QA
 // ============================================================
-const setSubject = s => {
+window.setSubject = s => {
   curSubj = s;
   document.querySelectorAll('#subject-tabs .stab').forEach((b, i) => {
     if (Object.keys(subjConf)[i] === s) b.classList.add('active');
@@ -5708,7 +5711,7 @@ const setSubject = s => {
   });
   
   const sl = $('subject-label');
-  if (sl) sl.textContent = (customTexts['subj_tab_' + s.substring(0, 3)] || subjConf[s]) + ' Mode';
+  if (sl) sl.textContent = subjConf[s] + ' Mode';
   
   const ocrOpt = $('math-sci-ocr-option');
   if (ocrOpt) {
@@ -5721,7 +5724,7 @@ const setSubject = s => {
   renderSubjectQuiz();
 };
 
-const switchSubjectView = v => {
+window.switchSubjectView = v => {
   ['chat', 'history', 'quiz'].forEach(x => {
     const el = $('sview-' + x);
     const _v = $('subject-' + x + '-view');
@@ -5738,7 +5741,7 @@ const switchSubjectView = v => {
   if (v === 'quiz') renderSubjectQuiz();
 };
 
-const setSubjectInputMode = m => {
+window.setSubjectInputMode = m => {
   sqMode = m;
   ['text', 'file', 'photo'].forEach(x => {
     const el = $('sqmode-' + x);
@@ -5754,7 +5757,7 @@ const setSubjectInputMode = m => {
   });
 };
 
-const handleSubjectFile = e => {
+window.handleSubjectFile = e => {
   const f = e.target.files[0];
   const fn = $('subject-file-name');
   if (!f) return;
@@ -5764,7 +5767,7 @@ const handleSubjectFile = e => {
   r.readAsText(f);
 };
 
-const handleSubjectPhoto = e => {
+window.handleSubjectPhoto = e => {
   const f = e.target.files[0];
   if (!f) return;
   openImageCropper(f, (croppedDataUrl) => {
@@ -5803,7 +5806,7 @@ const _sendSubj = async (c, dt) => {
   ct.scrollTop = ct.scrollHeight;
 };
 
-const sendSubjectMessage = () => {
+window.sendSubjectMessage = () => {
   const i = $('subject-input');
   if (!i || !i.value.trim()) return;
   const t = i.value.trim();
@@ -5812,7 +5815,7 @@ const sendSubjectMessage = () => {
   _sendSubj(t, t);
 };
 
-const sendSubjectFileMessage = () => {
+window.sendSubjectFileMessage = () => {
   if (sqFileData) {
     const ex = $('subject-file-extra');
     _sendSubj([{ type: 'text', text: (ex ? ex.value : '') + '\n' + sqFileData }], 'File attached');
@@ -5823,7 +5826,7 @@ const sendSubjectFileMessage = () => {
   }
 };
 
-const sendSubjectPhotoMessage = () => {
+window.sendSubjectPhotoMessage = () => {
   if (sqPhotoData) {
     const b = sqPhotoData.split(',')[1];
     const m = sqPhotoData.match(/data:([^;]+)/)[1];
@@ -5855,12 +5858,12 @@ const renderSubjectChat = () => {
   c.scrollTop = c.scrollHeight;
 };
 
-const clearSubjectChat = () => {
+window.clearSubjectChat = () => {
   subjHist[curSubj] = [];
   renderSubjectChat();
 };
 
-const saveLastSubjectQA = async (btn, subj) => {
+window.saveLastSubjectQA = async (btn, subj) => {
   const hist = subjHist[subj];
   if (!hist || hist.length < 2) return;
   
@@ -5901,7 +5904,7 @@ const saveLastSubjectQA = async (btn, subj) => {
   }
 };
 
-const generateSimilarSubject = async id => {
+window.generateSimilarSubject = async id => {
   const x = subjectSaved.find(s => String(s.id) === String(id));
   if (!x) return;
   showToast('Generating similar question...');
@@ -5985,7 +5988,7 @@ window.showSavedImage = async (id) => {
   }
 };
 
-const deleteSubjectSaved = id => {
+window.deleteSubjectSaved = id => {
   const s = subjectSaved.find(x => String(x.id) === String(id));
   if (!s) return;
   subjectSaved = subjectSaved.filter(x => String(x.id) !== String(id));
@@ -6025,7 +6028,7 @@ const renderSubjectQuiz = () => {
   }
 };
 
-const generateSubjectQuiz = async () => {
+window.generateSubjectQuiz = async () => {
   const ls = subjectSaved.filter(x => x.subject === curSubj);
   if (!ls.length) return showToast('No Q&A history');
   
@@ -6087,7 +6090,7 @@ const renderSubjectQuizActive = quiz => {
   renderMath(sqa);
 };
 
-const submitSubjectQuiz = async id => {
+window.submitSubjectQuiz = async id => {
   const i = $('subquiz-answer-input');
   if (!i || !i.value.trim()) return;
   const ans = i.value.trim();
@@ -6125,7 +6128,7 @@ const submitSubjectQuiz = async id => {
   }
 };
 
-const showSubjectQuizHistory = id => {
+window.showSubjectQuizHistory = id => {
   const h = subjectQuizzes.find(x => String(x.id) === String(id));
   const mb = $('writing-history-modal-body');
   if (!h || !mb) return;
@@ -6141,7 +6144,7 @@ const showSubjectQuizHistory = id => {
   renderMath(mb);
 };
 
-const deleteSubjectQuizHistory = id => {
+window.deleteSubjectQuizHistory = id => {
   if (!confirm('Delete?')) return;
   subjectQuizzes = subjectQuizzes.filter(x => String(x.id) !== String(id));
   save.subQuiz();
@@ -6152,7 +6155,7 @@ const deleteSubjectQuizHistory = id => {
 // ============================================================
 // [15] PLANNER & LOGS
 // ============================================================
-const setPlanMode = m => {
+window.setPlanMode = m => {
   planMode = m;
   ['calendar', 'weekly', 'yearly', 'gantt', 'score', 'ai'].forEach(x => {
     const el = $('plan-mode-' + x);
@@ -6192,7 +6195,7 @@ const setPlanMode = m => {
   }
 };
 
-const planCalPrev = () => {
+window.planCalPrev = () => {
   pCalMonth--;
   if (pCalMonth < 0) {
     pCalMonth = 11;
@@ -6201,7 +6204,7 @@ const planCalPrev = () => {
   renderPlanCalendar();
 };
 
-const planCalNext = () => {
+window.planCalNext = () => {
   pCalMonth++;
   if (pCalMonth > 11) {
     pCalMonth = 0;
@@ -6248,7 +6251,7 @@ const renderPlanCalendar = () => {
   if (cd) cd.innerHTML = html;
 };
 
-const selectPlanDate = ds => {
+window.selectPlanDate = ds => {
   selectedPlanDate = ds;
   renderPlanCalendar();
   renderPlanDateList();
@@ -6295,7 +6298,7 @@ window.toggleRoutineDays = val => {
   }
 };
 
-const addPlanEvent = () => {
+window.addPlanEvent = () => {
   const i = $('plan-event-input');
   if (!i || !i.value.trim()) return;
   if (!events[selectedPlanDate]) events[selectedPlanDate] = [];
@@ -6307,7 +6310,7 @@ const addPlanEvent = () => {
   if ($('Dashboard').classList.contains('active')) renderDashboard();
 };
 
-const deletePlanEvent = i => {
+window.deletePlanEvent = i => {
   if (events[selectedPlanDate]) {
     events[selectedPlanDate].splice(i, 1);
     if (events[selectedPlanDate].length === 0) delete events[selectedPlanDate];
@@ -6318,7 +6321,7 @@ const deletePlanEvent = i => {
   }
 };
 
-const addPlanDatePlan = () => {
+window.addPlanDatePlan = () => {
   const i = $('new-plan-input');
   const t = $('new-plan-time');
   const r = $('new-plan-routine');
@@ -6364,7 +6367,7 @@ const addPlanDatePlan = () => {
   if ($('Dashboard').classList.contains('active')) renderDashboard();
 };
 
-const togglePlanDatePlan = i => {
+window.togglePlanDatePlan = i => {
   if (plans[selectedPlanDate] && plans[selectedPlanDate][i]) {
     plans[selectedPlanDate][i].done = !plans[selectedPlanDate][i].done;
     save.plans();
@@ -6374,7 +6377,7 @@ const togglePlanDatePlan = i => {
   }
 };
 
-const deletePlanDatePlan = i => {
+window.deletePlanDatePlan = i => {
   if (plans[selectedPlanDate]) {
     const p = plans[selectedPlanDate][i];
     plans[selectedPlanDate].splice(i, 1);
@@ -6479,7 +6482,7 @@ const renderTextbooks = () => {
   });
 };
 
-const addTextbook = () => {
+window.addTextbook = () => {
   const i = $('new-textbook-input');
   const s = $('new-textbook-subj');
   if (!i || !s) return;
@@ -6492,18 +6495,18 @@ const addTextbook = () => {
   }
 };
 
-const deleteTextbook = id => {
+window.deleteTextbook = id => {
   textbooks = textbooks.filter(t => t.id !== id);
   save.books();
   renderTextbooks();
 };
 
-const planWeeklyPrev = () => {
+window.planWeeklyPrev = () => {
   planWeeklyOffset++;
   renderWeeklyPlan();
 };
 
-const planWeeklyNext = () => {
+window.planWeeklyNext = () => {
   if (planWeeklyOffset > 0) {
     planWeeklyOffset--;
     renderWeeklyPlan();
@@ -6641,7 +6644,7 @@ const renderYearlyPlan = () => {
   grid.innerHTML = html;
 };
 
-const updateYearlyMonth = (m, val) => {
+window.updateYearlyMonth = (m, val) => {
   if (!yearlyPlan.months) yearlyPlan.months = {};
   yearlyPlan.months[m] = val;
   saveYearlyPlanDebounced();
@@ -6680,7 +6683,7 @@ window.slideGanttSchedule = () => {
   showToast('Under development');
 };
 
-const generateGanttSchedule = async () => {
+window.generateGanttSchedule = async () => {
   const targetName = $('gantt-target-name')?.value.trim();
   const targetDate = $('gantt-target-date')?.value;
   const materials = $('gantt-materials')?.value.trim();
@@ -6738,7 +6741,7 @@ const generateGanttSchedule = async () => {
   }
 };
 
-const generateAutoSchedule = () => {
+window.generateAutoSchedule = () => {
   const { dueWords, dueSyntax, dueDaily } = srsGetDueItems();
   const ts = todayDateStr();
   if (!plans[ts]) plans[ts] = [];
@@ -6794,13 +6797,13 @@ const generateAutoSchedule = () => {
   }
 };
 
-const clearPlanAiChat = () => {
+window.clearPlanAiChat = () => {
   planAiHistory = [];
   const c = $('plan-ai-chat');
   if (c) c.innerHTML = '';
 };
 
-const sendPlanAiMessage = async () => {
+window.sendPlanAiMessage = async () => {
   const i = $('plan-ai-input');
   if (!i || !i.value.trim()) return;
   const txt = i.value.trim();
@@ -6837,7 +6840,7 @@ const sendPlanAiMessage = async () => {
   }
 };
 
-const generateRoadmapReport = async () => {
+window.generateRoadmapReport = async () => {
   const r = $('ai-weakness-report');
   if (!r) return;
   r.innerHTML = '<div class="text-center"><span class="loading-dots">Creating</span></div>';
@@ -6856,7 +6859,7 @@ const generateRoadmapReport = async () => {
   }
 };
 
-const generatePersonalizedExam = async () => {
+window.generatePersonalizedExam = async () => {
   const r = $('ai-weakness-report');
   if (!r) return;
   r.innerHTML = '<div class="text-center"><span class="loading-dots">Creating</span></div>';
@@ -6880,7 +6883,7 @@ const generatePersonalizedExam = async () => {
   }
 };
 
-const ocrScore = async e => {
+window.ocrScore = async e => {
   const f = e.target.files[0];
   if (!f) return;
   showToast('Analyzing image...');
@@ -6901,12 +6904,12 @@ const ocrScore = async e => {
     $('exam-subjects-container').innerHTML = '';
     if (json.subjects) {
       json.subjects.forEach(s => {
-        addExamSubjectRow();
+        window.addExamSubjectRow();
         const rs = document.querySelectorAll('.score-subject-row');
         const r = rs[rs.length - 1];
         if (r) {
           r.querySelector('.exam-subj-cat').value = s.cat || 'other';
-          updateSubjList(r.querySelector('.exam-subj-cat'));
+          window.updateSubjList(r.querySelector('.exam-subj-cat'));
           r.querySelector('.exam-subj-detail').value = s.detail;
           r.querySelector('.exam-subj-score').value = s.score;
           r.querySelector('.exam-subj-dev').value = s.dev;
@@ -6917,7 +6920,7 @@ const ocrScore = async e => {
     $('exam-judges-container').innerHTML = '';
     if (json.judges) {
       json.judges.forEach(j => {
-        addExamJudgeRow();
+        window.addExamJudgeRow();
         const rs = document.querySelectorAll('.score-judge-row');
         const r = rs[rs.length - 1];
         if (r) {
@@ -6936,12 +6939,12 @@ const getSubjectOptions = cat => {
   return (SCORE_SUBJECTS[cat]?.details.map(d => `<option value="${d}">${d}</option>`).join('')) || '';
 };
 
-const updateSubjList = sel => {
+window.updateSubjList = sel => {
   const ds = sel.parentElement.querySelector('.exam-subj-detail');
   if (ds) ds.innerHTML = getSubjectOptions(sel.value);
 };
 
-const addExamSubjectRow = () => {
+window.addExamSubjectRow = () => {
   const c = $('exam-subjects-container');
   if (!c) return;
   const r = document.createElement('div');
@@ -6957,7 +6960,7 @@ const addExamSubjectRow = () => {
   c.appendChild(r);
 };
 
-const addExamJudgeRow = () => {
+window.addExamJudgeRow = () => {
   const c = $('exam-judges-container');
   if (!c) return;
   const r = document.createElement('div');
@@ -6972,7 +6975,7 @@ const addExamJudgeRow = () => {
   c.appendChild(r);
 };
 
-const addExamScore = () => {
+window.addExamScore = () => {
   const ni = $('score-exam-name');
   if (!ni) return;
   const n = ni.value.trim();
@@ -7016,11 +7019,11 @@ const addExamScore = () => {
   if (mi) mi.value = '';
   $('exam-subjects-container').innerHTML = '';
   $('exam-judges-container').innerHTML = '';
-  addExamSubjectRow();
-  addExamJudgeRow();
+  window.addExamSubjectRow();
+  window.addExamJudgeRow();
 };
 
-const deleteExamScore = id => {
+window.deleteExamScore = id => {
   examScores = examScores.filter(s => s.id !== id);
   save.exams();
   renderScoreList();
@@ -7066,7 +7069,7 @@ const renderScoreList = () => {
   }).join('');
 };
 
-const setScoreChartMode = m => {
+window.setScoreChartMode = m => {
   scoreChartMode = m;
   ['dev', 'judge'].forEach(x => {
     const btn = $('score-chart-mode-' + x);
@@ -7170,7 +7173,7 @@ function buildScoreContext() {
   }).join('\n');
 }
 
-const openLogListModal = () => {
+window.openLogListModal = () => {
   openModal('log-list-modal');
   renderLogListModal();
 };
@@ -7199,7 +7202,7 @@ const renderLogListModal = () => {
   `).join('');
 };
 
-const deleteStudyLogFromList = ts => {
+window.deleteStudyLogFromList = ts => {
   const l = studyLogs.find(x => x.ts === ts);
   if (!l) return;
   studyLogs = studyLogs.filter(x => x.ts !== ts);
@@ -7256,7 +7259,7 @@ window.saveEditedLog = () => {
   }
 };
 
-const openStudyLogModal = ds => {
+window.openStudyLogModal = ds => {
   currentLogDate = ds;
   const t = $('log-modal-title');
   if (t) t.textContent = ds;
@@ -7279,7 +7282,7 @@ const renderDailyEventList = () => {
   }
 };
 
-const addDailyEventFromModal = () => {
+window.addDailyEventFromModal = () => {
   const i = $('log-modal-event-input');
   if (!i || !i.value.trim()) return;
   if (!events[currentLogDate]) events[currentLogDate] = [];
@@ -7290,7 +7293,7 @@ const addDailyEventFromModal = () => {
   if ($('Dashboard').classList.contains('active')) renderDashboard();
 };
 
-const deleteDailyEventFromModal = i => {
+window.deleteDailyEventFromModal = i => {
   if (events[currentLogDate]) {
     events[currentLogDate].splice(i, 1);
     if (events[currentLogDate].length === 0) delete events[currentLogDate];
@@ -7314,7 +7317,7 @@ const renderDailyPlanList = () => {
   }
 };
 
-const addDailyPlanFromModal = () => {
+window.addDailyPlanFromModal = () => {
   const i = $('log-modal-plan-input');
   if (!i || !i.value.trim()) return;
   if (!plans[currentLogDate]) plans[currentLogDate] = [];
@@ -7325,7 +7328,7 @@ const addDailyPlanFromModal = () => {
   if ($('Dashboard').classList.contains('active')) renderDashboard();
 };
 
-const toggleDailyPlanFromModal = i => {
+window.toggleDailyPlanFromModal = i => {
   if (plans[currentLogDate] && plans[currentLogDate][i]) {
     plans[currentLogDate][i].done = !plans[currentLogDate][i].done;
     save.plans();
@@ -7334,7 +7337,7 @@ const toggleDailyPlanFromModal = i => {
   }
 };
 
-const deleteDailyPlanFromModal = i => {
+window.deleteDailyPlanFromModal = i => {
   if (plans[currentLogDate]) {
     plans[currentLogDate].splice(i, 1);
     if (plans[currentLogDate].length === 0) delete plans[currentLogDate];
@@ -7360,7 +7363,7 @@ const renderLogModalList = () => {
   }
 };
 
-const addStudyLogManual = () => {
+window.addStudyLogManual = () => {
   const si = $('log-modal-subj');
   const mi = $('log-modal-min');
   const st = $('log-modal-start-time')?.value;
@@ -7393,7 +7396,7 @@ const addStudyLogManual = () => {
   if ($('log-modal-end-time')) $('log-modal-end-time').value = '';
 };
 
-const deleteStudyLog = ts => {
+window.deleteStudyLog = ts => {
   studyLogs = studyLogs.filter(l => l.ts !== ts);
   save.logs();
   renderLogModalList();
@@ -7684,11 +7687,11 @@ window.deleteOtherMistake = id => {
 // ============================================================
 // [17] IMPORT (Vocab Tab)
 // ============================================================
-const openImportModal = () => {
+window.openImportModal = () => {
   openModal('import-modal');
 };
 
-const switchImportTab = t => {
+window.switchImportTab = t => {
   curImpTab = t;
   ['file', 'text', 'url', 'photo'].forEach(x => {
     const tb = $('itab-' + x);
@@ -7772,13 +7775,12 @@ const parseCSV = (text) => {
   return result;
 };
 
-// PDF.js text extraction helper
 const extractTextFromPDF = async (dataUrl) => {
   try {
     const loadingTask = pdfjsLib.getDocument(dataUrl);
     const pdf = await loadingTask.promise;
     let text = '';
-    for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) { // Limit to 10 pages to avoid token overflow
+    for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       text += content.items.map(item => item.str).join(' ') + '\n';
@@ -7823,7 +7825,7 @@ if (ifi) {
           }).filter(p => p.word);
         } else {
           w = txt.split('\n').map(l => {
-            let sep = '\t';
+            const sep = l.includes('\t') ? '\t' : ',';
             const parts = l.split(sep);
             if (parts.length < 2) return { word: l.trim(), meaning: '', example: '' };
             return { word: parts[0].trim(), meaning: parts.slice(1).join(sep).trim(), example: '' };
@@ -7892,7 +7894,7 @@ if (ita) {
   }, 500));
 }
 
-const fetchAndParseUrl = async () => {
+window.fetchAndParseUrl = async () => {
   const i = $('import-url-input');
   if (!i || !i.value.trim()) return;
   const ld = $('import-loading');
@@ -7907,12 +7909,12 @@ const fetchAndParseUrl = async () => {
       const data = await res.json();
       const parser = new DOMParser();
       const doc = parser.parseFromString(data.contents, 'text/html');
-      textContent = doc.body.textContent.replace(/\s+/g, ' ').substring(0, 5000);
+      textContent = doc.body.textContent.replace(/\s+/g, ' ').substring(0, 8000);
     } catch (e) {
       textContent = "URLの内容を取得できませんでした。URLの文字列から推測してください。";
     }
     
-    let prompt = `以下のテキスト内容から、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${textContent}`;
+    let prompt = `以下のテキスト内容（Webページの抽出テキスト）から、関連する重要な英単語（またはフラッシュカードの用語と定義のペア）を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${textContent}`;
     const raw = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
     const w = extractJSON(raw);
     renderPreview(w, 'url-preview');
@@ -7931,7 +7933,7 @@ window.parseManualTranscript = async () => {
   const extractContext = $('import-extract-context-url') && $('import-extract-context-url').checked;
   
   try {
-    let prompt = `以下のYouTube字幕テキストから、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${i.value.substring(0, 5000)}`;
+    let prompt = `以下のテキストから、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${i.value.substring(0, 5000)}`;
     const raw = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
     const w = extractJSON(raw);
     renderPreview(w, 'url-preview');
@@ -7942,7 +7944,7 @@ window.parseManualTranscript = async () => {
   }
 };
 
-const handleImportPhoto = async e => {
+window.handleImportPhoto = async e => {
   const f = e.target.files[0];
   const pp = $('import-photo-preview');
   const ld = $('import-loading');
@@ -7976,7 +7978,7 @@ const handleImportPhoto = async e => {
   }
 };
 
-const applyImport = async m => {
+window.applyImport = async m => {
   if (!impWords.length) return;
   
   const bulkTagsInput = $('import-bulk-tags');
@@ -8057,7 +8059,7 @@ const applyImport = async m => {
   }
   
   save.words();
-  initCards();
+  window.initCards();
   updateTagFilters();
   closeModal('import-modal');
   showToast(`Complete`);
@@ -8089,7 +8091,7 @@ const saveProfile = () => {
 
 const saveProfileDebounced = debounce(saveProfile, 500);
 
-const toggleProfileCard = () => {
+window.toggleProfileCard = () => {
   const f = $('profile-fields');
   const b = $('profile-toggle-btn');
   if (!f || !b) return;
@@ -8100,7 +8102,7 @@ const toggleProfileCard = () => {
   } else {
     f.classList.add('hidden');
   }
-  b.textContent = hid ? (customTexts['plan_ai_prof_toggle'] || 'Collapse') : 'Expand';
+  b.textContent = hid ? 'Collapse' : 'Expand';
 };
 
 window.saveGoalTimes = () => {
@@ -8113,7 +8115,7 @@ window.saveGoalTimes = () => {
   if ($('Dashboard').classList.contains('active')) renderDashboard();
 };
 
-const saveReminderSettings = async () => {
+window.saveReminderSettings = async () => {
   const t = $('reminder-time');
   if (!t || !t.value) return;
   
@@ -8164,23 +8166,23 @@ const updateFooter = () => {
   if (f) f.textContent = `Study — Words: ${ALL_WORDS.length}`;
 };
 
-const showDangerBox = id => {
+window.showDangerBox = id => {
   const b = $(id);
   if (b) b.classList.remove('hidden');
 };
 
-const hideDangerBox = id => {
+window.hideDangerBox = id => {
   const b = $(id);
   if (b) b.classList.add('hidden');
 };
 
-const checkConfirm = (iid, bid, ex) => {
+window.checkConfirm = (iid, bid, ex) => {
   const i = $(iid);
   const b = $(bid);
   if (i && b) b.disabled = i.value !== ex;
 };
 
-const exportData = async () => {
+window.exportData = async () => {
   showToast('Preparing export...');
   const data = {
     ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes,
@@ -8197,7 +8199,7 @@ const exportData = async () => {
   showToast('Export complete');
 };
 
-const exportCSV = () => {
+window.exportCSV = () => {
   if (!ALL_WORDS.length) return showToast('No words');
   const csvContent = "Word,Meaning,Example,Tags\n" + ALL_WORDS.map(w => `"${w.word.replace(/"/g, '""')}","${(w.meaning || '').replace(/"/g, '""')}","${(w.example || '').replace(/"/g, '""')}","${(w.tags || []).join(',').replace(/"/g, '""')}"`).join("\n");
   const b = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -8221,7 +8223,7 @@ window.clearData = async () => {
   location.reload();
 };
 
-const openWeeklyReport = async () => {
+window.openWeeklyReport = async () => {
   openModal('weekly-report-modal');
   $('weekly-report-content').innerHTML = '<div class="text-center p-40"><span class="loading-dots">AI is analyzing</span></div>';
   
@@ -8281,7 +8283,7 @@ window.exportWeeklyReportPDF = () => {
   printHtml(html);
 };
 
-const openWeaknessAnalysis = async () => {
+window.openWeaknessAnalysis = async () => {
   openModal('weakness-modal');
   $('weakness-content').innerHTML = '<div class="text-center p-40"><span class="loading-dots">AI is analyzing</span></div>';
   $('weakness-focus-btn').classList.add('hidden');
@@ -8314,10 +8316,10 @@ const openWeaknessAnalysis = async () => {
   }
 };
 
-const startWeaknessFocusMode = () => {
+window.startWeaknessFocusMode = () => {
   closeModal('weakness-modal');
-  setTabByIndex(3);
-  setCardsMode('weak');
+  window.setTabByIndex(3);
+  window.setCardsMode('weak');
 };
 
 window.openAutoListenModal = () => {
@@ -8341,7 +8343,7 @@ window.toggleAutoListen = () => {
     autoListenWords = onlyReview ? srsGetDueWords() : ALL_WORDS.slice();
     if (!autoListenWords.length) {
       showToast('No target words');
-      toggleAutoListen();
+      window.toggleAutoListen();
       return;
     }
     autoListenIdx = 0;
@@ -8436,7 +8438,7 @@ window.deleteTagGlobally = (tag) => {
   });
   save.words();
   updateTagFilters();
-  openTagManagerModal();
+  window.openTagManagerModal();
   showToast('Deleted');
 };
 
@@ -8458,7 +8460,7 @@ window.saveShuffleSettings = () => {
 // ============================================================
 // [19] ROUTER & INIT
 // ============================================================
-const setTabByIndex = (idx) => {
+window.setTabByIndex = (idx) => {
   if (idx < 0 || idx >= TABS.length) return;
   currentTabIndex = idx;
   const targetId = TABS[idx];
@@ -8489,21 +8491,21 @@ const triggerTabEffects = (id) => {
     updateTagFilters();
   }
   if (id === 'Plan') {
-    setPlanMode(planMode);
+    window.setPlanMode(planMode);
     renderTextbooks();
     loadProfileFields();
     renderYearlyPlan();
   }
   if (id === 'Cards') {
     updateTagFilters();
-    initCards();
+    window.initCards();
   }
   if (id === 'CustomCards') ccInitDecks();
   if (id === 'Manage') {
     updateFooter();
     updateAutoSyncBtn();
     initModelSelect();
-    renderBackupList();
+    window.renderBackupList();
     
     const apiKeyInput = $('gemini-api-key-input');
     if (apiKeyInput) apiKeyInput.value = localStorage.getItem('study_gemini_api_key') || '';
@@ -8534,7 +8536,7 @@ const triggerTabEffects = (id) => {
       if (el) el.value = goalTimes[k] || '';
     });
   }
-  if (id === 'SkillUp') switchWritingTab('input');
+  if (id === 'SkillUp') window.switchWritingTab('input');
   if (id === 'Subject') {
     renderSubjectChat();
     renderSubjectSaved();
@@ -8545,14 +8547,14 @@ const triggerTabEffects = (id) => {
     renderScoreChart();
   }
   if (id === 'Mistakes') {
-    switchMistakeTab(mistakeTab);
+    window.switchMistakeTab(mistakeTab);
   }
 };
 
 document.querySelectorAll('.nav-item').forEach((item, idx) => {
-  item.addEventListener('click', () => { setTabByIndex(idx); });
+  item.addEventListener('click', () => { window.setTabByIndex(idx); });
   item.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') setTabByIndex(idx);
+    if (e.key === 'Enter' || e.key === ' ') window.setTabByIndex(idx);
   });
 });
 
@@ -8570,9 +8572,9 @@ document.addEventListener('touchend', e => {
     if (e.target.closest('.flip-inner, .nav-bar, .heatmap-grid, [style*="overflow-x"], textarea, .cal-wrap, .chat-container, .quiz-sortable, .writing-tabs, .chat-subject-tabs, .import-tab-bar, .month-tabs, .week-day-tabs')) return;
     
     if (dx < 0 && currentTabIndex < TABS.length - 1) {
-      setTabByIndex(currentTabIndex + 1);
+      window.setTabByIndex(currentTabIndex + 1);
     } else if (dx > 0 && currentTabIndex > 0) {
-      setTabByIndex(currentTabIndex - 1);
+      window.setTabByIndex(currentTabIndex - 1);
     }
   }
 }, { passive: true });
@@ -8679,7 +8681,6 @@ async function initAppData() {
   
   applyThemeColor();
   loadWidgetOrder();
-  loadCustomTexts();
   
   const wi = $('word-input');
   if (wi) wi.addEventListener('input', debounce(() => searchWord(true), 200));
@@ -8700,16 +8701,16 @@ async function initAppData() {
   }
   
   updateTagFilters();
-  initCards();
-  setPlanMode('calendar');
+  window.initCards();
+  window.setPlanMode('calendar');
   updateFooter();
   renderVocabStats();
   renderTextbooks();
   loadProfileFields();
   updateTimerDisplay();
   renderTimerPresets();
-  addExamSubjectRow();
-  addExamJudgeRow();
+  window.addExamSubjectRow();
+  window.addExamJudgeRow();
   updateAutoSyncBtn();
   initModelSelect();
   
@@ -8728,3 +8729,4 @@ const getISOWeek = date => {
 };
 
 window.addEventListener('DOMContentLoaded', initAppData);
+
