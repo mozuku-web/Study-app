@@ -20,9 +20,9 @@
   --streak: #E67E22;
   --shadow-xs: 0 1px 4px rgba(0,0,0,0.06);
   --shadow-sm: 0 3px 14px rgba(0,0,0,0.08);
-  --radius: 18px;
-  --radius-sm: 13px;
-  --radius-xs: 9px;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
   --font: 'DM Sans', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
   --font-block: 'Bebas Neue', 'DM Sans', sans-serif;
   
@@ -339,6 +339,7 @@ header {
   transition: all .15s;
   font-family: var(--font);
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .api-btn {
@@ -422,9 +423,10 @@ header {
   margin-bottom: 14px;
 }
 
+/* ボタンの洗練化 */
 .action-btn {
   width: 100%;
-  padding: 15px 16px;
+  padding: 12px 16px;
   border-radius: var(--radius-sm);
   font-size: calc(14px * var(--text-scale));
   font-weight: 600;
@@ -437,6 +439,7 @@ header {
   text-align: center;
   font-family: var(--font);
   letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
 .action-btn:active {
@@ -465,17 +468,17 @@ header {
 }
 
 .btn-sm {
-  padding: 6px 14px;
+  padding: 8px 14px;
   font-size: calc(12px * var(--text-scale));
 }
 
 .btn-md {
-  padding: 10px;
+  padding: 10px 16px;
   font-size: calc(13px * var(--text-scale));
 }
 
 .btn-lg-pad {
-  padding: 13px 28px;
+  padding: 12px 24px;
 }
 
 .btn-sm-pad {
@@ -488,10 +491,14 @@ header {
 
 .btn-pill {
   border-radius: 50px;
-  padding: 4px 10px;
-  font-size: calc(10px * var(--text-scale));
-  font-weight: bold;
+  padding: 6px 12px;
+  font-size: calc(11px * var(--text-scale));
+  font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-outline {
@@ -504,11 +511,12 @@ header {
   background: var(--accent);
   color: var(--bg);
   border: none;
-  padding: 11px 18px;
+  padding: 10px 16px;
   border-radius: var(--radius-sm);
   font-size: calc(13px * var(--text-scale));
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .btn-dashed {
@@ -527,6 +535,7 @@ header {
   border: none;
   background: transparent;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .btn-clear {
@@ -536,6 +545,9 @@ header {
   color: var(--text-muted);
   font-size: calc(13px * var(--text-scale));
   font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-play-task {
@@ -605,6 +617,7 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .search-pill {
@@ -711,13 +724,18 @@ header {
   gap: 8px;
 }
 
+/* リストアイテムの整理（ボタン配置の最適化） */
 .result-box li, .correction-box li {
   position: relative;
-  padding: 10px 14px 10px 16px;
+  padding: 12px 14px 12px 16px;
   background: var(--bg);
   border-radius: var(--radius-xs);
   font-size: calc(13.5px * var(--text-scale));
   border-left: 3px solid var(--border2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .result-box li::before, .correction-box li::before {
@@ -748,14 +766,36 @@ header {
 .svoc-m { color: #F39C12; font-weight: bold; }
 .slash { color: var(--border2); margin: 0 2px; font-weight: bold; }
 
+/* 単語詳細ヘッダーのレイアウト調整 */
+.word-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.word-detail-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.word-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .result-word-title {
-  font-size: calc(36px * var(--text-scale));
+  font-size: calc(28px * var(--text-scale));
   font-weight: 700;
   color: var(--text);
-  letter-spacing: 2px;
-  margin-bottom: 6px;
-  line-height: 1;
+  letter-spacing: 1px;
+  line-height: 1.1;
   font-family: var(--font-block);
+  word-break: break-word;
 }
 
 .result-meaning-badge {
@@ -764,8 +804,8 @@ header {
   color: var(--text-sub);
   font-size: calc(14px * var(--text-scale));
   font-weight: 700;
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 8px 16px;
+  border-radius: 12px;
   margin-bottom: 14px;
   border: 1px solid var(--border);
 }
@@ -774,7 +814,8 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .loading-dots::after {
@@ -782,14 +823,19 @@ header {
   animation: dots 1.2s infinite;
 }
 
-.save-btn {
-  padding: 7px 14px;
-  border-radius: 50px;
+/* ボタンの縦長化防止と洗練化 */
+.save-btn, .copy-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
   font-size: calc(12px * var(--text-scale));
   font-weight: 600;
   cursor: pointer;
   transition: all .15s;
   border: 1.5px solid var(--border2);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .save-btn.unsaved {
@@ -804,12 +850,6 @@ header {
 }
 
 .copy-btn {
-  padding: 7px 14px;
-  border-radius: 50px;
-  font-size: calc(12px * var(--text-scale));
-  font-weight: 600;
-  cursor: pointer;
-  border: 1.5px solid var(--border2);
   background: var(--bg);
   color: var(--text-sub);
 }
@@ -817,13 +857,13 @@ header {
 .add-derived-btn {
   background: var(--bg2);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 6px;
+  border-radius: 6px;
+  padding: 4px 10px;
   font-size: 11px;
   color: var(--text-sub);
   cursor: pointer;
-  margin-left: 8px;
-  vertical-align: middle;
+  margin-left: auto; /* 右寄せ */
+  white-space: nowrap;
   transition: all 0.2s;
 }
 
@@ -936,7 +976,7 @@ header {
 
 .card-nav button {
   flex: 1;
-  padding: 13px;
+  padding: 12px;
   border: 1.5px solid var(--border);
   background: var(--surface);
   border-radius: var(--radius-sm);
@@ -944,6 +984,7 @@ header {
   font-weight: 600;
   color: var(--text-sub);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .card-counter {
@@ -955,7 +996,7 @@ header {
 }
 
 .filter-chip {
-  padding: 5px 11px;
+  padding: 6px 12px;
   border-radius: 50px;
   font-size: calc(11px * var(--text-scale));
   font-weight: 600;
@@ -972,14 +1013,19 @@ header {
   border-color: var(--accent);
 }
 
+/* バッジの余白調整 */
 .prog-badge {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .prog-badge.mastered {
@@ -1006,6 +1052,7 @@ header {
   color: #fff;
   margin-right: 6px;
   display: inline-block;
+  white-space: nowrap;
 }
 
 .subj-badge.english { background: #2980B9; }
@@ -1033,7 +1080,7 @@ header {
 
 .ptab, .stab, .itab {
   flex-shrink: 0;
-  padding: 7px 13px;
+  padding: 8px 14px;
   border-radius: 50px;
   font-size: calc(12px * var(--text-scale));
   font-weight: 600;
@@ -1042,6 +1089,7 @@ header {
   color: var(--text-muted);
   cursor: pointer;
   text-align: center;
+  white-space: nowrap;
 }
 
 .ptab.active, .stab.active, .itab.active {
@@ -1075,47 +1123,58 @@ header {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .25);
+  background: rgba(0, 0, 0, .3);
   z-index: 500;
   display: none;
   align-items: flex-end;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(4px);
 }
 
 .modal-overlay.open {
   display: flex;
 }
 
+/* モーダルの重なり解消とパディング調整 */
 .modal-sheet {
   background: var(--surface);
-  border-radius: 22px 22px 0 0;
+  border-radius: 24px 24px 0 0;
   width: 100%;
   max-height: 92vh;
   overflow-y: auto;
-  padding: 18px 20px calc(18px + env(safe-area-inset-bottom));
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
   position: relative;
   animation: slideUp .28s ease;
 }
 
 .modal-handle {
-  width: 36px;
-  height: 4px;
+  width: 40px;
+  height: 5px;
   background: var(--border2);
-  border-radius: 2px;
-  margin: 0 auto 18px;
+  border-radius: 3px;
+  margin: 0 auto 16px;
 }
 
 .modal-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 12px;
+  right: 12px;
   background: var(--bg2);
   border: none;
   border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
   font-weight: bold;
+  z-index: 10; /* 重なり防止 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-sub);
+  transition: background 0.2s;
+}
+
+.modal-close:active {
+  background: var(--border);
 }
 
 /* モダンなトースト通知 */
@@ -1158,8 +1217,8 @@ header {
   position: fixed;
   bottom: calc(85px + env(safe-area-inset-bottom));
   right: 20px;
-  width: 50px;
-  height: 50px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--accent);
   color: var(--bg);
@@ -1316,7 +1375,7 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 15px;
+  padding: 12px 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
@@ -1412,8 +1471,8 @@ header {
 }
 
 .plan-item-row input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   accent-color: var(--accent);
   margin-top: 2px;
 }
@@ -1462,6 +1521,7 @@ header {
   font-size: calc(13px * var(--text-scale));
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 /* Weekly Plan Styles */
@@ -1503,8 +1563,8 @@ header {
 }
 
 .chat-bubble {
-  padding: 11px 14px;
-  border-radius: 14px;
+  padding: 12px 16px;
+  border-radius: 16px;
   font-size: calc(13.5px * var(--text-scale));
   line-height: 1.65;
   max-width: 92%;
@@ -1515,7 +1575,7 @@ header {
   background: var(--accent);
   color: var(--bg);
   align-self: flex-end;
-  border-radius: 14px 14px 4px 14px;
+  border-radius: 16px 16px 4px 16px;
 }
 
 .chat-bubble.ai {
@@ -1523,7 +1583,7 @@ header {
   border: 1px solid var(--border);
   color: var(--text);
   align-self: flex-start;
-  border-radius: 14px 14px 14px 4px;
+  border-radius: 16px 16px 16px 4px;
 }
 
 .chat-input-row {
@@ -1548,22 +1608,23 @@ header {
   background: var(--accent);
   color: var(--bg);
   border: none;
-  padding: 0 14px;
-  height: 36px;
+  padding: 0 16px;
+  height: 40px;
   border-radius: 50px;
   font-size: calc(13px * var(--text-scale));
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .writing-tab {
   flex-shrink: 0;
   min-width: 68px;
-  padding: 9px 12px;
+  padding: 10px 14px;
   text-align: center;
   border-radius: var(--radius-xs);
-  font-size: calc(11px * var(--text-scale));
+  font-size: calc(12px * var(--text-scale));
   font-weight: 700;
   border: 1.5px solid var(--border);
   background: var(--surface);
@@ -1590,7 +1651,7 @@ header {
   min-height: 150px;
   border: 1.5px solid var(--border);
   background: var(--bg);
-  padding: 13px 15px;
+  padding: 14px 16px;
   border-radius: var(--radius-sm);
   font-size: 16px;
   outline: none;
@@ -1603,7 +1664,7 @@ header {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 20px 16px;
+  padding: 24px 16px;
   border-radius: var(--radius-sm);
   font-size: calc(13px * var(--text-scale));
   font-weight: bold;
@@ -1619,13 +1680,13 @@ header {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 13px 15px;
+  padding: 14px 16px;
   margin-bottom: 8px;
   cursor: pointer;
 }
 
 .audio-btn {
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 50px;
   font-size: calc(11px * var(--text-scale));
   font-weight: 600;
@@ -1634,6 +1695,7 @@ header {
   color: var(--text-sub);
   cursor: pointer;
   transition: all .15s;
+  white-space: nowrap;
 }
 
 .audio-btn.active {
@@ -1646,7 +1708,7 @@ header {
   display: block;
   border: 2px dashed var(--border2);
   border-radius: var(--radius-sm);
-  padding: 30px 20px;
+  padding: 32px 20px;
   text-align: center;
   cursor: pointer;
   color: var(--text-muted);
@@ -1659,7 +1721,7 @@ header {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 10px;
+  padding: 12px;
   max-height: 160px;
   overflow-y: auto;
   font-size: calc(12px * var(--text-scale));
@@ -1667,7 +1729,7 @@ header {
 }
 
 .import-preview-row {
-  padding: 5px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--border);
   display: flex;
   gap: 8px;
@@ -1686,6 +1748,7 @@ header {
   background: var(--surface);
   cursor: pointer;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .import-action-btns button.primary {
@@ -1698,7 +1761,7 @@ header {
   padding: 14px 16px;
   border-radius: var(--radius-sm);
   font-size: calc(14px * var(--text-scale));
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1739,7 +1802,7 @@ header {
 .dash-hero {
   background: var(--accent);
   border-radius: var(--radius);
-  padding: 22px 20px;
+  padding: 24px 20px;
   margin-bottom: 14px;
   color: var(--bg);
 }
@@ -1797,8 +1860,8 @@ header {
 
 /* Avatar Styling */
 .dash-avatar {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   display: flex;
@@ -1855,8 +1918,8 @@ header {
   background: var(--bg);
   border: 1.5px solid var(--border);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1915,7 +1978,7 @@ header {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 14px;
+  padding: 16px;
   margin-bottom: 14px;
 }
 
@@ -1923,7 +1986,7 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 0;
+  padding: 8px 0;
   border-bottom: 1px dashed var(--border);
 }
 
@@ -1991,7 +2054,7 @@ header {
   gap: 8px;
   margin-bottom: 16px;
   min-height: 50px;
-  padding: 10px;
+  padding: 12px;
   border: 1.5px dashed var(--border2);
   border-radius: var(--radius-sm);
   background: var(--bg2);
@@ -2004,7 +2067,7 @@ header {
 }
 
 .quiz-word-chip {
-  padding: 8px 12px;
+  padding: 8px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
@@ -2028,7 +2091,7 @@ header {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 12px;
+  padding: 14px;
 }
 
 .yearly-month-label {
@@ -2074,12 +2137,13 @@ header {
 
 .btn-srs {
   flex: 1;
-  padding: 10px 4px;
+  padding: 12px 4px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
   color: #fff;
+  white-space: nowrap;
 }
 
 .srs-status-text {
@@ -2138,8 +2202,8 @@ header {
 }
 
 .mistake-cause-tag {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   accent-color: var(--accent);
 }
 
@@ -2193,6 +2257,12 @@ header {
    8. Media Queries
    ========================== */
 @media (min-width: 768px) {
+  .view-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
   .nav-bar {
     flex-direction: column;
     top: 0;
