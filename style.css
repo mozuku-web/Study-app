@@ -929,6 +929,7 @@ header {
   font-weight: 700;
   line-height: 1.5;
   margin-bottom: 12px;
+  width: 100%;
 }
 
 .flip-example {
@@ -2133,6 +2134,9 @@ header {
   font-weight: 700;
   text-align: center;
   font-family: var(--font-block);
+  width: 100%;
+  min-width: 0;
+  padding: 10px 4px;
 }
 
 .btn-srs {
@@ -2225,6 +2229,19 @@ header {
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 4px;
+}
+
+/* Skeleton Screen */
+.skeleton-box {
+  background: var(--bg2);
+  border-radius: var(--radius-xs);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 /* ==========================
