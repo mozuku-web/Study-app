@@ -32,8 +32,20 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
-  <!-- PDF.js for robust PDF parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <style>
+    .skeleton-box {
+      background: var(--bg2);
+      border-radius: var(--radius-xs);
+      animation: skeleton-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes skeleton-pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+  </style>
 </head>
 <body>
 
@@ -55,12 +67,10 @@
     <button id="undo-btn" class="btn-clear" style="color: var(--streak);" role="button" tabindex="0">Undo</button>
   </div>
 
-  <!-- Quick Capture Floating Button -->
   <button id="quick-capture-btn" class="global-mic-btn" style="bottom: 150px; background: var(--streak); display: flex;" onclick="openQuickCaptureModal()" aria-label="Quick Capture">
     <span class="material-symbols-rounded">edit_note</span>
   </button>
 
-  <!-- 大画面でのレイアウト最適化のため max-width を設定 -->
   <div class="view-container" id="view-container" style="max-width: 1200px; margin: 0 auto;">
 
     <!-- DASHBOARD -->
@@ -74,7 +84,6 @@
       </div>
       
       <div id="dashboard-widgets">
-        <!-- WOTD Widget -->
         <div class="card wotd-card-bg widget-item" id="word-of-the-day-card" data-widget-id="wotd">
           <p class="text-xs font-bold text-muted mb-2 text-uppercase">Word of the Day</p>
           <div class="flex-between">
@@ -83,14 +92,13 @@
           </div>
           <div id="wotd-meaning" class="text-sub font-bold text-base mb-2"></div>
           <div id="wotd-example" class="text-sub text-sm mb-3 example-box"></div>
-          <input type="text" id="wotd-tag-input" class="score-input mb-2" placeholder="Tags (comma separated)">
+          <input type="text" id="wotd-tag-input" class="score-input mb-2" placeholder="タグ (カンマ区切り)">
           <div class="flex-gap-8">
             <button class="action-btn mb-0 flex-1 btn-md" id="wotd-save-btn" role="button" tabindex="0">Add to Vocab</button>
             <button class="action-btn btn-secondary mb-0 flex-1 btn-md" id="wotd-next-btn" onclick="nextWordOfTheDay()" role="button" tabindex="0">Next Word</button>
           </div>
         </div>
 
-        <!-- Hero Widget -->
         <div class="dash-hero widget-item" id="dash-hero" data-widget-id="hero">
           <div class="flex-between align-center mb-2">
             <div class="dash-rank" id="dash-rank-label">RANK</div>
@@ -104,18 +112,16 @@
           </div>
         </div>
 
-        <!-- Countdown Widget -->
         <div class="card mb-14 widget-item" id="dash-countdown-card" data-widget-id="countdown">
           <div class="flex-between mb-2">
             <p class="text-xs font-bold text-muted">Countdown</p>
             <button class="btn-pill btn-outline" onclick="openCountdownSettings()" role="button" tabindex="0">Edit</button>
           </div>
           <div id="dash-countdown-display" class="text-center py-2">
-            <p class="text-sm text-muted">Target date not set</p>
+            <p class="text-sm text-muted">目標日が設定されていません</p>
           </div>
         </div>
 
-        <!-- Yearly Summary Widget -->
         <div class="card border-left-accent hidden widget-item" id="dash-yearly-summary" data-widget-id="yearly">
           <p class="text-xs font-bold text-muted mb-1">
             Monthly Goal (<span id="dash-yearly-month"></span>月)
@@ -126,13 +132,11 @@
           </p>
         </div>
 
-        <!-- Action Buttons Widget -->
         <div class="flex-gap-8 mb-3 widget-item" data-widget-id="actions">
           <button class="action-btn mb-0 flex-1 bg-streak" onclick="openWeeklyReport()" role="button" tabindex="0">Weekly Report</button>
           <button class="action-btn btn-danger mb-0 flex-1" onclick="openWeaknessAnalysis()" role="button" tabindex="0">Weakness Analysis</button>
         </div>
 
-        <!-- Streak Widget -->
         <div class="widget-item mb-3" data-widget-id="streak">
           <div class="dash-streak-row mb-2">
             <div class="dash-streak-card">
@@ -147,7 +151,6 @@
           <div id="recovery-mission-area"></div>
         </div>
 
-        <!-- Weekly Chart Widget -->
         <div class="card mb-14 widget-item" id="dash-weekly-chart-card" data-widget-id="weekly-chart">
           <div class="flex-between mb-2">
             <p class="text-xs font-bold text-muted">Weekly Study Time</p>
@@ -160,43 +163,36 @@
           <div class="chart-container-180"><canvas id="dash-weekly-chart"></canvas></div>
         </div>
 
-        <!-- Radar Chart Widget -->
         <div class="card mb-14 widget-item" id="dash-radar-chart-card" data-widget-id="radar-chart">
           <p class="text-xs font-bold text-muted mb-2">Study Balance (Radar Chart)</p>
           <div class="chart-container-220"><canvas id="dash-radar-chart"></canvas></div>
         </div>
 
-        <!-- SRS Chart Widget -->
         <div class="card mb-14 widget-item" id="dash-srs-chart-card" data-widget-id="srs-chart">
           <p class="text-xs font-bold text-muted mb-2">Forgetting Curve</p>
           <div class="chart-container-180"><canvas id="dash-srs-chart"></canvas></div>
         </div>
         
-        <!-- SRS Scatter Widget -->
         <div class="card mb-14 widget-item" id="dash-srs-scatter-card" data-widget-id="srs-scatter">
           <p class="text-xs font-bold text-muted mb-2">Retention Distribution (Stability)</p>
           <div class="chart-container-180"><canvas id="dash-srs-scatter"></canvas></div>
         </div>
 
-        <!-- Stability Chart Widget -->
         <div class="card mb-14 widget-item" id="dash-stability-chart-card" data-widget-id="stability-chart">
           <p class="text-xs font-bold text-muted mb-2">Average Retention Trend (Stability)</p>
           <div class="chart-container-180"><canvas id="dash-stability-chart"></canvas></div>
         </div>
         
-        <!-- Review Forecast Widget -->
         <div class="card mb-14 widget-item" id="dash-forecast-card" data-widget-id="forecast">
           <p class="text-xs font-bold text-muted mb-2">Review Forecast</p>
           <div id="dash-forecast-grid" class="heatmap-grid heatmap-layout"></div>
         </div>
 
-        <!-- Subject Chart Widget -->
         <div class="card mb-14 widget-item" id="dash-subj-chart-card" data-widget-id="subj-chart">
           <p class="text-xs font-bold text-muted mb-2">Study Time by Subject</p>
           <div class="chart-container-180"><canvas id="dash-subj-chart"></canvas></div>
         </div>
 
-        <!-- Heatmap Widget -->
         <div class="card mb-14 widget-item" data-widget-id="heatmap">
           <div class="flex-between mb-2">
             <p class="text-xs font-bold text-muted">Study Heatmap (Past 90 Days)</p>
@@ -209,7 +205,6 @@
           <div id="dash-heatmap" class="heatmap-grid heatmap-layout"></div>
         </div>
 
-        <!-- Calendar Widget -->
         <div class="cal-wrap widget-item" data-widget-id="calendar">
           <div class="cal-header">
             <button class="cal-nav-btn" onclick="dashCalPrev()" role="button" tabindex="0">‹</button>
@@ -228,17 +223,15 @@
           <div class="cal-grid" id="cal-days"></div>
         </div>
 
-        <!-- Quick Capture Inbox Widget -->
         <div class="dash-today-log mb-14 widget-item" data-widget-id="quick-capture-inbox">
           <div class="flex-between mb-2">
             <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1">Quick Notes</p>
           </div>
           <div id="quick-capture-list" class="flex-col gap-2">
-            <p class="text-xs text-muted text-center">No notes</p>
+            <p class="text-xs text-muted text-center">ノートがありません</p>
           </div>
         </div>
 
-        <!-- Today Plan Widget -->
         <div class="dash-today-log mb-14 widget-item" data-widget-id="today-plan">
           <div class="flex-between mb-2">
             <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1">Today's Plan & Events</p>
@@ -251,7 +244,6 @@
           <div id="dash-today-plan-list"></div>
         </div>
 
-        <!-- Today Log Widget -->
         <div class="dash-today-log widget-item" data-widget-id="today-log">
           <div class="flex-between mb-2">
             <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1">Today's Study Log</p>
@@ -278,10 +270,6 @@
             <input type="checkbox" id="timer-pomodoro-mode" style="width:18px;height:18px;accent-color:var(--accent);">
             <span>Pomodoro Mode (25m study + 5m break)</span>
           </label>
-          <label class="flex align-center gap-2 text-sm font-bold cursor-pointer">
-            <input type="checkbox" id="timer-pomodoro-auto" style="width:18px;height:18px;accent-color:var(--accent);">
-            <span>Auto-start next timer</span>
-          </label>
         </div>
       </div>
 
@@ -305,16 +293,16 @@
 
       <div class="card">
         <p class="text-xs font-bold text-muted mb-3">Set Timer</p>
-        <div class="flex-between gap-2 mb-2">
-          <div class="flex align-center gap-1 flex-1">
-            <input type="number" id="timer-input-min" min="0" max="999" value="25" class="score-input timer-input-large">
+        <div class="flex-between gap-2 mb-2" style="flex-wrap: nowrap;">
+          <div class="flex align-center gap-1 flex-1" style="min-width: 0;">
+            <input type="number" id="timer-input-min" min="0" max="999" value="25" class="score-input timer-input-large" style="width: 100%; min-width: 0; padding: 10px 4px;">
             <span class="text-xs text-muted font-bold">min</span>
           </div>
-          <div class="flex align-center gap-1 flex-1">
-            <input type="number" id="timer-input-sec" min="0" max="59" value="0" class="score-input timer-input-large">
+          <div class="flex align-center gap-1 flex-1" style="min-width: 0;">
+            <input type="number" id="timer-input-sec" min="0" max="59" value="0" class="score-input timer-input-large" style="width: 100%; min-width: 0; padding: 10px 4px;">
             <span class="text-xs text-muted font-bold">sec</span>
           </div>
-          <button class="add-btn btn-accent-solid" onclick="timerSetCustom()" role="button" tabindex="0">Set</button>
+          <button class="add-btn btn-accent-solid" onclick="timerSetCustom()" role="button" tabindex="0" style="flex-shrink: 0;">Set</button>
         </div>
       </div>
       <div class="card">
@@ -332,12 +320,18 @@
       
       <button class="action-btn" onclick="openImportModal()" role="button" tabindex="0">+ Import Words</button>
       <div class="search-wrap">
-        <input type="text" id="word-input" placeholder="Search or enter word..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchWord()}">
+        <input type="text" id="word-input" placeholder="単語を検索または入力..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchWord()}">
         <button id="search-mic-btn" class="btn-clear material-symbols-rounded" style="padding: 0 8px; font-size: 20px;" onclick="toggleSearchMic()" title="音声入力" role="button" tabindex="0">mic</button>
         <button class="search-go" onclick="searchWord()" role="button" tabindex="0">Search</button>
       </div>
       <div id="word-suggest" class="word-quick-list"></div>
-      <div id="loading" class="hidden text-center p-36 text-muted font-bold text-sm"><span class="loading-dots">Analyzing</span></div>
+      
+      <div id="loading" class="hidden p-20">
+        <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+        <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+        <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+      </div>
+      
       <div id="search-result"></div>
 
       <div class="vocab-stats-bar" id="vocab-stats-bar"></div>
@@ -355,7 +349,7 @@
       </div>
       
       <div class="vocab-search-wrap">
-        <input type="text" id="vocab-search" placeholder="Filter words...">
+        <input type="text" id="vocab-search" placeholder="単語を絞り込み...">
       </div>
       
       <div id="vocab-filter-bar" class="vocab-filter-bar">
@@ -389,7 +383,7 @@
         <div class="flex align-center gap-2 flex-wrap">
           <span class="text-xs font-bold text-muted">Root</span>
           <div class="flex align-center flex-1 gap-1 search-pill">
-            <input type="text" id="prefix-search-input" placeholder="e.g. pro, port" class="search-pill-input">
+            <input type="text" id="prefix-search-input" placeholder="例: pro, port" class="search-pill-input">
             <button onclick="clearPrefixFilter()" class="btn-clear hidden" id="prefix-clear-btn" role="button" tabindex="0">✕</button>
           </div>
         </div>
@@ -439,10 +433,10 @@
             <div class="swipe-indicator swipe-left" id="swipe-left" style="pointer-events: none;">Forgot</div>
             <div class="swipe-indicator swipe-right" id="swipe-right" style="pointer-events: none;">Remembered</div>
             <div class="flip-word" id="card-word" style="pointer-events: none;">—</div>
-            <div class="flip-hint" style="pointer-events: none;">Tap to flip / Swipe to sort / Voice cmd available</div>
+            <div class="flip-hint" style="pointer-events: none;">タップで裏返す / スワイプで仕分け / 音声コマンド対応</div>
           </div>
           <div class="flip-back">
-            <div class="flip-meaning" id="card-meaning" style="pointer-events: none;">—</div>
+            <div id="card-meaning" style="pointer-events: none; width: 100%;">—</div>
             <div id="card-image-container" class="mt-3" style="max-height: 120px; overflow: hidden; border-radius: 8px; pointer-events: none;"></div>
           </div>
         </div>
@@ -514,7 +508,7 @@
         </div>
         
         <div id="w-text-area">
-          <textarea class="writing-textarea" id="writing-text-input" placeholder="Enter English text or essay..."></textarea>
+          <textarea class="writing-textarea" id="writing-text-input" placeholder="英文やエッセイを入力..."></textarea>
         </div>
         <div id="w-file-area" class="hidden">
           <label class="writing-upload-btn" for="writing-file-input">
@@ -522,7 +516,7 @@
             <input type="file" id="writing-file-input" accept="*/*" class="hidden" onchange="handleWritingFile(event)" onclick="this.value=null">
           </label>
           <div id="writing-file-name"></div>
-          <textarea class="writing-textarea min-h-100" id="writing-file-text" placeholder="File content" readonly></textarea>
+          <textarea class="writing-textarea min-h-100" id="writing-file-text" placeholder="ファイル内容" readonly></textarea>
         </div>
         <div id="w-photo-area" class="hidden">
           <label class="writing-upload-btn" for="writing-photo-input">
@@ -540,7 +534,11 @@
           <button class="action-btn mb-0 flex-1 min-w-100 bg-purple" id="writing-essay-btn" onclick="submitWriting('essay')" role="button" tabindex="0">Essay Analysis</button>
         </div>
         
-        <div id="writing-loading" class="hidden text-center p-28"><span class="loading-dots">Processing</span></div>
+        <div id="writing-loading" class="hidden p-20">
+          <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+          <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+          <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+        </div>
         <div id="writing-result"></div>
       </div>
 
@@ -582,7 +580,11 @@
             <p class="text-sm mb-3">過去のミス傾向から、あえて間違えやすい「ひっかけ問題」を生成します。</p>
             <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-danger" id="generate-trick-drill-btn" onclick="generateTrickDrill()" role="button" tabindex="0">Hardcore Drill</button>
           </div>
-          <div id="drill-loading" class="hidden text-center p-28"><span class="loading-dots">Analyzing & Generating</span></div>
+          <div id="drill-loading" class="hidden p-20">
+            <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+            <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+            <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+          </div>
           <div id="drill-content-area"></div>
         </div>
       </div>
@@ -604,11 +606,15 @@
           </div>
           <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-3">
             <input type="checkbox" id="quiz-include-fill" style="width:16px;height:16px;accent-color:var(--accent);" checked>
-            <span>Include fill-in-the-blank questions</span>
+            <span>穴埋め問題を含める</span>
           </label>
           <button class="action-btn mb-0" id="generate-quiz-btn" onclick="generateWordQuiz()" role="button" tabindex="0">Generate Quiz</button>
         </div>
-        <div id="word-quiz-loading" class="hidden text-center p-28"><span class="loading-dots">Creating Quiz</span></div>
+        <div id="word-quiz-loading" class="hidden p-20">
+          <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+          <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+          <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+        </div>
         <div id="word-quiz-area"></div>
       </div>
 
@@ -624,7 +630,11 @@
           <p class="text-xs text-muted mb-3">英語のドキュメントを読みながら、単語をタップして辞書引き・単語帳に追加できます。</p>
           <button class="action-btn mb-0 btn-secondary" onclick="openPdfReaderModal()" role="button" tabindex="0">Open Reader</button>
         </div>
-        <div id="media-loading" class="hidden text-center p-28"><span class="loading-dots">Processing</span></div>
+        <div id="media-loading" class="hidden p-20">
+          <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+          <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+          <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+        </div>
         <div id="media-result-area"></div>
       </div>
 
@@ -641,9 +651,9 @@
         </div>
         <div class="card mb-3">
           <p class="text-xs font-bold mb-3">Add Syntax Manually</p>
-          <input type="text" id="syntax-new-text" class="score-input mb-2" placeholder="English Syntax / Phrase">
-          <input type="text" id="syntax-new-meaning" class="score-input mb-2" placeholder="Meaning / Translation">
-          <input type="text" id="syntax-new-note" class="score-input mb-2" placeholder="Note">
+          <input type="text" id="syntax-new-text" class="score-input mb-2" placeholder="構文 / フレーズ">
+          <input type="text" id="syntax-new-meaning" class="score-input mb-2" placeholder="意味 / 和訳">
+          <input type="text" id="syntax-new-note" class="score-input mb-2" placeholder="メモ">
           <button class="action-btn mb-0" onclick="addSyntaxManual()" role="button" tabindex="0">Add</button>
         </div>
         <div id="syntax-list"></div>
@@ -690,8 +700,8 @@
             </div>
           </div>
         </div>
-        <div id="cc-empty-deck" class="text-center p-48-20 hidden">Empty.</div>
-        <div id="cc-no-deck" class="text-center p-48-20">No decks available.</div>
+        <div id="cc-empty-deck" class="text-center p-48-20 hidden">空です。</div>
+        <div id="cc-no-deck" class="text-center p-48-20">デッキがありません。</div>
         <div class="card-counter hidden" id="cc-card-counter">
           <span id="cc-card-idx">0</span> / <span id="cc-card-total">0</span>
         </div>
@@ -705,7 +715,7 @@
         <select id="cc-edit-deck-select" class="score-input mb-3" onchange="ccRenderCards()">
           <option value="">-- Select --</option>
         </select>
-        <div id="cc-no-edit-deck" class="text-center p-24">Please create a deck</div>
+        <div id="cc-no-edit-deck" class="text-center p-24">デッキを作成してください。</div>
         <div id="cc-card-editor" class="hidden">
           <div class="card mb-3">
             <p class="text-xs font-bold mb-3">Generate with AI</p>
@@ -715,7 +725,7 @@
               <button class="ptab" id="cc-ai-mode-photo" onclick="setCCAiMode('photo')" role="button" tabindex="0">Photo</button>
             </div>
             <div id="cc-ai-text-area">
-              <input type="text" id="cc-ai-prompt" class="score-input mb-2" placeholder="e.g. 10 basic high school English words">
+              <input type="text" id="cc-ai-prompt" class="score-input mb-2" placeholder="例: 高校基礎レベルの英単語10個">
             </div>
             <div id="cc-ai-file-area" class="hidden">
               <label class="writing-upload-btn" for="cc-ai-file-input">
@@ -723,7 +733,7 @@
                 <input type="file" id="cc-ai-file-input" accept="*/*" class="hidden" onchange="handleCCAiFile(event)" onclick="this.value=null">
               </label>
               <div id="cc-ai-file-name" class="mb-2 text-xs text-muted"></div>
-              <input type="text" id="cc-ai-file-prompt" class="score-input mb-2" placeholder="Additional Instructions">
+              <input type="text" id="cc-ai-file-prompt" class="score-input mb-2" placeholder="追加の指示">
             </div>
             <div id="cc-ai-photo-area" class="hidden">
               <label class="writing-upload-btn" for="cc-ai-photo-input">
@@ -731,7 +741,7 @@
                 <input type="file" id="cc-ai-photo-input" accept="image/*" class="hidden" onchange="handleCCAiPhoto(event)" onclick="this.value=null">
               </label>
               <div id="cc-ai-photo-preview" class="mb-2"></div>
-              <input type="text" id="cc-ai-photo-prompt" class="score-input mb-2" placeholder="Additional Instructions">
+              <input type="text" id="cc-ai-photo-prompt" class="score-input mb-2" placeholder="追加の指示">
             </div>
             <button class="action-btn mb-0 bg-green" onclick="ccGenerateCardsAI()" id="cc-ai-btn" role="button" tabindex="0">Generate with AI</button>
           </div>
@@ -747,7 +757,7 @@
       <div id="cc-decks-area" class="hidden">
         <div class="card mb-3">
           <p class="text-xs font-bold mb-3">Create New</p>
-          <input type="text" id="cc-new-deck-name" class="score-input mb-2" placeholder="Deck Name">
+          <input type="text" id="cc-new-deck-name" class="score-input mb-2" placeholder="デッキ名">
           <button class="action-btn mb-0" onclick="ccCreateDeck()" role="button" tabindex="0">Create</button>
         </div>
         <div id="cc-decks-list" class="flex-col gap-8"></div>
@@ -783,7 +793,7 @@
         </div>
         <div id="sq-text-area">
           <div class="chat-input-row">
-            <textarea id="subject-input" placeholder="Enter your question..." rows="1" oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSubjectMessage();}"></textarea>
+            <textarea id="subject-input" placeholder="質問を入力..." rows="1" oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSubjectMessage();}"></textarea>
             <button class="chat-send-btn" id="subject-send" onclick="sendSubjectMessage()" role="button" tabindex="0">Send</button>
           </div>
         </div>
@@ -794,7 +804,7 @@
           </label>
           <div id="subject-file-name" class="mb-2 text-xs text-muted"></div>
           <div class="chat-input-row">
-            <textarea id="subject-file-extra" placeholder="Additional comment..." rows="1" oninput="autoResize(this)"></textarea>
+            <textarea id="subject-file-extra" placeholder="追加のコメント..." rows="1" oninput="autoResize(this)"></textarea>
             <button class="chat-send-btn" onclick="sendSubjectFileMessage()" role="button" tabindex="0">Send</button>
           </div>
         </div>
@@ -807,11 +817,11 @@
           
           <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-2 hidden" id="math-sci-ocr-option">
             <input type="checkbox" id="subject-math-ocr-check" style="width:16px;height:16px;accent-color:var(--accent);">
-            <span>High-precision OCR for math/science formulas & generate step-by-step explanation</span>
+            <span>数式・理科の高精度OCRとステップバイステップ解説を生成</span>
           </label>
 
           <div class="chat-input-row">
-            <textarea id="subject-photo-extra" placeholder="Additional comment..." rows="1" oninput="autoResize(this)"></textarea>
+            <textarea id="subject-photo-extra" placeholder="追加のコメント..." rows="1" oninput="autoResize(this)"></textarea>
             <button class="chat-send-btn" onclick="sendSubjectPhotoMessage()" role="button" tabindex="0">Send</button>
           </div>
         </div>
@@ -872,7 +882,7 @@
           </p>
           <div id="plan-event-list" class="mb-2"></div>
           <div class="plan-add-row mt-0">
-            <input type="text" id="plan-event-input" placeholder="Add event..." onkeydown="if(event.key==='Enter')addPlanEvent()">
+            <input type="text" id="plan-event-input" placeholder="予定を追加..." onkeydown="if(event.key==='Enter')addPlanEvent()">
             <button onclick="addPlanEvent()" class="add-btn bg-blue" role="button" tabindex="0">Add</button>
           </div>
         </div>
@@ -883,8 +893,8 @@
           </div>
           <div id="plan-content" class="mb-2"></div>
           <div class="plan-add-row mt-0 flex-wrap">
-            <input type="text" id="new-plan-input" placeholder="Add plan..." onkeydown="if(event.key==='Enter')addPlanDatePlan()">
-            <input type="text" id="new-plan-time" placeholder="Time" class="plan-time-input w-60">
+            <input type="text" id="new-plan-input" placeholder="計画を追加..." onkeydown="if(event.key==='Enter')addPlanDatePlan()">
+            <input type="text" id="new-plan-time" placeholder="時間" class="plan-time-input w-60">
             <select id="new-plan-routine" class="score-input w-auto p-8 text-xs" onchange="toggleRoutineDays(this.value)">
               <option value="none">Once</option>
               <option value="daily">Daily</option>
@@ -915,7 +925,7 @@
               <option value="social">Social Studies</option>
               <option value="other">Other</option>
             </select>
-            <input type="text" id="new-textbook-input" class="flex-1" placeholder="Add textbook" onkeydown="if(event.key==='Enter')addTextbook()">
+            <input type="text" id="new-textbook-input" class="flex-1" placeholder="参考書を追加" onkeydown="if(event.key==='Enter')addTextbook()">
             <button onclick="addTextbook()" class="add-btn" role="button" tabindex="0">Add</button>
           </div>
         </div>
@@ -938,9 +948,9 @@
           <p class="text-sm font-bold mb-2">Add to Plan from Textbook</p>
           <div class="flex-gap-8 mb-2">
             <select id="weekly-textbook-select" class="score-input flex-1">
-              <option value="">Select Textbook...</option>
+              <option value="">参考書を選択...</option>
             </select>
-            <input type="text" id="weekly-plan-pages" class="score-input w-70" placeholder="Pages">
+            <input type="text" id="weekly-plan-pages" class="score-input w-70" placeholder="ページ範囲">
           </div>
           <div class="flex-gap-8 mb-2">
             <select id="weekly-plan-day" class="score-input flex-1">
@@ -963,7 +973,7 @@
             <p class="text-sm font-bold">Yearly Main Goal</p>
             <button class="btn-pill btn-outline" onclick="generateMilestonesAI()" role="button" tabindex="0">Milestone Generator</button>
           </div>
-          <input type="text" id="yearly-main-goal" class="score-input" placeholder="e.g. Pass first-choice university, TOEIC 800" oninput="saveYearlyPlanDebounced()">
+          <input type="text" id="yearly-main-goal" class="score-input" placeholder="例: 第一志望合格、TOEIC 800点" oninput="saveYearlyPlanDebounced()">
         </div>
         <div class="yearly-plan-grid" id="yearly-months-grid"></div>
       </div>
@@ -977,16 +987,20 @@
           <p class="text-xs text-muted mb-3 line-height-15">目標日と使用する参考書・タスクを入力すると、AIが試験日までの日数を逆算し、カレンダーに毎日のスケジュールを自動登録します。</p>
           
           <p class="text-xs font-bold text-muted mb-1">Target / Exam Name</p>
-          <input type="text" id="gantt-target-name" class="score-input mb-3" placeholder="e.g. Final Exam, TOEIC">
+          <input type="text" id="gantt-target-name" class="score-input mb-3" placeholder="例: 期末テスト、TOEIC">
           
           <p class="text-xs font-bold text-muted mb-1">Target Date (Deadline)</p>
           <input type="date" id="gantt-target-date" class="score-input mb-3">
           
           <p class="text-xs font-bold text-muted mb-1">Textbooks & Page Range</p>
-          <textarea id="gantt-materials" class="score-input mb-3 h-72" placeholder="e.g. Target 1900: 1-800 words&#10;Blue Chart: p10-p50"></textarea>
+          <textarea id="gantt-materials" class="score-input mb-3 h-72" placeholder="例: ターゲット1900 1〜800語&#10;青チャート p10-p50"></textarea>
           
           <button class="action-btn mb-0 bg-accent2" id="gantt-generate-btn" onclick="generateGanttSchedule()" role="button" tabindex="0">Generate Backcasting Schedule</button>
-          <div id="gantt-loading" class="hidden text-center mt-3"><span class="loading-dots">AI is building daily plan</span></div>
+          <div id="gantt-loading" class="hidden p-20">
+            <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+            <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+            <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+          </div>
         </div>
         <div class="card hidden" id="gantt-result-card">
           <p class="text-xs font-bold text-green mb-2">Schedule Generation Complete</p>
@@ -1026,7 +1040,7 @@
         </div>
         <div class="chat-container" id="plan-ai-chat"></div>
         <div class="chat-input-row">
-          <textarea id="plan-ai-input" placeholder="Ask a question or consult..." rows="1" oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPlanAiMessage();}"></textarea>
+          <textarea id="plan-ai-input" placeholder="質問や相談を入力..." rows="1" oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPlanAiMessage();}"></textarea>
           <button class="chat-send-btn" id="plan-ai-send" onclick="sendPlanAiMessage()" role="button" tabindex="0">Send</button>
         </div>
       </div>
@@ -1038,8 +1052,8 @@
             <input type="file" accept="image/*" class="hidden" onchange="ocrScore(event)" onclick="this.value=null">
           </label>
           <div class="flex-gap-8 mb-3">
-            <input class="score-input flex-1" id="score-exam-name" placeholder="Exam Name">
-            <input class="score-input flex-1" id="score-exam-date" placeholder="Date (e.g. 2025/01)">
+            <input class="score-input flex-1" id="score-exam-name" placeholder="模試名">
+            <input class="score-input flex-1" id="score-exam-date" placeholder="日付 (例: 2025/01)">
           </div>
           <p class="text-xs font-bold text-muted mb-1">Subject / Score / Deviation</p>
           <div id="exam-subjects-container" class="flex-col gap-6 mb-2"></div>
@@ -1047,7 +1061,7 @@
           <p class="text-xs font-bold text-muted mb-1">University Judgment</p>
           <div id="exam-judges-container" class="flex-col gap-6 mb-2"></div>
           <button onclick="addExamJudgeRow()" class="w-full text-sm font-bold mb-3 btn-dashed" role="button" tabindex="0">+ Add Judgment</button>
-          <input class="score-input mb-3" id="score-memo" placeholder="Memo">
+          <input class="score-input mb-3" id="score-memo" placeholder="メモ">
           <button class="action-btn mb-0" onclick="addExamScore()" role="button" tabindex="0">Save Score</button>
         </div>
         <div class="card mb-3" id="score-chart-card">
@@ -1077,20 +1091,20 @@
       
       <div id="mistake-area-saved" class="mistake-sub-area">
         <div id="mistake-saved-list" class="flex-col gap-6">
-          <p class="text-sm text-muted text-center p-20">Saved items will be displayed here.</p>
+          <p class="text-sm text-muted text-center p-20">保存された項目がここに表示されます。</p>
         </div>
       </div>
       
       <div id="mistake-area-exam" class="mistake-sub-area hidden">
         <div class="card mb-3">
           <p class="text-sm font-bold mb-2">Add Exam/Test Mistake</p>
-          <input type="text" id="exam-mistake-name" class="score-input mb-2" placeholder="Exam/Test Name">
+          <input type="text" id="exam-mistake-name" class="score-input mb-2" placeholder="テスト名">
           
           <p class="text-xs font-bold text-muted mb-1">① Question Description</p>
-          <textarea id="exam-mistake-q-desc" class="score-input mb-2 h-72" placeholder="What kind of question was it?"></textarea>
+          <textarea id="exam-mistake-q-desc" class="score-input mb-2 h-72" placeholder="どのような問題でしたか？"></textarea>
           
           <p class="text-xs font-bold text-muted mb-1">② Your Wrong Answer</p>
-          <textarea id="exam-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="How did you get it wrong?"></textarea>
+          <textarea id="exam-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="どのように間違えましたか？"></textarea>
           
           <p class="text-xs font-bold text-muted mb-1">③ Why did you get it wrong? (Cause)</p>
           <div class="flex-gap-wrap mb-2">
@@ -1100,10 +1114,10 @@
             <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="mistake-cause-tag" value="reading"> Reading Mistake</label>
             <label class="flex align-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="mistake-cause-tag" value="calculation"> Calculation Mistake</label>
           </div>
-          <textarea id="exam-mistake-reason" class="score-input mb-2 h-72" placeholder="Deep dive into the specific cause"></textarea>
+          <textarea id="exam-mistake-reason" class="score-input mb-2 h-72" placeholder="具体的な原因を深掘り"></textarea>
           
           <p class="text-xs font-bold text-muted mb-1">④ What to do next (Action)</p>
-          <textarea id="exam-mistake-action" class="score-input mb-3 h-72" placeholder="Specific action to prevent the same mistake"></textarea>
+          <textarea id="exam-mistake-action" class="score-input mb-3 h-72" placeholder="同じミスを防ぐための具体的なアクション"></textarea>
           
           <button class="action-btn mb-0" onclick="addExamMistake()" role="button" tabindex="0">Add</button>
         </div>
@@ -1121,11 +1135,11 @@
       <div id="mistake-area-calc" class="mistake-sub-area hidden">
         <div class="card mb-3">
           <p class="text-sm font-bold mb-2">Add Calculation Mistake Record</p>
-          <input type="text" id="calc-mistake-name" class="score-input mb-2" placeholder="Question/Test Name">
-          <textarea id="calc-mistake-q-desc" class="score-input mb-2 h-72" placeholder="What kind of calculation question was it?"></textarea>
-          <textarea id="calc-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="How did you get it wrong? (e.g. sign error, forgot to reduce)"></textarea>
-          <textarea id="calc-mistake-reason" class="score-input mb-2 h-72" placeholder="Why did you get it wrong?"></textarea>
-          <textarea id="calc-mistake-action" class="score-input mb-3 h-72" placeholder="What to do next (Action)"></textarea>
+          <input type="text" id="calc-mistake-name" class="score-input mb-2" placeholder="問題/テスト名">
+          <textarea id="calc-mistake-q-desc" class="score-input mb-2 h-72" placeholder="どのような計算問題でしたか？"></textarea>
+          <textarea id="calc-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="どのように間違えましたか？（例: 符号ミス、約分忘れ）"></textarea>
+          <textarea id="calc-mistake-reason" class="score-input mb-2 h-72" placeholder="なぜ間違えましたか？"></textarea>
+          <textarea id="calc-mistake-action" class="score-input mb-3 h-72" placeholder="次にどうするか（アクション）"></textarea>
           <button class="action-btn mb-0" onclick="addCalcMistake()" role="button" tabindex="0">Add</button>
         </div>
         <div id="mistake-calc-list" class="flex-col gap-6"></div>
@@ -1134,11 +1148,11 @@
       <div id="mistake-area-other" class="mistake-sub-area hidden">
         <div class="card mb-3">
           <p class="text-sm font-bold mb-2">Add Other Mistake Record</p>
-          <input type="text" id="other-mistake-name" class="score-input mb-2" placeholder="Question/Test Name">
-          <textarea id="other-mistake-q-desc" class="score-input mb-2 h-72" placeholder="What kind of question was it?"></textarea>
-          <textarea id="other-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="How did you get it wrong?"></textarea>
-          <textarea id="other-mistake-reason" class="score-input mb-2 h-72" placeholder="Why did you get it wrong?"></textarea>
-          <textarea id="other-mistake-action" class="score-input mb-3 h-72" placeholder="What to do next (Action)"></textarea>
+          <input type="text" id="other-mistake-name" class="score-input mb-2" placeholder="問題/テスト名">
+          <textarea id="other-mistake-q-desc" class="score-input mb-2 h-72" placeholder="どのような問題でしたか？"></textarea>
+          <textarea id="other-mistake-wrong-ans" class="score-input mb-2 h-72" placeholder="どのように間違えましたか？"></textarea>
+          <textarea id="other-mistake-reason" class="score-input mb-2 h-72" placeholder="なぜ間違えましたか？"></textarea>
+          <textarea id="other-mistake-action" class="score-input mb-3 h-72" placeholder="次にどうするか（アクション）"></textarea>
           <button class="action-btn mb-0" onclick="addOtherMistake()" role="button" tabindex="0">Add</button>
         </div>
         <div id="mistake-other-list" class="flex-col gap-6"></div>
@@ -1155,7 +1169,7 @@
           <input type="password" id="gemini-api-key-input" class="score-input flex-1" placeholder="AIzaSy...">
           <button class="action-btn mb-0 flex-1 btn-auto-width" onclick="saveApiKey()" role="button" tabindex="0">Save</button>
         </div>
-        <p class="text-xs text-muted">※ Saved locally only.</p>
+        <p class="text-xs text-muted">※ ローカルにのみ保存されます。</p>
       </div>
       
       <div class="card mb-4">
@@ -1183,7 +1197,7 @@
         <p class="text-xs text-muted mb-2">過去7日間のデータが自動的に保存されます。</p>
         <div class="flex-gap-8 align-center mb-2">
           <select id="backup-restore-select" class="score-input flex-1">
-            <option value="">Select Restore Point...</option>
+            <option value="">復元ポイントを選択...</option>
           </select>
           <button class="action-btn mb-0 btn-auto-width" onclick="restoreBackup()" role="button" tabindex="0">Restore</button>
         </div>
@@ -1260,7 +1274,11 @@
             <span id="fsrs-retention-label" class="text-sm font-bold text-accent">90%</span>
           </div>
           <input type="range" id="fsrs-retention-slider" min="70" max="99" value="90" class="w-full mb-2" oninput="updateFsrsRetention(this.value)">
-          <p class="text-xs text-muted">高くすると復習頻度が増え、低くすると減ります。</p>
+          <p class="text-xs text-muted mb-3">高くすると復習頻度が増え、低くすると減ります。</p>
+          <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-2">
+            <input type="checkbox" id="fsrs-auto-optimize" style="width:16px;height:16px;accent-color:var(--accent);" checked>
+            <span>Auto-optimize FSRS Parameters</span>
+          </label>
         </div>
 
         <p class="text-xs font-bold text-muted mb-2">Gemini Model Selection</p>
@@ -1279,7 +1297,7 @@
           <button class="action-btn mb-0 btn-auto-width" onclick="fetchAvailableModels()" title="Fetch latest models from API" role="button" tabindex="0">Fetch API</button>
         </div>
         <div id="custom-model-input-container" class="hidden mb-4">
-          <input type="text" id="custom-gemini-model" class="score-input w-full" placeholder="Enter model name (e.g. gemini-4.0-pro)" onchange="saveCustomGeminiModel()">
+          <input type="text" id="custom-gemini-model" class="score-input w-full" placeholder="モデル名を入力 (例: gemini-4.0-pro)" onchange="saveCustomGeminiModel()">
         </div>
         
         <p class="text-xs font-bold text-muted mb-2">Reminder Settings (Push Notifications)</p>
@@ -1287,10 +1305,6 @@
           <input type="time" id="reminder-time" class="score-input flex-1" value="20:00">
           <button class="action-btn mb-0 flex-1 btn-auto-width" onclick="saveReminderSettings()" role="button" tabindex="0">Set / Allow</button>
         </div>
-        <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-2">
-          <input type="checkbox" id="ai-notification-timing" style="width:16px;height:16px;accent-color:var(--accent);" onchange="saveReminderSettings()">
-          <span>AIが最適な通知タイミングを自動調整する</span>
-        </label>
         <div class="text-sm text-sub mb-4" id="reminder-status-text">Not Set</div>
 
         <p class="text-xs font-bold text-muted mb-2">Cloud Sync (Firebase Auth)</p>
@@ -1328,7 +1342,6 @@
 
   <!-- MODALS -->
 
-  <!-- Quick Capture Modal -->
   <div class="modal-overlay" id="quick-capture-modal" onclick="if(event.target===this) closeModal('quick-capture-modal')">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -1356,7 +1369,7 @@
       </select>
       <textarea id="manual-example-input" class="score-input mb-2 h-72" placeholder="Example (Optional)"></textarea>
       <textarea id="manual-note-input" class="score-input mb-2 h-72" placeholder="Note / Etymology (Optional)"></textarea>
-      <input type="text" id="manual-tags-input" class="score-input mb-1" placeholder="Tags (comma separated, e.g. TOEIC, Review)">
+      <input type="text" id="manual-tags-input" class="score-input mb-1" placeholder="タグ (カンマ区切り)">
       <div id="tag-suggest-area" class="flex gap-1 flex-wrap mb-3"></div>
       <button class="action-btn mb-0" id="manual-word-save-btn" onclick="addWordManual()" role="button" tabindex="0">Save</button>
     </div>
@@ -1366,7 +1379,6 @@
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeModal('detail-modal')" role="button" tabindex="0">✕</button>
-      <!-- 上部パディングを追加して閉じるボタンとの被りを防止 -->
       <div id="modal-body" style="padding-top: 12px;"></div>
       <div id="modal-image-container" class="mb-3 text-center"></div>
       <div id="word-retention-chart-container" class="card mt-3 hidden">
@@ -1446,7 +1458,11 @@
       <button class="modal-close" onclick="closeModal('weekly-report-modal')" role="button" tabindex="0">✕</button>
       <p class="text-center font-bold mb-3 text-lg">Weekly Report</p>
       <div id="weekly-report-content" class="text-base line-height-16 text-main mb-3">
-        <div class="text-center p-40"><span class="loading-dots">AI is analyzing</span></div>
+        <div class="hidden p-20">
+          <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+          <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+          <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+        </div>
       </div>
       <button class="action-btn mb-0 bg-green" onclick="exportWeeklyReportPDF()" role="button" tabindex="0">Export as PDF</button>
     </div>
@@ -1458,7 +1474,11 @@
       <button class="modal-close" onclick="closeModal('weakness-modal')" role="button" tabindex="0">✕</button>
       <p class="text-center font-bold mb-3 text-lg">Weakness Analysis</p>
       <div id="weakness-content" class="text-base line-height-16 text-main">
-        <div class="text-center p-40"><span class="loading-dots">AI is analyzing</span></div>
+        <div class="hidden p-20">
+          <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+          <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+          <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+        </div>
       </div>
       <button class="action-btn btn-danger mt-4 hidden" id="weakness-focus-btn" onclick="startWeaknessFocusMode()" role="button" tabindex="0">Start Weakness Focus</button>
     </div>
@@ -1520,7 +1540,11 @@
         <div id="import-photo-preview"></div>
         <div id="photo-preview"></div>
       </div>
-      <div id="import-loading" class="hidden text-center p-20"><span class="loading-dots">Processing</span></div>
+      <div id="import-loading" class="hidden p-20">
+        <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+        <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+        <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+      </div>
       <div id="import-action-bar" class="hidden">
         <p id="import-summary" class="text-xs text-muted mb-2"></p>
         <p class="text-xs font-bold text-muted mb-1">Bulk Add Tags</p>
@@ -1552,7 +1576,7 @@
         <p class="text-sm font-bold mb-2">Events</p>
         <div id="log-modal-event-list" class="mb-2"></div>
         <div class="plan-add-row mt-0">
-          <input type="text" id="log-modal-event-input" placeholder="Add event..." onkeydown="if(event.key==='Enter')addDailyEventFromModal()">
+          <input type="text" id="log-modal-event-input" placeholder="予定を追加..." onkeydown="if(event.key==='Enter')addDailyEventFromModal()">
           <button onclick="addDailyEventFromModal()" class="add-btn bg-blue" role="button" tabindex="0">Add</button>
         </div>
       </div>
@@ -1560,7 +1584,7 @@
         <p class="text-sm font-bold mb-2">Plan</p>
         <div id="log-modal-plan-list" class="mb-2"></div>
         <div class="plan-add-row mt-0">
-          <input type="text" id="log-modal-plan-input" placeholder="Add plan..." onkeydown="if(event.key==='Enter')addDailyPlanFromModal()">
+          <input type="text" id="log-modal-plan-input" placeholder="計画を追加..." onkeydown="if(event.key==='Enter')addDailyPlanFromModal()">
           <button onclick="addDailyPlanFromModal()" class="add-btn" role="button" tabindex="0">Add</button>
         </div>
       </div>
@@ -1591,7 +1615,6 @@
     </div>
   </div>
 
-  <!-- 忘却曲線シミュレーターモーダル -->
   <div class="modal-overlay" id="simulation-modal" onclick="if(event.target===this) closeModal('simulation-modal')">
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
@@ -1603,7 +1626,6 @@
     </div>
   </div>
 
-  <!-- カウントダウン設定モーダル -->
   <div class="modal-overlay" id="countdown-modal" onclick="if(event.target===this) closeModal('countdown-modal')">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -1615,7 +1637,6 @@
     </div>
   </div>
 
-  <!-- ながら聴きモードモーダル -->
   <div class="modal-overlay" id="auto-listen-modal" onclick="if(event.target===this) closeModal('auto-listen-modal')">
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
@@ -1637,7 +1658,6 @@
     </div>
   </div>
 
-  <!-- AIストーリー生成モーダル -->
   <div class="modal-overlay" id="story-gen-modal" onclick="if(event.target===this) closeModal('story-gen-modal')">
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
@@ -1645,12 +1665,15 @@
       <p class="font-bold mb-3 text-lg">Contextual Story</p>
       <p class="text-sm text-muted mb-3">学習中や苦手な単語を組み込んだ短いストーリーを生成し、文脈の中で記憶に定着させます。</p>
       <button class="action-btn mb-3 bg-blue" onclick="generateStory()" role="button" tabindex="0">Generate Story</button>
-      <div id="story-loading" class="hidden text-center p-20"><span class="loading-dots">Writing</span></div>
+      <div id="story-loading" class="hidden p-20">
+        <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+        <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+        <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+      </div>
       <div id="story-result-area"></div>
     </div>
   </div>
 
-  <!-- タグ管理モーダル -->
   <div class="modal-overlay" id="tag-manager-modal" onclick="if(event.target===this) closeModal('tag-manager-modal')">
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
@@ -1660,7 +1683,6 @@
     </div>
   </div>
 
-  <!-- シャッフル設定モーダル -->
   <div class="modal-overlay" id="shuffle-settings-modal" onclick="if(event.target===this) closeModal('shuffle-settings-modal')">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -1684,7 +1706,6 @@
     </div>
   </div>
 
-  <!-- PDFリーダーモーダル -->
   <div class="modal-overlay" id="pdf-reader-modal" onclick="if(event.target===this) closeModal('pdf-reader-modal')">
     <div class="modal-sheet max-h-92vh" style="height: 90vh; display: flex; flex-direction: column; position: relative;">
       <div class="modal-handle"></div>
@@ -1701,7 +1722,6 @@
       <div id="pdf-reader-container" class="flex-1" style="overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; background: var(--surface); position: relative;">
         <p class="text-center text-muted mt-4">No file selected</p>
       </div>
-      <!-- PDF Popup Menu -->
       <div id="pdf-popup-menu" class="hidden" style="position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); z-index: 1000; padding: 6px; display: flex; gap: 6px;">
         <button class="btn-pill bg-accent text-bg border-none" onclick="addPdfWord()" role="button" tabindex="0">Add Word</button>
         <button class="btn-pill bg-green text-bg border-none" onclick="analyzePdfSyntax()" role="button" tabindex="0">Parse Syntax</button>
@@ -1709,7 +1729,6 @@
     </div>
   </div>
 
-  <!-- 波形比較モーダル -->
   <div class="modal-overlay" id="shadowing-modal" onclick="if(event.target===this) closeModal('shadowing-modal')">
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
@@ -1731,7 +1750,6 @@
     </div>
   </div>
 
-  <!-- 画像トリミングモーダル -->
   <div class="modal-overlay" id="image-crop-modal" onclick="if(event.target===this) closeModal('image-crop-modal')">
     <div class="modal-sheet max-h-92vh" style="height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-handle"></div>
@@ -1790,7 +1808,6 @@
     </div>
   </nav>
 
-  <!-- AI System Prompts (Hidden) -->
   <div id="ai-system-prompts" style="display: none;">
     <div id="prompt-base">あなたはプロの予備校講師だ。客観的かつ簡潔な参考書スタイルで出力せよ。
 【絶対ルール】
