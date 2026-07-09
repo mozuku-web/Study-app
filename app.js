@@ -24,9 +24,10 @@ const clean = html => {
   if (window.DOMPurify) {
     return DOMPurify.sanitize(html);
   }
+  // Fallback: より厳格な許可リスト
   const temp = document.createElement('div');
   temp.textContent = html;
-  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td|button|mark)(.*?)&gt;/gi, '<$1$2$3>');
+  return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td|mark)(.*?)&gt;/gi, '<$1$2$3>');
 };
 
 const safeSet = (k, v) => {
@@ -88,7 +89,8 @@ const extractJSON = t => {
         cleanStr = cleanStr.substring(0, endIdx + 1);
       }
     }
-    cleanStr = cleanStr.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, "");
+    // 制御文字の削除（改行は残す）
+    cleanStr = cleanStr.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, "");
     return JSON.parse(cleanStr);
   } catch (err) {
     console.error('JSON Parse Error', err);
@@ -325,15 +327,15 @@ const renderMath = (el) => {
 const handleApiError = (e, containerId) => {
   const c = $(containerId);
   if (!c) return;
-  let msg = 'Communication error occurred.';
+  let msg = '通信エラーが発生しました。';
   if (!navigator.onLine) {
-    msg = 'Offline. Please check your network connection.';
+    msg = 'オフラインです。ネットワーク接続を確認してください。';
   } else if (e.message.includes('API Key') || e.message.includes('401')) {
-    msg = 'API Key is not set or invalid. Please set it in the Settings tab.';
+    msg = 'API Keyが未設定か無効です。Settingsタブで設定してください。';
   } else if (e.message.includes('429')) {
-    msg = 'API rate limit reached. Please try again later.';
+    msg = 'APIの利用制限に達しました。しばらく待ってから再試行してください。';
   } else if (e.message.includes('400')) {
-    msg = 'Bad request. Image size may be too large or prompt too long.';
+    msg = 'リクエストが不正です。画像サイズが大きすぎるか、テキストが長すぎる可能性があります。';
   }
   c.innerHTML = `<div class="card text-danger font-bold">${esc(msg)}</div>`;
 };
@@ -394,7 +396,7 @@ let userProfile = {
   xp: 0,
   autoSync: false,
   reminderTime: '',
-  aiNotificationTiming: false,
+  fsrsAutoOptimize: true,
   freezeItems: 0,
   themeColor: 'default',
   customThemeColor: ''
@@ -620,7 +622,7 @@ window.renderBackupList = async () => {
 window.restoreBackup = async () => {
   const sel = $('backup-restore-select');
   if (!sel || !sel.value) return showToast('Please select a restore point');
-  if (!confirm('Current data will be overwritten. Restore?')) return;
+  if (!confirm('現在のデータは上書きされます。復元しますか？')) return;
   
   const data = await localforage.getItem(sel.value);
   if (data) {
@@ -718,9 +720,9 @@ const chunkArray = (arr, size) => Array.from({ length: Math.ceil(arr.length / si
 
 const mergeWords = (local, remote) => {
   const map = new Map();
-  local.forEach(w => map.set(w.word.toLowerCase(), w));
+  local.forEach(w => map.set(w.id || w.word.toLowerCase(), w));
   remote.forEach(w => {
-    const key = w.word.toLowerCase();
+    const key = w.id || w.word.toLowerCase();
     if (!map.has(key)) {
       map.set(key, w);
     } else {
@@ -1152,10 +1154,30 @@ const srsDaysDiff = d => {
 
 const srsReview = (w, rt) => {
   const k = w.toLowerCase();
-  const r = srsData[k] || { difficulty: 5, stability: 1, lastReview: null, reviews: 0, repetition: 0 };
+  const r = srsData[k] || { difficulty: 5, stability: 1, lastReview: null, reviews: 0, repetition: 0, history: [] };
   r.reviews++;
   const now = new Date();
   let g = rt === 0 ? 1 : rt === 1 ? 2 : rt === 2 ? 3 : 4;
+
+  if (!r.history) r.history = [];
+  r.history.push(rt);
+  if (r.history.length > 10) r.history.shift();
+
+  // FSRS Auto-Optimization
+  const autoOpt = $('fsrs-auto-optimize');
+  if (autoOpt && autoOpt.checked && r.history.length >= 5) {
+    const recentCorrect = r.history.filter(x => x >= 2).length / r.history.length;
+    if (recentCorrect > 0.9 && fsrsRetention > 70) {
+      fsrsRetention = Math.max(70, fsrsRetention - 1);
+    } else if (recentCorrect < 0.6 && fsrsRetention < 99) {
+      fsrsRetention = Math.min(99, fsrsRetention + 1);
+    }
+    safeSet('study_fsrs_retention', fsrsRetention);
+    const lbl = $('fsrs-retention-label');
+    const sld = $('fsrs-retention-slider');
+    if (lbl) lbl.textContent = fsrsRetention + '%';
+    if (sld) sld.value = fsrsRetention;
+  }
 
   if (!r.lastReview) {
     r.difficulty = g === 1 ? 7 : g === 2 ? 6 : g === 3 ? 5 : 4;
@@ -1187,7 +1209,8 @@ const srsReview = (w, rt) => {
     difficulty: r.difficulty,
     reviews: r.reviews,
     repetition: r.repetition,
-    rating: rt
+    rating: rt,
+    history: r.history
   };
   save.srs();
 };
@@ -1605,28 +1628,20 @@ const timerStartStop = () => {
             timerInitial = 5 * 60;
             timerTime = timerInitial;
             updateTimerDisplay();
-            if ($('timer-pomodoro-auto') && $('timer-pomodoro-auto').checked) {
-              timerStartStop();
-            } else {
-              const s = $('timer-status');
-              if (s) s.textContent = 'Break Stopped';
-              const b = $('timer-start-btn');
-              if (b) b.textContent = 'Start';
-            }
+            const s = $('timer-status');
+            if (s) s.textContent = 'Break Stopped';
+            const b = $('timer-start-btn');
+            if (b) b.textContent = 'Start';
           } else {
             showToast('Break finished! Resume study');
             isPomodoroBreak = false;
             timerInitial = 25 * 60;
             timerTime = timerInitial;
             updateTimerDisplay();
-            if ($('timer-pomodoro-auto') && $('timer-pomodoro-auto').checked) {
-              timerStartStop();
-            } else {
-              const s = $('timer-status');
-              if (s) s.textContent = 'Stopped';
-              const b = $('timer-start-btn');
-              if (b) b.textContent = 'Start';
-            }
+            const s = $('timer-status');
+            if (s) s.textContent = 'Stopped';
+            const b = $('timer-start-btn');
+            if (b) b.textContent = 'Start';
           }
         } else {
           showToast('Finished');
@@ -2003,7 +2018,8 @@ const renderWordOfTheDay = async () => {
     
     try {
       const knownWords = ALL_WORDS.map(w => w.word).join(', ');
-      const prompt = `高校〜大学受験、またはTOEICレベルの英単語をランダムに1つ選び、JSONで出力せよ。
+      const seed = Date.now();
+      const prompt = `高校〜大学受験、またはTOEICレベルの英単語をランダムに1つ選び、JSONで出力せよ。(seed: ${seed})
 条件:
 - 以下の単語リストに含まれない、新しい単語を選ぶこと。
 除外リスト: ${knownWords.substring(0, 3000)}
@@ -2047,6 +2063,7 @@ const renderWordOfTheDay = async () => {
         const exText = cachedWotd.exampleHtml ? cachedWotd.exampleHtml.replace(/<br>/gi, '\n').replace(/<[^>]+>/g, '') : '';
         
         ALL_WORDS.unshift({ 
+          id: generateId(),
           word: cachedWotd.word.word, 
           meaning: cachedWotd.meaning, 
           example: exText, 
@@ -2522,6 +2539,12 @@ const renderDashboardCalendar = () => {
 // ============================================================
 // [10] VOCAB
 // ============================================================
+const skeletonHtml = `
+  <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
+  <div class="skeleton-box mb-2" style="height: 16px; width: 80%; margin: 0 auto;"></div>
+  <div class="skeleton-box" style="height: 16px; width: 60%; margin: 0 auto;"></div>
+`;
+
 const fetchFreeDictFallback = async (word) => {
   try {
     const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
@@ -2546,7 +2569,7 @@ const toggleWordSave = w => {
   save.saved();
   showToast(add ? 'Saved' : 'Removed');
   
-  document.querySelectorAll(`[data-word="${CSS.escape(w)}"]`).forEach(b => {
+  document.querySelectorAll(`[data-word="${w.replace(/"/g, '\\"')}"]`).forEach(b => {
     b.className = add ? 'save-btn saved' : 'save-btn unsaved';
     b.textContent = add ? 'Saved' : 'Save';
   });
@@ -2568,10 +2591,11 @@ const cycleWordProgress = (w, e) => {
 };
 
 const deleteWord = w => {
-  const wordObj = ALL_WORDS.find(x => x.word.toLowerCase() === w.toLowerCase());
-  if (!wordObj) return;
+  const idx = ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.toLowerCase());
+  if (idx === -1) return;
+  const wordObj = ALL_WORDS[idx];
   
-  ALL_WORDS = ALL_WORDS.filter(x => x.word.toLowerCase() !== w.toLowerCase());
+  ALL_WORDS.splice(idx, 1);
   savedWords = savedWords.filter(x => x.toLowerCase() !== w.toLowerCase());
   delete srsData[w.toLowerCase()];
   delete wordProgress[w.toLowerCase()];
@@ -2679,10 +2703,13 @@ const addWordManual = () => {
   
   if (!w) return showToast('Please enter a word');
   
-  const newObj = { word: w, meaning: m, example: ex, note: nt, tags: tg };
+  const newObj = { id: generateId(), word: w, meaning: m, example: ex, note: nt, tags: tg };
   let existingIdx = old ? ALL_WORDS.findIndex(x => x.word === old) : ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.toLowerCase());
   
   if (old && old !== w) {
+    if (ALL_WORDS.some(x => x.word.toLowerCase() === w.toLowerCase())) {
+      return showToast('Already registered');
+    }
     if (savedWords.includes(old)) {
       savedWords = savedWords.filter(x => x !== old);
       savedWords.push(w);
@@ -2704,7 +2731,7 @@ const addWordManual = () => {
   }
   
   if (existingIdx >= 0) {
-    ALL_WORDS[existingIdx] = { ...ALL_WORDS[existingIdx], ...newObj };
+    ALL_WORDS[existingIdx] = { ...ALL_WORDS[existingIdx], ...newObj, id: ALL_WORDS[existingIdx].id || newObj.id };
   } else {
     ALL_WORDS.unshift(newObj);
   }
@@ -2739,7 +2766,7 @@ window.addDerivedWord = (word, meaning) => {
     showToast('Already registered');
     return;
   }
-  ALL_WORDS.unshift({ word, meaning, example: '', tags: [] });
+  ALL_WORDS.unshift({ id: generateId(), word, meaning, example: '', tags: [] });
   save.words();
   showToast(`Added ${word}`);
   updateTagFilters();
@@ -2825,7 +2852,10 @@ const searchWord = async (isSuggest = false) => {
 
   if (!w) return;
   if (s) s.innerHTML = '';
-  if (ld) ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   if (sr) sr.innerHTML = '';
   
   const fd = ALL_WORDS.find(x => x.word.toLowerCase() === w.toLowerCase());
@@ -2854,7 +2884,7 @@ const searchWord = async (isSuggest = false) => {
     let meaningText = (fd && fd.meaning) ? fd.meaning : (json.meaning_and_nuance ? json.meaning_and_nuance.split('。')[0] : 'Analysis Complete');
 
     if (!fd) {
-      ALL_WORDS.push({ word: w, meaning: meaningText, detailHtml: html });
+      ALL_WORDS.push({ id: generateId(), word: w, meaning: meaningText, detailHtml: html });
       save.words();
       showToast(`Added: ${w}`);
       updateTagFilters();
@@ -2894,7 +2924,7 @@ const searchWord = async (isSuggest = false) => {
     if (ld) ld.classList.add('hidden');
     if (fallbackMeaning) {
       if (!fd) {
-        ALL_WORDS.push({ word: w, meaning: fallbackMeaning, detailHtml: `<p>${esc(fallbackMeaning)}</p>` });
+        ALL_WORDS.push({ id: generateId(), word: w, meaning: fallbackMeaning, detailHtml: `<p>${esc(fallbackMeaning)}</p>` });
         save.words();
         showToast(`Added: ${w}`);
         updateTagFilters();
@@ -2927,7 +2957,7 @@ const selectWord = w => {
 window.regenerateWordDetail = async (w) => {
   const mc = $('modal-detail-content');
   if (!mc) return;
-  mc.innerHTML = '<div class="text-center p-20"><span class="loading-dots">AI is regenerating</span></div>';
+  mc.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
   try {
     const prompt = `英単語「${w}」について、単語帳形式で解説せよ。
 以下のJSON形式で出力せよ。HTMLタグは使用するな。
@@ -2993,7 +3023,7 @@ window.showWordModal = async (w, m) => {
     </div>
     ${tagsHtml}
     <div class="result-meaning-badge">${esc(m || '')}</div>
-    <div id="modal-detail-content" class="result-box"><span class="loading-dots"></span></div>
+    <div id="modal-detail-content" class="result-box"><div class="p-20">${skeletonHtml}</div></div>
   `;
   
   openModal('detail-modal');
@@ -3184,6 +3214,31 @@ const updateTagFilters = () => {
       <option value="${esc(t)}">${esc(t)}</option>
     `).join('');
   }
+};
+
+window.openTagManagerModal = () => {
+  openModal('tag-manager-modal');
+  const tags = new Set();
+  ALL_WORDS.forEach(w => {
+    if (w.tags) w.tags.forEach(t => tags.add(t));
+  });
+  $('tag-manager-list').innerHTML = Array.from(tags).map(t => `
+    <div class="flex-between card p-10 mb-2">
+      <span class="font-bold">${esc(t)}</span>
+      <button class="btn-clear text-danger" onclick="deleteTagGlobally('${escJS(t)}')">Delete</button>
+    </div>
+  `).join('');
+};
+
+window.deleteTagGlobally = (tag) => {
+  if (!confirm(`Delete tag "${tag}" from all words?`)) return;
+  ALL_WORDS.forEach(w => {
+    if (w.tags) w.tags = w.tags.filter(t => t !== tag);
+  });
+  save.words();
+  updateTagFilters();
+  window.openTagManagerModal();
+  showToast('Deleted');
 };
 
 const analyzeVocabMeta = async () => {
@@ -3910,7 +3965,10 @@ window.generateQuizFromPhoto = async () => {
   const ld = $('writing-loading');
   const rs = $('writing-result');
   
-  if (ld) ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   if (rs) rs.innerHTML = '';
   
   try {
@@ -4017,7 +4075,10 @@ window.submitWriting = async type => {
   if (ab) ab.classList.add('hidden');
   if (pb) pb.classList.add('hidden');
   if (eb) eb.classList.add('hidden');
-  if (ld) ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   if (rs) rs.innerHTML = '';
   
   try {
@@ -4297,19 +4358,20 @@ const renderDaily = () => {
 window.generateDailyTask = async type => {
   const a = $('daily-area-' + type);
   if (!a) return;
-  a.innerHTML = '<div class="text-center p-36"><span class="loading-dots"></span></div>';
+  a.innerHTML = `<div class="p-36">${skeletonHtml}</div>`;
   
   const diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
   let diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
   let sys = '';
+  const seed = Date.now();
   
   if (type === 'reading') {
     const interests = userProfile.courses || '一般的な話題';
-    sys = `生徒の興味（${interests}）に合わせた、高校生向けの${diffText}英語長文（${diff === 'basic' ? '150' : diff === 'advanced' ? '500' : '300'}語程度）と、内容説明の記述式問題を1題出題せよ。HTMLのみ。h4で「<h4>Today's Reading</h4>」、pで本文。段落ごとに和訳を <div class="translation hidden" id="trans_ランダムID">和訳</div> の形式で埋め込むこと。解答や解説は絶対に含めるな。`;
+    sys = `生徒の興味（${interests}）に合わせた、高校生向けの${diffText}英語長文（${diff === 'basic' ? '150' : diff === 'advanced' ? '500' : '300'}語程度）と、内容説明の記述式問題を1題出題せよ。(seed: ${seed}) HTMLのみ。h4で「<h4>Today's Reading</h4>」、pで本文。段落ごとに和訳を <div class="translation hidden" id="trans_ランダムID">和訳</div> の形式で埋め込むこと。解答や解説は絶対に含めるな。`;
   } else if (type === 'comp') {
-    sys = `高校生向けの${diffText}和文英訳問題を1題出題せよ。HTMLのみ。h4で「<h4>Today's Writing</h4>」、pで日本語問題文。解答や解説は絶対に含めるな。`;
+    sys = `高校生向けの${diffText}和文英訳問題を1題出題せよ。(seed: ${seed}) HTMLのみ。h4で「<h4>Today's Writing</h4>」、pで日本語問題文。解答や解説は絶対に含めるな。`;
   } else if (type === 'parse') {
-    sys = `高校生向けの${diffText}英文解釈（和訳）問題を1題出題せよ。HTMLのみ。h4で「<h4>Today's Parsing</h4>」、pで英文。解答や解説は絶対に含めるな。`;
+    sys = `高校生向けの${diffText}英文解釈（和訳）問題を1題出題せよ。(seed: ${seed}) HTMLのみ。h4で「<h4>Today's Parsing</h4>」、pで英文。解答や解説は絶対に含めるな。`;
   }
   
   try {
@@ -4437,7 +4499,10 @@ window.generateWeaknessDrill = async () => {
   const area = $('drill-content-area');
   
   if (btn) btn.classList.add('hidden');
-  if (ld) ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   if (area) area.innerHTML = '';
   
   const mistakes = writingHistory.filter(h => h.score !== null && h.score < 80).slice(0, 3).map(h => h.result.replace(/<[^>]+>/g, '').substring(0, 200));
@@ -4473,6 +4538,7 @@ window.generateWeaknessDrill = async () => {
 window.generateTrickDrill = async () => {
   const ld = $('drill-loading');
   const area = $('drill-content-area');
+  ld.innerHTML = skeletonHtml;
   ld.classList.remove('hidden');
   area.innerHTML = '';
   
@@ -4535,14 +4601,14 @@ const renderListenArea = () => {
     } else {
       html += tasks.map(task => {
         const ans = task.userAnswer >= 0;
-        const accL = ACCENT_LABELS[task.accent] || task.accent;
-        let opts = task.options.map((opt, i) => {
-          let cls = 'listen-option';
+        const accL = ACCENT_LABELS[task.accent] || task.accent || 'US English';
+        let opts = task.options.map((o, i) => {
+          let c = 'listen-option';
           if (ans) {
-            if (i === task.answer) cls += ' show-correct';
-            else if (i === task.userAnswer && task.userAnswer !== task.answer) cls += ' selected-wrong';
+            if (i === task.answer) c += ' show-correct';
+            else if (i === task.userAnswer && task.userAnswer !== task.answer) c += ' selected-wrong';
           }
-          return `<div class="${cls}" role="button" tabindex="0" onclick="submitDailyListenAnswer('${task.id}', ${i})">${String.fromCharCode(65 + i)}. ${esc(opt)}</div>`;
+          return `<div class="${c}" role="button" tabindex="0" onclick="submitDailyListenAnswer('${task.id}', ${i})">${String.fromCharCode(65 + i)}. ${esc(o)}</div>`;
         }).join('');
         
         let card = `
@@ -4612,10 +4678,11 @@ const renderListenArea = () => {
     } else {
       html += tasks.map(task => {
         const isDone = task.userAnswer !== undefined;
+        const accL = ACCENT_LABELS[task.accent] || task.accent || 'US English';
         let card = `
           <div class="card mb-3">
             <div class="flex-between align-center mb-3">
-              <span class="text-xs font-bold text-muted">DICTATION — ${ACCENT_LABELS[task.accent] || task.accent}</span>
+              <span class="text-xs font-bold text-muted">DICTATION — ${accL}</span>
               <span class="text-xs text-muted">${task.date}</span>
             </div>
             <div class="flex-center gap-2 mb-4">
@@ -4670,14 +4737,15 @@ const renderListenArea = () => {
 window.generateDailyListen = async () => {
   const a = $('listen-mc-area');
   if (!a) return;
-  a.innerHTML = '<div class="text-center p-40"><span class="loading-dots"></span></div>';
+  a.innerHTML = `<div class="p-40">${skeletonHtml}</div>`;
   
   const ac = ACCENTS[Math.floor(Math.random() * ACCENTS.length)];
   const diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
   const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
+  const seed = Date.now();
   
   try {
-    const sys = `高校生向けの英語リスニング問題を作成せよ。難易度は「${diffText}」レベル。日常的な対話（2人の会話）や短いアナウンス（100〜150語程度）をスクリプトとし、その内容に関する4択問題を作成せよ。JSONのみ:{"transcript":"英文スクリプト","question":"内容を問う設問","options":["1","2","3","4"],"answer":0,"explanation":"正解の根拠となる聞き取るべきキーワードと詳しい解説（文末は「〜だ。」）"}`;
+    const sys = `高校生向けの英語リスニング問題を作成せよ。難易度は「${diffText}」レベル。(seed: ${seed}) 日常的な対話（2人の会話）や短いアナウンス（100〜150語程度）をスクリプトとし、その内容に関する4択問題を作成せよ。JSONのみ:{"transcript":"英文スクリプト","question":"内容を問う設問","options":["1","2","3","4"],"answer":0,"explanation":"正解の根拠となる聞き取るべきキーワードと詳しい解説（文末は「〜だ。」）"}`;
     const rep = await callGemini([{ role: 'user', content: '作成' }], 8192, sys, true);
     const js = extractJSON(rep);
     const ts = new Date().toLocaleDateString('en-US');
@@ -4713,14 +4781,15 @@ window.submitDailyListenAnswer = (id, idx) => {
 window.generateDailyDictation = async () => {
   const a = $('listen-dict-area');
   if (!a) return;
-  a.innerHTML = '<div class="text-center p-40"><span class="loading-dots"></span></div>';
+  a.innerHTML = `<div class="p-40">${skeletonHtml}</div>`;
   
   const ac = ACCENTS[Math.floor(Math.random() * ACCENTS.length)];
   const diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
   const diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
+  const seed = Date.now();
   
   try {
-    const sys = `高校生向けのディクテーション（書き取り）用の自然な英語パッセージを作成せよ。難易度は「${diffText}」レベル。長さは2〜3文（30〜40語程度）。ネイティブの自然な発音（音の連結や脱落など）を意識した実践的な英文にすること。JSONのみ:{"transcript":"英文","translation":"和訳（文末は「〜である。」）","explanation":"日本人が聞き取りにくい音声変化のポイントや文法の解説（文末は「〜だ。」）"}`;
+    const sys = `高校生向けのディクテーション（書き取り）用の自然な英語パッセージを作成せよ。難易度は「${diffText}」レベル。(seed: ${seed}) 長さは2〜3文（30〜40語程度）。ネイティブの自然な発音（音の連結や脱落など）を意識した実践的な英文にすること。JSONのみ:{"transcript":"英文","translation":"和訳（文末は「〜である。」）","explanation":"日本人が聞き取りにくい音声変化のポイントや文法の解説（文末は「〜だ。」）"}`;
     const rep = await callGemini([{ role: 'user', content: '作成' }], 8192, sys, true);
     const js = extractJSON(rep);
     const ts = new Date().toLocaleDateString('en-US');
@@ -4826,6 +4895,7 @@ window.showListenHistoryDetail = id => {
   const sK = "daily_" + h.id;
   const r = srsData[sK.toLowerCase()];
   const sT = r ? `Next: ${srsDaysDiff(srsNextDate(r)) <= 0 ? 'Today' : srsDaysDiff(srsNextDate(r)) + ' days'}` : 'Not registered';
+  const accL = ACCENT_LABELS[h.accent] || h.accent || 'US English';
   
   let ht = '';
   if (h.type === 'dict') {
@@ -4908,34 +4978,39 @@ window.deleteListenHistory = id => {
 
 window.generateWordQuiz = async () => {
   const range = $('quiz-range').value;
-  const count = parseInt($('quiz-count').value);
-  const loading = $('word-quiz-loading');
-  const area = $('word-quiz-area');
-  const btn = $('generate-quiz-btn');
+  const count = parseInt($('quiz-count').value) || 5;
   const includeFill = $('quiz-include-fill') && $('quiz-include-fill').checked;
   
+  const ld = $('word-quiz-loading');
+  const area = $('word-quiz-area');
+  
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
+  if (area) area.innerHTML = '';
+  
   let targetWords = [];
-  if (range === 'saved') {
+  if (range === 'all') {
+    targetWords = ALL_WORDS.slice();
+  } else if (range === 'saved') {
     targetWords = ALL_WORDS.filter(w => savedWords.includes(w.word));
   } else if (range === 'srs') {
     targetWords = srsGetDueWords();
-  } else {
-    targetWords = ALL_WORDS.slice();
   }
   
   if (targetWords.length < count) {
-    const remaining = count - targetWords.length;
-    const others = ALL_WORDS.filter(w => !targetWords.includes(w)).sort(() => 0.5 - Math.random()).slice(0, remaining);
-    targetWords = targetWords.concat(others);
+    targetWords = ALL_WORDS.slice();
   }
   
-  if (targetWords.length === 0) return showToast('No words available');
-  
   const shuffled = targetWords.sort(() => 0.5 - Math.random()).slice(0, count);
-  const wordsToPrompt = shuffled.map(w => w.word).join(', ');
+  if (shuffled.length === 0) {
+    if (ld) ld.classList.add('hidden');
+    return showToast('No words available');
+  }
   
-  loading.classList.remove('hidden');
-  area.innerHTML = '';
+  const wordsToPrompt = shuffled.map(w => w.word).join(', ');
+  const btn = $('generate-quiz-btn');
   if (btn) btn.disabled = true;
   
   let sys = `以下の英単語を使ってランダムにクイズを作成し、JSON配列のみで出力せよ。単語: ${wordsToPrompt}
@@ -4954,10 +5029,10 @@ ${includeFill ? '3' : '2'}. 並び替え問題 {"type":"sort", "word":"...", "q"
     
     activeQuizIndex = 0;
     quizScore = 0;
-    loading.classList.add('hidden');
+    if (ld) ld.classList.add('hidden');
     renderWordQuiz();
   } catch (e) {
-    loading.classList.add('hidden');
+    if (ld) ld.classList.add('hidden');
     handleApiError(e, 'word-quiz-area');
   } finally {
     if (btn) btn.disabled = false;
@@ -5070,7 +5145,10 @@ window.generateYouTubeLesson = async () => {
   
   const ld = $('media-loading');
   const area = $('media-result-area');
-  ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   area.innerHTML = '';
   
   try {
@@ -5088,7 +5166,7 @@ URL: ${url}`;
   } catch (e) {
     area.innerHTML = '<p class="text-danger">Generation failed</p>';
   } finally {
-    ld.classList.add('hidden');
+    if (ld) ld.classList.add('hidden');
   }
 };
 
@@ -5103,7 +5181,7 @@ window.loadPdfFile = async (e) => {
   const f = e.target.files[0];
   if (!f) return;
   const container = $('pdf-reader-container');
-  container.innerHTML = '<div class="text-center p-20"><span class="loading-dots">Loading PDF</span></div>';
+  container.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
   
   try {
     const arrayBuffer = await f.arrayBuffer();
@@ -5193,6 +5271,7 @@ window.analyzePdfSyntax = () => {
   window.submitWriting('analyze');
 };
 
+let pdfHighlightMode = false;
 window.togglePdfHighlightMode = () => {
   pdfHighlightMode = !pdfHighlightMode;
   showToast(pdfHighlightMode ? 'Highlight Mode ON' : 'Highlight Mode OFF');
@@ -5605,6 +5684,8 @@ window.setCCAiMode = m => {
       else area.classList.add('hidden');
     }
   });
+  if (m === 'study') window.ccLoadDeck();
+  if (m === 'edit' || m === 'decks') ccInitDecks();
 };
 
 window.handleCCAiFile = e => {
@@ -6038,7 +6119,7 @@ window.generateSubjectQuiz = async () => {
   if (sqs) sqs.classList.add('hidden');
   if (sqa) {
     sqa.classList.remove('hidden');
-    sqa.innerHTML = '<div class="card text-center p-36"><span class="loading-dots"></span></div>';
+    sqa.innerHTML = `<div class="p-36">${skeletonHtml}</div>`;
   }
   
   try {
@@ -6413,17 +6494,15 @@ window.rebuildScheduleAI = async () => {
   
   if (pendingTasks.length === 0) return showToast('No incomplete tasks to reschedule');
   
-  const targetDate = $('gantt-target-date')?.value;
-  let prompt = '';
-  if (targetDate && targetDate >= today) {
-    prompt = `以下の未完了タスクを、今日(${today})から目標日(${targetDate})までの間に無理なく分散させて配置し、JSON配列で出力せよ。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
-  } else {
-    prompt = `以下の未完了タスクを、今日(${today})から1週間以内に無理なく分散させて配置し、JSON配列で出力せよ。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
-  }
-
-  showToast('AI is rebuilding the schedule...');
+  const pa = $('plan-calendar-area');
+  const ld = document.createElement('div');
+  ld.className = 'p-20';
+  ld.innerHTML = skeletonHtml;
+  if (pa) pa.prepend(ld);
+  
   try {
-    const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
+    const sys = `以下の未完了タスクを今日以降の適切な日程に分散させて再配置し、JSON配列で出力せよ。形式: [{"date":"YYYY-MM-DD", "tasks":["タスク1"]}]\n\n未完了タスク:\n${pendingTasks.join('\n')}`;
+    const rep = await callGemini([{ role: 'user', content: sys }], 8192, '', true);
     const arr = extractJSON(rep);
     if (arr && arr.length) {
       arr.forEach(d => {
@@ -6439,6 +6518,8 @@ window.rebuildScheduleAI = async () => {
     }
   } catch (e) {
     showToast('Communication error');
+  } finally {
+    if (ld) ld.remove();
   }
 };
 
@@ -6661,7 +6742,10 @@ const saveYearlyPlanDebounced = debounce(saveYearlyPlan, 500);
 window.generateMilestonesAI = async () => {
   const goal = $('yearly-main-goal').value;
   if (!goal) return showToast('Please enter yearly main goal');
-  showToast('AI is generating milestones...');
+  
+  const grid = $('yearly-months-grid');
+  if (grid) grid.innerHTML = `<div class="p-20" style="grid-column: 1 / -1;">${skeletonHtml}</div>`;
+  
   try {
     const rep = await callGemini([{ role: 'user', content: `目標「${goal}」を達成するための月別マイルストーンをJSONで出力せよ。形式: {"4":"...", "5":"..."}` }], 8192, '', true);
     const json = extractJSON(rep);
@@ -6675,6 +6759,7 @@ window.generateMilestonesAI = async () => {
     }
   } catch (e) {
     showToast('Generation failed');
+    renderYearlyPlan();
   }
 };
 
@@ -6694,7 +6779,10 @@ window.generateGanttSchedule = async () => {
   
   const ld = $('gantt-loading');
   const btn = $('gantt-generate-btn');
-  if (ld) ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   if (btn) btn.disabled = true;
   
   const prompt = `今日(${today})から目標日(${targetDate})までの学習スケジュール（逆算プラン）を構築し、JSON配列で出力せよ。
@@ -6842,7 +6930,7 @@ window.sendPlanAiMessage = async () => {
 window.generateRoadmapReport = async () => {
   const r = $('ai-weakness-report');
   if (!r) return;
-  r.innerHTML = '<div class="text-center"><span class="loading-dots">Creating</span></div>';
+  r.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
   try {
     const sys = `客観的なデータ分析に基づき、合格ロードマップを作成せよ。プロフ(${JSON.stringify(userProfile)})と成績(${JSON.stringify(examScores.slice(0, 3))})から以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
 <h4>Current Analysis</h4>
@@ -6861,7 +6949,7 @@ window.generateRoadmapReport = async () => {
 window.generatePersonalizedExam = async () => {
   const r = $('ai-weakness-report');
   if (!r) return;
-  r.innerHTML = '<div class="text-center"><span class="loading-dots">Creating</span></div>';
+  r.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
   
   const weakWords = Object.entries(srsData).sort((a, b) => a[1].stability - b[1].stability).slice(0, 15).map(x => x[0]).join(', ');
   const recentMistakes = dailyChallenges.filter(d => d.score !== null && d.score < 80).slice(0, 3).map(d => d.question).join('\n');
@@ -6887,7 +6975,7 @@ window.ocrScore = async e => {
   if (!f) return;
   showToast('Analyzing image...');
   
-  const resized = await resizeImage(f, 2048, 2048, true);
+  const resized = await resizeImage(f, 2048, 2048, false);
   const b = resized.split(',')[1];
   const m = resized.match(/data:([^;]+)/)[1];
   
@@ -7551,7 +7639,7 @@ window.generateMistakeRootCauseReport = async () => {
   if (!r) return;
   if (examMistakes.length === 0) return showToast('No data');
   
-  r.innerHTML = '<div class="text-center"><span class="loading-dots">AI is analyzing</span></div>';
+  r.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
   const dataStr = examMistakes.map(m => `[${m.tags.join(',')}] 原因:${m.reason} 対策:${m.action}`).join('\n');
   
   try {
@@ -7793,11 +7881,15 @@ const extractTextFromPDF = async (dataUrl) => {
 
 const ifi = $('import-file-input');
 if (ifi) {
-  ifi.addEventListener('change', e => {
+
+ifi.addEventListener('change', e => {
     const f = e.target.files[0];
     if (!f) return;
     const ld = $('import-loading');
-    if (ld) ld.classList.remove('hidden');
+    if (ld) {
+      ld.innerHTML = skeletonHtml;
+      ld.classList.remove('hidden');
+    }
 
     const isText = f.name.match(/\.(txt|csv|tsv|json)$/i) || f.type.startsWith('text/');
     const isPdf = f.name.match(/\.pdf$/i) || f.type === 'application/pdf';
@@ -7897,7 +7989,10 @@ window.fetchAndParseUrl = async () => {
   const i = $('import-url-input');
   if (!i || !i.value.trim()) return;
   const ld = $('import-loading');
-  if (ld) ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   const extractContext = $('import-extract-context-url') && $('import-extract-context-url').checked;
   
   try {
@@ -7928,7 +8023,10 @@ window.parseManualTranscript = async () => {
   const i = $('import-youtube-transcript');
   if (!i || !i.value.trim()) return;
   const ld = $('import-loading');
-  if (ld) ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   const extractContext = $('import-extract-context-url') && $('import-extract-context-url').checked;
   
   try {
@@ -7951,7 +8049,10 @@ window.handleImportPhoto = async e => {
   
   const resized = await resizeImage(f);
   if (pp) pp.innerHTML = `<img src="${resized}" style="max-width:100%;border-radius:10px">`;
-  if (ld) ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   
   try {
     const b = resized.split(',')[1];
@@ -7984,6 +8085,7 @@ window.applyImport = async m => {
   const bulkTags = bulkTagsInput && bulkTagsInput.value.trim() ? bulkTagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
   
   const formattedWords = impWords.map(w => ({
+    id: generateId(),
     word: w.word,
     meaning: w.meaning || '',
     example: w.example || '',
@@ -8032,8 +8134,12 @@ window.applyImport = async m => {
     } else if (strategy === 'overwrite') {
       formattedWords.forEach(w => {
         const idx = ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.word.toLowerCase());
-        if (idx >= 0) ALL_WORDS[idx] = w;
-        else ALL_WORDS.push(w);
+        if (idx >= 0) {
+          w.id = ALL_WORDS[idx].id;
+          ALL_WORDS[idx] = w;
+        } else {
+          ALL_WORDS.push(w);
+        }
       });
     } else if (strategy === 'merge') {
       formattedWords.forEach(w => {
@@ -8119,7 +8225,6 @@ window.saveReminderSettings = async () => {
   if (!t || !t.value) return;
   
   userProfile.reminderTime = t.value;
-  userProfile.aiNotificationTiming = $('ai-notification-timing') && $('ai-notification-timing').checked;
   save.profile();
   
   try {
@@ -8130,7 +8235,7 @@ window.saveReminderSettings = async () => {
         return;
       }
     }
-    $('reminder-status-text').textContent = userProfile.aiNotificationTiming ? 'AI will notify you at the optimal time' : `Will notify daily at ${t.value}`;
+    $('reminder-status-text').textContent = `Will notify daily at ${t.value}`;
     showToast('Reminder settings saved');
     startReminderCheck();
   } catch (e) {
@@ -8149,9 +8254,6 @@ const startReminderCheck = () => {
     const todayStr = todayDateStr();
     
     let targetTime = userProfile.reminderTime;
-    if (userProfile.aiNotificationTiming) {
-      targetTime = '21:00';
-    }
 
     if (currentHM >= targetTime && localStorage.getItem('study_last_notified') !== todayStr) {
       new Notification('Study App', { body: 'Let\'s finish today\'s vocab and review tasks!' });
@@ -8224,7 +8326,8 @@ window.clearData = async () => {
 
 window.openWeeklyReport = async () => {
   openModal('weekly-report-modal');
-  $('weekly-report-content').innerHTML = '<div class="text-center p-40"><span class="loading-dots">AI is analyzing</span></div>';
+  const contentArea = $('weekly-report-content');
+  contentArea.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
   
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 7);
@@ -8232,7 +8335,7 @@ window.openWeeklyReport = async () => {
   const recentLogs = studyLogs.filter(l => l.date >= cutoffStr);
   
   if (recentLogs.length === 0) {
-    $('weekly-report-content').innerHTML = '<p>No study data for the past 7 days.</p>';
+    contentArea.innerHTML = '<p>No study data for the past 7 days.</p>';
     return;
   }
   
@@ -8255,9 +8358,9 @@ window.openWeeklyReport = async () => {
   
   try {
     let rep = await callGemini([{ role: 'user', content: prompt }], 8192);
-    $('weekly-report-content').innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim());
+    contentArea.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim());
   } catch (e) {
-    $('weekly-report-content').innerHTML = '<p class="text-danger">Analysis failed. Please check your network connection.</p><button class="action-btn mt-3" onclick="openWeeklyReport()">Retry</button>';
+    contentArea.innerHTML = '<p class="text-danger">Analysis failed. Please check your network connection.</p><button class="action-btn mt-3" onclick="openWeeklyReport()">Retry</button>';
   }
 };
 
@@ -8284,7 +8387,8 @@ window.exportWeeklyReportPDF = () => {
 
 window.openWeaknessAnalysis = async () => {
   openModal('weakness-modal');
-  $('weakness-content').innerHTML = '<div class="text-center p-40"><span class="loading-dots">AI is analyzing</span></div>';
+  const contentArea = $('weakness-content');
+  contentArea.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
   $('weakness-focus-btn').classList.add('hidden');
   
   const overdue = Object.entries(srsData).map(([w, r]) => ({
@@ -8294,7 +8398,7 @@ window.openWeaknessAnalysis = async () => {
   })).filter(x => x.overdueDays >= 0 || x.ef < 2.0).sort((a, b) => (b.overdueDays - a.overdueDays) || (a.ef - b.ef)).slice(0, 10);
   
   if (!overdue.length) {
-    $('weakness-content').innerHTML = '<p>No critical weakness data currently. Great pace!</p>';
+    contentArea.innerHTML = '<p>No critical weakness data currently. Great pace!</p>';
     return;
   }
   
@@ -8308,10 +8412,10 @@ window.openWeaknessAnalysis = async () => {
   
   try {
     let rep = await callGemini([{ role: 'user', content: prompt }], 8192);
-    $('weakness-content').innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim());
+    contentArea.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim());
     $('weakness-focus-btn').classList.remove('hidden');
   } catch (e) {
-    $('weakness-content').innerHTML = '<p class="text-danger">Analysis failed. Please check your network connection.</p><button class="action-btn mt-3" onclick="openWeaknessAnalysis()">Retry</button>';
+    contentArea.innerHTML = '<p class="text-danger">Analysis failed. Please check your network connection.</p><button class="action-btn mt-3" onclick="openWeaknessAnalysis()">Retry</button>';
   }
 };
 
@@ -8392,7 +8496,10 @@ window.openStoryGenModal = () => {
 window.generateStory = async () => {
   const area = $('story-result-area');
   const ld = $('story-loading');
-  ld.classList.remove('hidden');
+  if (ld) {
+    ld.innerHTML = skeletonHtml;
+    ld.classList.remove('hidden');
+  }
   area.innerHTML = '';
   
   const words = srsGetDueWords().slice(0, 10).map(w => w.word);
@@ -8412,7 +8519,7 @@ window.generateStory = async () => {
   } catch (e) {
     area.innerHTML = '<p class="text-danger">Generation failed</p>';
   } finally {
-    ld.classList.add('hidden');
+    if (ld) ld.classList.add('hidden');
   }
 };
 
@@ -8510,10 +8617,12 @@ const triggerTabEffects = (id) => {
     if (apiKeyInput) apiKeyInput.value = localStorage.getItem('study_gemini_api_key') || '';
     
     if (userProfile.reminderTime) $('reminder-time').value = userProfile.reminderTime;
-    if ($('ai-notification-timing')) $('ai-notification-timing').checked = userProfile.aiNotificationTiming;
     if (fsrsRetention) {
       $('fsrs-retention-slider').value = fsrsRetention;
       $('fsrs-retention-label').textContent = fsrsRetention + '%';
+    }
+    if ($('fsrs-auto-optimize')) {
+      $('fsrs-auto-optimize').checked = userProfile.fsrsAutoOptimize !== false;
     }
     
     const uiFontSize = localStorage.getItem('study_ui_font_size') || 'medium';
@@ -8620,7 +8729,7 @@ async function initAppData() {
   examScores = exams || [];
   textbooks = books || [];
   srsData = srs || {};
-  userProfile = prof || { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', aiNotificationTiming: false, freezeItems: 0, themeColor: 'default', customThemeColor: '' };
+  userProfile = prof || { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', fsrsAutoOptimize: true, freezeItems: 0, themeColor: 'default', customThemeColor: '' };
   customDecks = decks || [];
   wordProgress = prog || {};
   vocabMeta = meta || {};
@@ -8636,7 +8745,8 @@ async function initAppData() {
   subjectFolders = subjectFoldersData || [];
   
   ALL_WORDS = ALL_WORDS.map(w => {
-    if (typeof w === 'string') return { word: w, meaning: '', example: '', tags: [] };
+    if (typeof w === 'string') return { id: generateId(), word: w, meaning: '', example: '', tags: [] };
+    if (!w.id) w.id = generateId();
     if (!w.tags) w.tags = [];
     if (!w.example) w.example = '';
     return w;
@@ -8699,6 +8809,11 @@ async function initAppData() {
     });
   }
   
+  $('fsrs-auto-optimize')?.addEventListener('change', (e) => {
+    userProfile.fsrsAutoOptimize = e.target.checked;
+    save.profile();
+  });
+  
   updateTagFilters();
   window.initCards();
   window.setPlanMode('calendar');
@@ -8728,4 +8843,3 @@ const getISOWeek = date => {
 };
 
 window.addEventListener('DOMContentLoaded', initAppData);
-
