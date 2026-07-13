@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="format-detection" content="telephone=no, email=no, address=no">
   <meta name="theme-color" content="#F5F4F0">
-  <title>Study App Pro</title>
+  <title>STUDY.</title>
 
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,6 +35,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <style>
+    * {
+      /* タップ遅延を解消しレスポンスを高速化 */
+      touch-action: manipulation;
+    }
     .skeleton-box {
       background: var(--bg2);
       border-radius: var(--radius-xs);
@@ -45,13 +49,45 @@
       50% { opacity: 0.5; }
       100% { opacity: 1; }
     }
+
+    /* ダークモード時の文字色消失バグとスライダーのUIバグを修正 */
+    [data-theme="dark"] button,
+    [data-theme="dark"] .action-btn,
+    [data-theme="dark"] .btn-pill,
+    [data-theme="dark"] .btn-outline,
+    [data-theme="dark"] .manage-btn,
+    [data-theme="dark"] .ptab,
+    [data-theme="dark"] .stab,
+    [data-theme="dark"] .itab,
+    [data-theme="dark"] .filter-chip,
+    [data-theme="dark"] .writing-tab {
+      color: #ffffff !important;
+    }
+    
+    [data-theme="dark"] input[type="range"] {
+      background: transparent;
+      -webkit-appearance: none;
+    }
+    [data-theme="dark"] input[type="range"]::-webkit-slider-runnable-track {
+      background: #444;
+      height: 4px;
+      border-radius: 2px;
+    }
+    [data-theme="dark"] input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      background: var(--accent);
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      margin-top: -6px;
+    }
   </style>
 </head>
 <body>
 
   <header>
     <div class="logo-wrap">
-      <div class="logo-text">Study</div>
+      <div class="logo-text">STUDY</div>
       <div class="logo-dot"></div>
     </div>
     <div class="header-btns">
@@ -261,7 +297,7 @@
       </div>
 
       <div class="card mb-3">
-        <p class="text-xs font-bold text-muted mb-3" data-i18n="label_ambient_sounds">Ambient Sounds</p>
+        <p class="text-xs font-bold text-muted mb-3" data-i18n="label_ambient_sounds">White Noise</p>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="flex-col gap-1">
             <button class="audio-btn w-full" id="audio-btn-rain" onclick="toggleNoise('rain')" role="button" tabindex="0" data-i18n="sound_rain">Rain</button>
@@ -325,7 +361,7 @@
       
       <div class="flex-gap-8 mb-3 flex-wrap">
         <button class="action-btn mb-0 flex-1 bg-purple" onclick="openAutoListenModal()" role="button" tabindex="0" data-i18n="btn_auto_listen">Auto-Listen</button>
-        <button class="action-btn mb-0 flex-1 bg-blue" onclick="openStoryGenModal()" role="button" tabindex="0" data-i18n="btn_contextual_story">Contextual Story</button>
+        <button class="action-btn mb-0 flex-1 bg-blue" onclick="openStoryGenModal()" role="button" tabindex="0" data-i18n="btn_contextual_story">Story Generator</button>
         <button class="action-btn mb-0 flex-1 btn-secondary" onclick="openSimulationModal()" role="button" tabindex="0" data-i18n="btn_retention_forecast">Retention Forecast</button>
       </div>
 
@@ -497,7 +533,7 @@
           </div>
           <div class="card text-center p-36">
             <p class="text-sm mb-3" data-i18n="msg_trick_desc">Generates "trick questions" that are easy to make mistakes based on past mistake trends.</p>
-            <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-danger" id="generate-trick-drill-btn" onclick="generateTrickDrill()" role="button" tabindex="0" data-i18n="btn_gen_trick_drill">Hardcore Drill</button>
+            <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-danger" id="generate-trick-drill-btn" onclick="generateTrickDrill()" role="button" tabindex="0" data-i18n="btn_gen_trick_drill">Advanced Drill</button>
           </div>
           <div id="drill-loading" class="hidden p-20">
             <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
@@ -560,7 +596,7 @@
       <div class="writing-pane" id="wpane-shadowing">
         <div class="card text-center p-36">
           <p class="text-sm mb-3" data-i18n="msg_shadowing_desc">Visually compare the AI model's audio waveform with your own pronunciation waveform to improve rhythm and intonation.</p>
-          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-blue" onclick="openShadowingModal()" role="button" tabindex="0" data-i18n="btn_shadowing_studio">Shadowing Studio</button>
+          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-blue" onclick="openShadowingModal()" role="button" tabindex="0" data-i18n="btn_shadowing_studio">Shadowing</button>
         </div>
       </div>
 
@@ -734,11 +770,6 @@
           </label>
           <div id="subject-photo-preview" class="mb-2"></div>
           
-          <label class="flex align-center gap-2 text-sm font-bold cursor-pointer mb-2 hidden" id="math-sci-ocr-option">
-            <input type="checkbox" id="subject-math-ocr-check" style="width:16px;height:16px;accent-color:var(--accent);">
-            <span data-i18n="label_math_ocr">Generate high-precision OCR and step-by-step explanation for Math/Science</span>
-          </label>
-
           <div class="chat-input-row">
             <textarea id="subject-photo-extra" placeholder="Additional comments..." data-i18n-placeholder="ph_additional_comments" rows="1" oninput="autoResize(this)"></textarea>
             <button class="chat-send-btn" onclick="sendSubjectPhotoMessage()" role="button" tabindex="0" data-i18n="btn_send">Send</button>
@@ -797,7 +828,7 @@
         </div>
         <div class="card mb-3">
           <p class="text-sm font-bold mb-2">
-            <span id="plan-selected-date-label"></span> 's Events
+            <span id="plan-selected-date-label"></span> <span data-i18n="label_events_suffix">Events</span>
           </p>
           <div id="plan-event-list" class="mb-2"></div>
           <div class="plan-add-row mt-0">
@@ -901,7 +932,7 @@
         <div class="card mb-3">
           <div class="flex-between mb-2">
             <p class="text-sm font-bold" data-i18n="label_backcasting">Backcasting Planner</p>
-            <button class="btn-pill btn-outline" onclick="slideGanttSchedule()" role="button" tabindex="0" data-i18n="btn_delay_slide">Delay Slide</button>
+            <button class="btn-pill btn-outline" onclick="slideGanttSchedule()" role="button" tabindex="0" data-i18n="btn_delay_slide">Reschedule</button>
           </div>
           <p class="text-xs text-muted mb-3 line-height-15" data-i18n="msg_backcasting_desc">Enter the target date and the reference books/tasks to be used, and the AI will calculate backwards the number of days until the exam date and automatically register a daily schedule on the calendar.</p>
           
@@ -967,7 +998,7 @@
         <div class="card mb-3">
           <p class="text-sm font-bold mb-3" data-i18n="label_add_score">Add Score</p>
           <label class="action-btn w-full text-center mb-3 block bg-accent2" role="button" tabindex="0">
-            <span data-i18n="btn_smart_scan">Smart Scan (Score Report)</span>
+            <span data-i18n="btn_smart_scan">Smart Scan</span>
             <input type="file" accept="image/*" class="hidden" onchange="ocrScore(event)" onclick="this.value=null">
           </label>
           <div class="flex-gap-8 mb-3">
@@ -1088,9 +1119,9 @@
       <div class="card mb-4">
         <p class="text-xs font-bold text-muted mb-2" data-i18n="label_language">Language Settings</p>
         <select id="language-select" class="score-input mb-2" onchange="changeLanguage()">
-          <option value="mixed" selected data-i18n="opt_lang_mixed">Mixed (English UI / Japanese Text)</option>
-          <option value="en" data-i18n="opt_lang_en">English Only</option>
-          <option value="ja" data-i18n="opt_lang_ja">Japanese Only</option>
+          <option value="mixed" selected data-i18n="opt_lang_mixed">Mixed (UI: English / AI: Japanese)</option>
+          <option value="en" data-i18n="opt_lang_en">English</option>
+          <option value="ja" data-i18n="opt_lang_ja">Japanese</option>
         </select>
       </div>
 
@@ -1266,7 +1297,7 @@
           </div>
         </div>
       </div>
-      <p id="manage-footer" class="text-center text-xs text-muted mt-4">Study</p>
+      <p id="manage-footer" class="text-center text-xs text-muted mt-4">STUDY.</p>
     </div>
 
   </div><!-- view-container end -->
@@ -1592,7 +1623,7 @@
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeModal('story-gen-modal')" role="button" tabindex="0">✕</button>
-      <p class="font-bold mb-3 text-lg" data-i18n="btn_contextual_story">Contextual Story</p>
+      <p class="font-bold mb-3 text-lg" data-i18n="btn_contextual_story">Story Generator</p>
       <p class="text-sm text-muted mb-3" data-i18n="msg_story_desc">Generates a short story incorporating words you are learning or weak at, helping you remember them in context.</p>
       <button class="action-btn mb-3 bg-blue" onclick="generateStory()" role="button" tabindex="0" data-i18n="btn_gen_story">Generate Story</button>
       <div id="story-loading" class="hidden p-20">
@@ -1663,7 +1694,7 @@
     <div class="modal-sheet max-h-92vh">
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeModal('shadowing-modal')" role="button" tabindex="0">✕</button>
-      <p class="font-bold mb-3 text-lg" data-i18n="btn_shadowing_studio">Shadowing Studio</p>
+      <p class="font-bold mb-3 text-lg" data-i18n="btn_shadowing_studio">Shadowing</p>
       <textarea id="shadowing-text-input" class="score-input mb-3 h-72" placeholder="Enter English text to practice..." data-i18n-placeholder="ph_enter_english"></textarea>
       <div class="flex-gap-8 mb-3">
         <button class="action-btn mb-0 flex-1 bg-accent" onclick="playShadowingModel()" role="button" tabindex="0" data-i18n="btn_play_model">Play Model</button>
