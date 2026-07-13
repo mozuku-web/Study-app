@@ -1,7 +1,7 @@
 'use strict';
 
 // ============================================================
-// [1] UTILITIES & GLOBALS
+// [1] UTILITIES & GLOBALS & i18n
 // ============================================================
 const $ = id => document.getElementById(id);
 
@@ -24,7 +24,6 @@ const clean = html => {
   if (window.DOMPurify) {
     return DOMPurify.sanitize(html);
   }
-  // Fallback: より厳格な許可リスト
   const temp = document.createElement('div');
   temp.textContent = html;
   return temp.innerHTML.replace(/&lt;(\/?)(b|i|u|strong|em|br|p|ul|li|h[1-6]|span|div|table|thead|tbody|tr|th|td|mark)(.*?)&gt;/gi, '<$1$2$3>');
@@ -89,13 +88,286 @@ const extractJSON = t => {
         cleanStr = cleanStr.substring(0, endIdx + 1);
       }
     }
-    // 制御文字の削除（改行は残す）
     cleanStr = cleanStr.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, "");
     return JSON.parse(cleanStr);
   } catch (err) {
     console.error('JSON Parse Error', err);
     return null;
   }
+};
+
+// --- i18n (Internationalization) ---
+const i18nDict = {
+  en: {
+    theme_auto: "Auto", header_settings: "Settings", msg_deleted: "Deleted", btn_undo: "Undo",
+    title_dashboard: "Overview", btn_display_settings: "Display Settings", btn_sort: "Sort",
+    widget_wotd: "Word of the Day", btn_pronounce: "Pronounce", ph_tags: "Tags (comma separated)",
+    btn_add_vocab: "Add to Vocab", btn_next_word: "Next Word", widget_countdown: "Countdown",
+    btn_edit: "Edit", msg_target_not_set: "Target date not set", widget_monthly_goal: "Monthly Goal",
+    widget_yearly_goal: "Yearly Main Goal:", btn_weekly_report: "Weekly Report", btn_weakness_analysis: "Weakness Analysis",
+    label_streak_days: "Streak Days", label_total_days: "Total Days", widget_weekly_chart: "Weekly Study Time",
+    label_this_week: "This Week", widget_radar_chart: "Study Balance (Radar Chart)", widget_srs_chart: "Forgetting Curve",
+    widget_srs_scatter: "Retention Distribution (Stability)", widget_stability_chart: "Average Retention Trend (Stability)",
+    widget_forecast: "Review Forecast", widget_subj_chart: "Study Time by Subject", widget_heatmap: "Study Heatmap (Past 90 Days)",
+    opt_study_time: "Study Time", opt_accuracy: "Accuracy", opt_new_words: "New Words",
+    day_mon: "Mon", day_tue: "Tue", day_wed: "Wed", day_thu: "Thu", day_fri: "Fri", day_sat: "Sat", day_sun: "Sun",
+    widget_quick_notes: "Quick Notes", msg_no_notes: "No notes", widget_today_plan: "Today's Plan & Events",
+    btn_auto_generate: "Auto Generate", widget_today_log: "Today's Study Log", btn_add: "+ Add",
+    title_timer: "Timer", status_stopped: "Stopped", btn_start: "Start", btn_reset: "Reset",
+    label_pomodoro: "Pomodoro Mode (25m study + 5m break)", label_ambient_sounds: "Ambient Sounds",
+    sound_rain: "Rain", sound_forest: "Forest", sound_ocean: "Ocean", label_set_timer: "Set Timer",
+    label_min: "min", label_sec: "sec", btn_set: "Set", label_presets: "Presets", btn_save: "Save",
+    title_vocab: "Vocabulary", btn_import_words: "+ Import Words", ph_search_word: "Search or enter a word...",
+    btn_search: "Search", btn_auto_listen: "Auto-Listen", btn_contextual_story: "Contextual Story",
+    btn_retention_forecast: "Retention Forecast", btn_add_word: "+ Add Word", btn_print_test: "Print Test",
+    btn_export_pdf: "Export PDF", ph_filter_words: "Filter words...", filter_pos: "POS", pos_all: "All",
+    pos_noun: "Noun", pos_verb: "Verb", pos_adj: "Adjective", pos_adv: "Adverb", pos_other: "Other",
+    filter_progress: "Progress", prog_all: "All", prog_mastered: "Mastered", prog_learning: "Learning", prog_new: "New",
+    filter_tag: "Tag", tag_all: "All", btn_manage_tags: "Manage Tags", filter_root: "Root", ph_root: "e.g. pro, port",
+    filter_sort: "Sort", sort_newest: "Newest First", sort_oldest: "Oldest First", sort_az: "A-Z", sort_za: "Z-A",
+    sort_low_retention: "Lowest Retention (FSRS)", btn_analyze_meta: "Analyze POS & Etymology",
+    btn_bulk_tag: "Bulk Tag", btn_reset_progress: "Reset Progress", btn_bulk_delete: "Bulk Delete", btn_load_more: "Load More",
+    title_skillup: "Practice", tab_correction: "Correction", tab_daily_tasks: "Daily Tasks", tab_quiz: "Quiz",
+    tab_media: "Media", tab_shadowing: "Shadowing", tab_syntax: "Syntax", tab_history: "History",
+    msg_ai_correction: "AI analyzes and corrects the syntax of the entered English text or image.",
+    mode_text: "Text", mode_file: "File", mode_photo: "Photo", ph_enter_english: "Enter English text or essay...",
+    btn_select_file: "[ Select File ]", ph_file_content: "File content", btn_select_photo: "[ Select Photo ]",
+    btn_auto_quiz_image: "Auto Generate Quiz from Image", btn_correct: "Correct", btn_parse_syntax: "Parse Syntax",
+    btn_paraphrase: "Paraphrase", btn_essay_analysis: "Essay Analysis", dtab_writing: "Writing", dtab_parsing: "Parsing",
+    dtab_reading: "Reading", dtab_listening: "Listening", dtab_drill: "Drill", label_difficulty: "Difficulty:",
+    diff_basic: "Basic", diff_standard: "Standard", diff_advanced: "Advanced", listen_mc: "Multiple Choice", listen_dict: "Dictation",
+    msg_drill_desc: "Automatically generates personalized grammar and vocabulary drills based on past corrections and mistakes.",
+    btn_gen_weakness_drill: "Generate Weakness Drill", msg_trick_desc: "Generates 'trick questions' that are easy to make mistakes based on past mistake trends.",
+    btn_gen_trick_drill: "Hardcore Drill", label_ai_word_quiz: "AI Word Quiz", quiz_range_all: "From All Words",
+    quiz_range_saved: "From Saved", quiz_range_review: "From Review", quiz_count_5: "5 Qs", quiz_count_10: "10 Qs", quiz_count_15: "15 Qs",
+    label_include_fill: "Include fill-in-the-blank questions", btn_gen_quiz: "Generate Quiz", label_yt_lesson: "YouTube to Lesson",
+    msg_yt_desc: "Generates summaries, translations, and comprehension quizzes from YouTube URLs.", ph_yt_url: "YouTube URL",
+    btn_gen_lesson: "Generate Lesson", label_pdf_reader: "PDF / EPUB Reader", msg_pdf_desc: "Read English documents and tap words to look them up in the dictionary and add them to your vocabulary.",
+    btn_open_reader: "Open Reader", msg_shadowing_desc: "Visually compare the AI model's audio waveform with your own pronunciation waveform to improve rhythm and intonation.",
+    btn_shadowing_studio: "Shadowing Studio", btn_export_syntax_pdf: "Export Syntax PDF", label_add_syntax: "Add Syntax Manually",
+    ph_syntax_phrase: "Syntax / Phrase", ph_syntax_meaning: "Meaning / Translation", ph_note: "Note",
+    hist_type_all: "All Types", hist_type_correct: "Correction", hist_type_parse: "Parse Syntax", hist_type_para: "Paraphrase",
+    hist_type_essay: "Essay", hist_score_all: "All Scores", hist_score_under80: "Under 80", title_decks: "Decks",
+    cc_mode_study: "Study", cc_mode_edit: "Edit", cc_mode_manage: "Manage Decks", msg_empty: "Empty.", msg_no_decks: "No decks.",
+    btn_prev: "Prev", btn_shuffle: "Shuffle", btn_next: "Next", msg_create_deck: "Please create a deck.", label_gen_ai: "Generate with AI",
+    ph_ai_prompt: "e.g. 10 basic high school English words", ph_additional_inst: "Additional instructions", btn_gen_ai: "Generate with AI",
+    label_add_manually: "Add Manually", label_create_new: "Create New", ph_deck_name: "Deck Name", btn_create: "Create",
+    title_qa_ai: "AI Tutor", subj_japanese: "Japanese", subj_math: "Math", subj_english: "English", subj_science: "Science",
+    subj_social: "Social Studies", subj_other: "Other", btn_clear: "Clear", sview_chat: "Chat", sview_saved: "Saved", sview_quiz: "Quiz",
+    ph_enter_question: "Enter your question...", ph_additional_comments: "Additional comments...", label_math_ocr: "Generate high-precision OCR and step-by-step explanation for Math/Science",
+    btn_send: "Send", folder_all: "All Folders", folder_uncategorized: "Uncategorized", btn_create_folder: "+ Create Folder",
+    msg_gen_quiz_history: "Generates review quizzes from saved Q&A history.", title_plan: "Planner", plan_mode_calendar: "Calendar",
+    plan_mode_weekly: "Weekly", plan_mode_yearly: "Yearly", plan_mode_gantt: "Gantt Chart", plan_mode_score: "Scores", plan_mode_ai: "AI Chat",
+    ph_add_event: "Add event...", label_plan: "Plan", btn_ai_rebuild: "AI Rebuild", ph_add_plan: "Add plan...", ph_time: "Time",
+    routine_once: "Once", routine_daily: "Daily", routine_weekly: "Weekly", routine_monthly: "Monthly", label_textbooks: "Textbooks",
+    ph_add_textbook: "Add textbook", label_weekly_plan: "Weekly Plan", label_add_plan_tb: "Add to Plan from Textbook",
+    ph_page_range: "Page range", label_yearly_main_goal: "Yearly Main Goal", btn_milestone_gen: "Milestone Generator",
+    ph_yearly_goal: "e.g. Pass first choice univ, TOEIC 800", label_backcasting: "Backcasting Planner", btn_delay_slide: "Delay Slide",
+    msg_backcasting_desc: "Enter the target date and the reference books/tasks to be used, and the AI will calculate backwards the number of days until the exam date and automatically register a daily schedule on the calendar.",
+    label_target_name: "Target / Exam Name", ph_target_name: "e.g. Final Exam, TOEIC", label_target_date: "Target Date (Deadline)",
+    label_tb_range: "Textbooks & Page Range", ph_tb_range: "e.g. Target 1900 1-800\nBlue Chart p10-p50", btn_gen_backcasting: "Generate Backcasting Schedule",
+    msg_gen_complete: "Schedule Generation Complete", btn_check_calendar: "Check Calendar", label_profile: "Profile", btn_collapse: "Collapse",
+    prof_target_univ: "Target University", prof_grade: "Grade", prof_courses: "Cram School / Courses", btn_simulator: "Simulator",
+    btn_custom_exam: "Custom Exam", ph_enter_concerns: "Enter questions or concerns...", label_add_score: "Add Score",
+    btn_smart_scan: "Smart Scan (Score Report)", ph_exam_name: "Exam Name", ph_exam_date: "Date (e.g. 2025/01)",
+    label_subj_score_dev: "Subject / Score / Deviation", btn_add_subj: "+ Add Subject", label_univ_judgment: "University Judgment",
+    btn_add_judgment: "+ Add Judgment", ph_memo: "Memo", btn_save_score: "Save Score", label_graph: "Graph", chart_mode_dev: "Deviation",
+    chart_mode_judge: "Judgment", title_mistakes: "Review", mistake_tab_saved: "Saved", mistake_tab_exam: "Exams / Tests",
+    mistake_tab_calc: "Calculation Mistakes", mistake_tab_other: "Other", label_filter_tag: "Filter by Tag:", btn_all: "All",
+    msg_saved_here: "Saved items will appear here.", label_add_exam_mistake: "Add Exam/Test Mistake", ph_test_name: "Test Name",
+    mistake_q_desc: "① Question Description", ph_q_desc: "What was the question?", mistake_wrong_ans: "② Your Wrong Answer",
+    ph_wrong_ans: "How did you make a mistake?", mistake_cause_tags: "③ Cause & Tags", ph_reason: "Detailed cause",
+    mistake_action: "④ What to do next (Action)", ph_action: "Specific action to prevent the same mistake", label_mistake_trend: "Mistake Trend Analysis",
+    btn_gen_root_cause: "Generate AI Root Cause Report", label_add_calc_mistake: "Add Calculation Mistake Record", label_add_other_mistake: "Add Other Mistake Record",
+    title_settings: "Settings", label_language: "Language Settings", opt_lang_mixed: "Mixed (English UI / Japanese Text)",
+    opt_lang_en: "English Only", opt_lang_ja: "Japanese Only", label_api_key: "Gemini API Key", ph_api_key: "Enter API Key",
+    msg_api_key_local: "※ Saved locally only.", label_manage_data: "Manage Study Data", btn_view_logs: "View / Edit Study Logs",
+    label_weekly_goal_time: "Weekly Goal Time by Subject (min)", label_auto_backup: "Auto Backup & Restore", msg_auto_backup: "Data from the past 7 days is automatically saved.",
+    btn_restore: "Restore", btn_create_backup: "Create Backup Now", label_dash_display: "Dashboard Display Settings",
+    btn_open_widget_settings: "Open Widget Settings", msg_dash_display: "You can toggle the items displayed on the dashboard.",
+    label_layout_settings: "Layout Settings", opt_1col: "1 Column Display", opt_2col: "2 Column Display (PC/Tablet Recommended)",
+    label_customize_text: "Customize Display Text", btn_change_text: "Change Text", btn_reset_default: "Reset to Default",
+    label_theme_color: "Theme Color", theme_default: "Default", theme_red: "Red", theme_blue: "Blue", theme_green: "Green",
+    theme_orange: "Orange", theme_purple: "Purple", theme_teal: "Teal", theme_indigo: "Indigo", theme_gray: "Gray",
+    label_custom_color: "Custom Color Settings", msg_custom_color: "Choose your accent color", label_dark_schedule: "Dark Mode Schedule Settings",
+    label_toggle_dark_schedule: "Toggle dark mode by time", label_font_size: "Font Size Settings", font_small: "Small",
+    font_medium: "Medium (Default)", font_large: "Large", label_fsrs_settings: "FSRS Settings", label_target_retention: "Target Retention Rate",
+    msg_fsrs_desc: "Higher value increases review frequency.", label_auto_optimize: "Auto-optimize FSRS Parameters",
+    label_gemini_model: "Gemini Model Selection", opt_custom_model: "Custom (Enter manually)", btn_fetch_api: "Fetch API",
+    ph_custom_model: "Enter model name (e.g. gemini-4.0-pro)", label_reminder: "Reminder Settings (Push Notifications)",
+    btn_set_allow: "Set / Allow", status_not_set: "Not Set", label_cloud_sync: "Cloud Sync (Firebase Auth)", status_checking: "Checking...",
+    btn_push: "Push (Save)", btn_pull: "Pull (Load)", btn_auto_sync: "Auto Sync (Real-time): OFF", label_export: "Export",
+    btn_export_json: "JSON", btn_export_csv: "CSV (Vocab)", label_data_reset: "Data Reset", btn_reset_all: "Reset All",
+    msg_reset_all: "All data will be erased. Please enter \"reset all\".", btn_cancel: "Cancel", btn_execute: "Execute",
+    ph_quick_note: "Enter note quickly...", btn_save_inbox: "Save to Inbox", ph_english_word: "English Word (Required)",
+    ph_meaning_ai: "Meaning (Leave blank for AI)", pos_select: "Select POS...", ph_example_opt: "Example (Optional)",
+    ph_note_opt: "Note / Etymology (Optional)", label_manual_fsrs: "Manual FSRS Data Adjustment", title_log_list: "Study Log List",
+    title_edit_log: "Edit Study Log", ph_min: "min", title_import: "Import", msg_import_text: "You can paste text copied from Quizlet's \"Export\" directly.",
+    msg_import_url: "Enter a YouTube URL to extract summary and key expressions from subtitles.", label_extract_context: "Extract context (example sentences) from original text",
+    ph_url: "URL or YouTube Link", btn_ai_extract: "AI Extract", msg_import_url_fallback: "※ If subtitles cannot be retrieved, please paste the text manually.",
+    ph_paste_transcript: "Paste transcript text here...", btn_extract_text: "Extract from Text", msg_import_photo: "Take a photo of a textbook or long text, and AI will extract words.",
+    label_unknown_only: "Extract only unknown (unregistered) words", label_bulk_tags: "Bulk Add Tags", ph_bulk_tags: "e.g. TOEIC, Chapter1",
+    label_duplicate_handling: "Duplicate Handling", opt_skip: "Skip existing words (Add new only)", opt_overwrite: "Overwrite existing words",
+    opt_merge: "Merge meanings and tags", label_ai_fill: "Auto-fill meaning, example, POS with AI", btn_execute_add: "Execute Add",
+    btn_replace_all: "Replace All Data", title_study_log: "Study Log", label_events: "Events", label_add_study_log: "Add Study Log",
+    msg_forecast_desc: "Predicts memory decay if you don't review today based on current learning data.", msg_forecast_note: "※ Predicted values based on FSRS algorithm.",
+    title_countdown_settings: "Countdown Settings", msg_auto_listen_desc: "Automatically loops pronunciation, meaning, and example sentences without looking at the screen.",
+    btn_start_playback: "Start Playback", label_only_review: "Play only words that need review", msg_story_desc: "Generates a short story incorporating words you are learning or weak at, helping you remember them in context.",
+    btn_gen_story: "Generate Story", title_manage_tags: "Bulk Manage Tags", title_shuffle_settings: "Question Algorithm Settings",
+    opt_random: "Completely Random", opt_weighted: "Prioritize Weak Words (Weighted)", opt_spaced: "Space out same POS",
+    btn_highlight_off: "Highlight: OFF", btn_add_note: "Add Note", msg_no_file: "No file selected", btn_play_model: "Play Model",
+    btn_start_recording: "Start Recording", label_model_waveform: "Model Waveform", label_your_waveform: "Your Waveform",
+    title_image_crop: "Image Cropping", btn_crop: "Crop", nav_dashboard: "Overview", nav_timer: "Timer", nav_vocab: "Vocabulary",
+    nav_skillup: "Practice", nav_decks: "Decks", nav_qa_ai: "AI Tutor", nav_plan: "Planner", nav_mistakes: "Review", nav_settings: "Settings"
+  },
+  ja: {
+    theme_auto: "自動", header_settings: "設定", msg_deleted: "削除しました", btn_undo: "元に戻す",
+    title_dashboard: "ダッシュボード", btn_display_settings: "表示設定", btn_sort: "並び替え",
+    widget_wotd: "今日の単語", btn_pronounce: "発音", ph_tags: "タグ (カンマ区切り)",
+    btn_add_vocab: "単語帳に追加", btn_next_word: "次の単語", widget_countdown: "カウントダウン",
+    btn_edit: "編集", msg_target_not_set: "目標日が設定されていません", widget_monthly_goal: "今月の目標",
+    widget_yearly_goal: "年間目標:", btn_weekly_report: "週次レポート", btn_weakness_analysis: "弱点分析",
+    label_streak_days: "連続学習日数", label_total_days: "累計学習日数", widget_weekly_chart: "週間学習時間",
+    label_this_week: "今週", widget_radar_chart: "学習バランス (レーダーチャート)", widget_srs_chart: "忘却曲線",
+    widget_srs_scatter: "定着度分布 (安定度)", widget_stability_chart: "平均定着度推移 (安定度)",
+    widget_forecast: "復習予測", widget_subj_chart: "科目別学習時間", widget_heatmap: "学習ヒートマップ (過去90日)",
+    opt_study_time: "学習時間", opt_accuracy: "正答率", opt_new_words: "新規単語数",
+    day_mon: "月", day_tue: "火", day_wed: "水", day_thu: "木", day_fri: "金", day_sat: "土", day_sun: "日",
+    widget_quick_notes: "クイックメモ", msg_no_notes: "メモがありません", widget_today_plan: "今日の予定と計画",
+    btn_auto_generate: "自動生成", widget_today_log: "今日の学習記録", btn_add: "+ 追加",
+    title_timer: "タイマー", status_stopped: "停止中", btn_start: "スタート", btn_reset: "リセット",
+    label_pomodoro: "ポモドーロモード (25分学習 + 5分休憩)", label_ambient_sounds: "環境音",
+    sound_rain: "雨", sound_forest: "森", sound_ocean: "波", label_set_timer: "タイマー設定",
+    label_min: "分", label_sec: "秒", btn_set: "設定", label_presets: "プリセット", btn_save: "保存",
+    title_vocab: "単語帳", btn_import_words: "+ 単語をインポート", ph_search_word: "単語を検索または入力...",
+    btn_search: "検索", btn_auto_listen: "自動再生", btn_contextual_story: "文脈ストーリー",
+    btn_retention_forecast: "定着度予測", btn_add_word: "+ 単語を追加", btn_print_test: "テスト印刷",
+    btn_export_pdf: "PDF出力", ph_filter_words: "単語を絞り込み...", filter_pos: "品詞", pos_all: "すべて",
+    pos_noun: "名詞", pos_verb: "動詞", pos_adj: "形容詞", pos_adv: "副詞", pos_other: "その他",
+    filter_progress: "進捗", prog_all: "すべて", prog_mastered: "習得済", prog_learning: "学習中", prog_new: "新規",
+    filter_tag: "タグ", tag_all: "すべて", btn_manage_tags: "タグ管理", filter_root: "語根", ph_root: "例: pro, port",
+    filter_sort: "並び替え", sort_newest: "新しい順", sort_oldest: "古い順", sort_az: "A-Z", sort_za: "Z-A",
+    sort_low_retention: "定着度が低い順 (FSRS)", btn_analyze_meta: "品詞・語源を解析",
+    btn_bulk_tag: "一括タグ付け", btn_reset_progress: "進捗リセット", btn_bulk_delete: "一括削除", btn_load_more: "さらに読み込む",
+    title_skillup: "演習", tab_correction: "添削", tab_daily_tasks: "デイリー課題", tab_quiz: "クイズ",
+    tab_media: "メディア", tab_shadowing: "シャドーイング", tab_syntax: "構文", tab_history: "履歴",
+    msg_ai_correction: "AIが入力された英文や画像の構文を解析・添削します。",
+    mode_text: "テキスト", mode_file: "ファイル", mode_photo: "写真", ph_enter_english: "英文やエッセイを入力...",
+    btn_select_file: "[ ファイルを選択 ]", ph_file_content: "ファイル内容", btn_select_photo: "[ 写真を選択 ]",
+    btn_auto_quiz_image: "画像からクイズを自動生成", btn_correct: "添削", btn_parse_syntax: "構文解析",
+    btn_paraphrase: "言い換え", btn_essay_analysis: "エッセイ評価", dtab_writing: "ライティング", dtab_parsing: "和訳",
+    dtab_reading: "長文読解", dtab_listening: "リスニング", dtab_drill: "ドリル", label_difficulty: "難易度:",
+    diff_basic: "基礎", diff_standard: "標準", diff_advanced: "応用", listen_mc: "4択問題", listen_dict: "ディクテーション",
+    msg_drill_desc: "過去の添削やミスに基づき、パーソナライズされた文法・語彙ドリルを自動生成します。",
+    btn_gen_weakness_drill: "弱点克服ドリル生成", msg_trick_desc: "過去のミス傾向から、あえて間違えやすい「ひっかけ問題」を生成します。",
+    btn_gen_trick_drill: "ハードコアドリル", label_ai_word_quiz: "AI単語クイズ", quiz_range_all: "すべての単語から",
+    quiz_range_saved: "保存した単語から", quiz_range_review: "復習対象から", quiz_count_5: "5問", quiz_count_10: "10問", quiz_count_15: "15問",
+    label_include_fill: "穴埋め問題を含める", btn_gen_quiz: "クイズ生成", label_yt_lesson: "YouTubeからレッスン生成",
+    msg_yt_desc: "YouTubeのURLから要約、翻訳、理解度クイズを生成します。", ph_yt_url: "YouTube URL",
+    btn_gen_lesson: "レッスン生成", label_pdf_reader: "PDF / EPUB リーダー", msg_pdf_desc: "英語のドキュメントを読みながら、単語をタップして辞書引き・単語帳に追加できます。",
+    btn_open_reader: "リーダーを開く", msg_shadowing_desc: "AIモデルの音声波形と自分の発音波形を視覚的に比較し、リズムやイントネーションを改善します。",
+    btn_shadowing_studio: "シャドーイングスタジオ", btn_export_syntax_pdf: "構文PDF出力", label_add_syntax: "構文を手動追加",
+    ph_syntax_phrase: "構文 / フレーズ", ph_syntax_meaning: "意味 / 和訳", ph_note: "メモ",
+    hist_type_all: "すべての種類", hist_type_correct: "添削", hist_type_parse: "構文解析", hist_type_para: "言い換え",
+    hist_type_essay: "エッセイ", hist_score_all: "すべてのスコア", hist_score_under80: "80点未満", title_decks: "デッキ",
+    cc_mode_study: "学習", cc_mode_edit: "編集", cc_mode_manage: "デッキ管理", msg_empty: "空です。", msg_no_decks: "デッキがありません。",
+    btn_prev: "前へ", btn_shuffle: "シャッフル", btn_next: "次へ", msg_create_deck: "デッキを作成してください。", label_gen_ai: "AIで生成",
+    ph_ai_prompt: "例: 高校基礎レベルの英単語10個", ph_additional_inst: "追加の指示", btn_gen_ai: "AIで生成",
+    label_add_manually: "手動で追加", label_create_new: "新規作成", ph_deck_name: "デッキ名", btn_create: "作成",
+    title_qa_ai: "AIチューター", subj_japanese: "国語", subj_math: "数学", subj_english: "英語", subj_science: "理科",
+    subj_social: "社会", subj_other: "その他", btn_clear: "クリア", sview_chat: "チャット", sview_saved: "保存済", sview_quiz: "クイズ",
+    ph_enter_question: "質問を入力...", ph_additional_comments: "追加のコメント...", label_math_ocr: "数式・理科の高精度OCRとステップバイステップ解説を生成",
+    btn_send: "送信", folder_all: "すべてのフォルダ", folder_uncategorized: "未分類", btn_create_folder: "+ フォルダ作成",
+    msg_gen_quiz_history: "保存したQ&A履歴から復習クイズを生成します。", title_plan: "学習計画", plan_mode_calendar: "カレンダー",
+    plan_mode_weekly: "週間", plan_mode_yearly: "年間", plan_mode_gantt: "ガントチャート", plan_mode_score: "成績", plan_mode_ai: "AI相談",
+    ph_add_event: "予定を追加...", label_plan: "計画", btn_ai_rebuild: "AI再構築", ph_add_plan: "計画を追加...", ph_time: "時間",
+    routine_once: "1回のみ", routine_daily: "毎日", routine_weekly: "毎週", routine_monthly: "毎月", label_textbooks: "参考書",
+    ph_add_textbook: "参考書を追加", label_weekly_plan: "週間計画", label_add_plan_tb: "参考書から計画に追加",
+    ph_page_range: "ページ範囲", label_yearly_main_goal: "年間目標", btn_milestone_gen: "マイルストーン生成",
+    ph_yearly_goal: "例: 第一志望合格、TOEIC 800点", label_backcasting: "バックキャスティングプランナー", btn_delay_slide: "遅れスライド",
+    msg_backcasting_desc: "目標日と使用する参考書・タスクを入力すると、AIが試験日までの日数を逆算し、カレンダーに毎日のスケジュールを自動登録します。",
+    label_target_name: "目標 / 試験名", ph_target_name: "例: 期末テスト、TOEIC", label_target_date: "目標日 (期限)",
+    label_tb_range: "参考書とページ範囲", ph_tb_range: "例: ターゲット1900 1〜800語\n青チャート p10-p50", btn_gen_backcasting: "逆算スケジュール生成",
+    msg_gen_complete: "スケジュール生成完了", btn_check_calendar: "カレンダーを確認", label_profile: "プロフィール", btn_collapse: "折りたたむ",
+    prof_target_univ: "志望校", prof_grade: "学年", prof_courses: "塾 / 受講コース", btn_simulator: "シミュレーター",
+    btn_custom_exam: "カスタム模試", ph_enter_concerns: "質問や相談を入力...", label_add_score: "成績追加",
+    btn_smart_scan: "スマートスキャン (成績表)", ph_exam_name: "模試名", ph_exam_date: "日付 (例: 2025/01)",
+    label_subj_score_dev: "科目 / 点数 / 偏差値", btn_add_subj: "+ 科目追加", label_univ_judgment: "志望校判定",
+    btn_add_judgment: "+ 判定追加", ph_memo: "メモ", btn_save_score: "成績を保存", label_graph: "グラフ", chart_mode_dev: "偏差値",
+    chart_mode_judge: "判定", title_mistakes: "復習", mistake_tab_saved: "保存済", mistake_tab_exam: "模試 / テスト",
+    mistake_tab_calc: "計算ミス", mistake_tab_other: "その他", label_filter_tag: "タグで絞り込み:", btn_all: "すべて",
+    msg_saved_here: "保存された項目がここに表示されます。", label_add_exam_mistake: "テストのミスを追加", ph_test_name: "テスト名",
+    mistake_q_desc: "① どのような問題でしたか？", ph_q_desc: "問題の概要", mistake_wrong_ans: "② どのように間違えましたか？",
+    ph_wrong_ans: "誤答の内容", mistake_cause_tags: "③ 原因とタグ", ph_reason: "具体的な原因を深掘り",
+    mistake_action: "④ 次にどうするか (アクション)", ph_action: "同じミスを防ぐための具体的なアクション", label_mistake_trend: "ミス傾向分析",
+    btn_gen_root_cause: "AI根本原因レポート生成", label_add_calc_mistake: "計算ミスの記録を追加", label_add_other_mistake: "その他のミスの記録を追加",
+    title_settings: "設定", label_language: "言語設定", opt_lang_mixed: "ミックス (英語UI / 日本語テキスト)",
+    opt_lang_en: "英語のみ", opt_lang_ja: "日本語のみ", label_api_key: "Gemini API Key", ph_api_key: "API Keyを入力",
+    msg_api_key_local: "※ ローカルにのみ保存されます。", label_manage_data: "学習データ管理", btn_view_logs: "学習記録の確認 / 編集",
+    label_weekly_goal_time: "科目別 週間目標時間 (分)", label_auto_backup: "自動バックアップと復元", msg_auto_backup: "過去7日間のデータが自動的に保存されます。",
+    btn_restore: "復元", btn_create_backup: "今すぐバックアップ作成", label_dash_display: "ダッシュボード表示設定",
+    btn_open_widget_settings: "ウィジェット設定を開く", msg_dash_display: "ダッシュボードに表示する項目を切り替えられます。",
+    label_layout_settings: "レイアウト設定", opt_1col: "1カラム表示", opt_2col: "2カラム表示 (PC/タブレット推奨)",
+    label_customize_text: "表示テキストのカスタマイズ", btn_change_text: "テキスト変更", btn_reset_default: "デフォルトに戻す",
+    label_theme_color: "テーマカラー", theme_default: "デフォルト", theme_red: "レッド", theme_blue: "ブルー", theme_green: "グリーン",
+    theme_orange: "オレンジ", theme_purple: "パープル", theme_teal: "ティール", theme_indigo: "インディゴ", theme_gray: "グレー",
+    label_custom_color: "カスタムカラー設定", msg_custom_color: "アクセントカラーを自由に選択", label_dark_schedule: "ダークモード スケジュール設定",
+    label_toggle_dark_schedule: "時間帯でダークモードを切り替える", label_font_size: "フォントサイズ設定", font_small: "小",
+    font_medium: "中 (デフォルト)", font_large: "大", label_fsrs_settings: "FSRS設定", label_target_retention: "目標定着率",
+    msg_fsrs_desc: "高くすると復習頻度が増え、低くすると減ります。", label_auto_optimize: "FSRSパラメータを自動最適化する",
+    label_gemini_model: "Geminiモデル選択", opt_custom_model: "カスタム (手動入力)", btn_fetch_api: "APIから取得",
+    ph_custom_model: "モデル名を入力 (例: gemini-4.0-pro)", label_reminder: "リマインダー設定 (プッシュ通知)",
+    btn_set_allow: "設定 / 許可", status_not_set: "未設定", label_cloud_sync: "クラウド同期 (Firebase Auth)", status_checking: "確認中...",
+    btn_push: "プッシュ (保存)", btn_pull: "プル (読込)", btn_auto_sync: "自動同期 (リアルタイム): OFF", label_export: "エクスポート",
+    btn_export_json: "JSON", btn_export_csv: "CSV (単語帳)", label_data_reset: "データリセット", btn_reset_all: "すべてリセット",
+    msg_reset_all: "全てのデータを消去します。「reset all」と入力してください。", btn_cancel: "キャンセル", btn_execute: "実行",
+    ph_quick_note: "素早くメモを入力...", btn_save_inbox: "インボックスに保存", ph_english_word: "英単語 (必須)",
+    ph_meaning_ai: "意味 (空欄でAIが自動補完)", pos_select: "品詞を選択...", ph_example_opt: "例文 (任意)",
+    ph_note_opt: "メモ / 語源 (任意)", label_manual_fsrs: "FSRSデータの手動調整", title_log_list: "学習記録リスト",
+    title_edit_log: "学習記録の編集", ph_min: "分", title_import: "インポート", msg_import_text: "Quizletの「エクスポート」でコピーしたテキストをそのまま貼り付けてインポートできます。",
+    msg_import_url: "YouTubeのURLを入力すると、字幕から要約と重要表現を抽出します。", label_extract_context: "元の文章から文脈（例文）を抽出する",
+    ph_url: "URL または YouTubeリンク", btn_ai_extract: "AI抽出", msg_import_url_fallback: "※ 字幕が取得できない場合は、手動でテキストを貼り付けてください。",
+    ph_paste_transcript: "ここにスクリプトを貼り付け...", btn_extract_text: "テキストから抽出", msg_import_photo: "教科書や長文の写真を撮ると、AIが単語を抽出します。",
+    label_unknown_only: "知らない単語（未登録）のみを抽出する", label_bulk_tags: "一括タグ追加", ph_bulk_tags: "例: TOEIC, Chapter1",
+    label_duplicate_handling: "重複時の処理", opt_skip: "既存の単語をスキップ (新規のみ追加)", opt_overwrite: "既存の単語を上書き",
+    opt_merge: "意味とタグをマージ", label_ai_fill: "AIで意味・例文・品詞を自動補完する", btn_execute_add: "追加を実行",
+    btn_replace_all: "すべてのデータを置き換え", title_study_log: "学習記録", label_events: "予定", label_add_study_log: "学習記録を追加",
+    msg_forecast_desc: "現在の学習データに基づき、今日復習しなかった場合の記憶の減衰を予測します。", msg_forecast_note: "※ FSRSアルゴリズムに基づく予測値です。",
+    title_countdown_settings: "カウントダウン設定", msg_auto_listen_desc: "画面を見ずに、発音・意味・例文を自動でループ再生します。",
+    btn_start_playback: "再生開始", label_only_review: "復習が必要な単語のみ再生する", msg_story_desc: "学習中や苦手な単語を組み込んだ短いストーリーを生成し、文脈の中で記憶に定着させます。",
+    btn_gen_story: "ストーリー生成", title_manage_tags: "タグの一括管理", title_shuffle_settings: "出題アルゴリズム設定",
+    opt_random: "完全ランダム", opt_weighted: "苦手な単語を優先 (重み付け)", opt_spaced: "同じ品詞が連続しないようにする",
+    btn_highlight_off: "ハイライト: OFF", btn_add_note: "メモ追加", msg_no_file: "ファイルが選択されていません", btn_play_model: "お手本を再生",
+    btn_start_recording: "録音開始", label_model_waveform: "お手本の波形", label_your_waveform: "あなたの波形",
+    title_image_crop: "画像の切り抜き", btn_crop: "切り抜き", nav_dashboard: "概要", nav_timer: "タイマー", nav_vocab: "単語帳",
+    nav_skillup: "演習", nav_decks: "デッキ", nav_qa_ai: "AIチューター", nav_plan: "計画", nav_mistakes: "復習", nav_settings: "設定"
+  }
+};
+
+let currentLang = safeGet('study_language', 'mixed');
+
+window.changeLanguage = () => {
+  const sel = $('language-select');
+  if (sel) {
+    currentLang = sel.value;
+    safeSet('study_language', currentLang);
+    applyLanguage();
+  }
+};
+
+const applyLanguage = () => {
+  const langKey = currentLang === 'ja' ? 'ja' : 'en';
+  const dict = i18nDict[langKey];
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) el.textContent = dict[key];
+  });
+  
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (dict[key]) el.placeholder = dict[key];
+  });
 };
 
 let toastQueue = [];
@@ -348,8 +620,9 @@ const BASE_SYSTEM_PROMPT = `あなたはプロの予備校講師だ。客観的�
 1. 語尾は必ず「〜だ」「〜である」に統一すること。「〜です」「〜ます」は使用禁止。
 2. 挨拶、語りかけ、前置き、後書き、解説以外の余分なテキストは一切出力しないこと。
 3. 絵文字や顔文字は使用禁止。
-4. HTMLを出力する場合は、必ず <h4>, <p>, <ul>, <li>, <b>, <strong>, <mark> のみを使用し、独自のクラス名やインラインスタイルは付与しないこと。
-5. JSONを出力する場合は、Markdownのコードブロック(\`\`\`json)で囲まず、純粋なJSON文字列のみを出力すること。`;
+4. 括弧は「」を使用し、『』は使用しないこと。
+5. HTMLを出力する場合は、必ず <h4>, <p>, <ul>, <li>, <b>, <strong>, <mark> のみを使用し、独自のクラス名やインラインスタイルは付与しないこと。
+6. JSONを出力する場合は、Markdownのコードブロック(\`\`\`json)で囲まず、純粋なJSON文字列のみを出力すること。`;
 
 const TABS = ['Dashboard', 'Timer', 'Vocab', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Mistakes', 'Manage'];
 const ACCENTS = ['en_US', 'en_GB', 'en_AU'];
@@ -368,15 +641,15 @@ const ACADEMIC_YEAR_MONTHS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
 const VOCAB_PER_PAGE = 50;
 
 const THEMES = {
-  default: { accent: '#2D2B27', streak: '#E67E22' },
-  red: { accent: '#C0392B', streak: '#E74C3C' },
-  blue: { accent: '#2980B9', streak: '#3498DB' },
-  green: { accent: '#27AE60', streak: '#2ECC71' },
-  orange: { accent: '#E67E22', streak: '#F39C12' },
-  purple: { accent: '#8E44AD', streak: '#9B59B6' },
-  teal: { accent: '#16A085', streak: '#1ABC9C' },
-  indigo: { accent: '#3F51B5', streak: '#5C6BC0' },
-  gray: { accent: '#7F8C8D', streak: '#95A5A6' }
+  default: { accent: '#111111', streak: '#E67E22' },
+  red: { accent: '#E74C3C', streak: '#C0392B' },
+  blue: { accent: '#3498DB', streak: '#2980B9' },
+  green: { accent: '#2ECC71', streak: '#27AE60' },
+  orange: { accent: '#E67E22', streak: '#D35400' },
+  purple: { accent: '#9B59B6', streak: '#8E44AD' },
+  teal: { accent: '#1ABC9C', streak: '#16A085' },
+  indigo: { accent: '#5C6BC0', streak: '#3F51B5' },
+  gray: { accent: '#95A5A6', streak: '#7F8C8D' }
 };
 
 let ALL_WORDS = [];
@@ -393,7 +666,6 @@ let userProfile = {
   targetUniv: '',
   grade: '',
   courses: '',
-  xp: 0,
   autoSync: false,
   reminderTime: '',
   fsrsAutoOptimize: true,
@@ -423,7 +695,7 @@ let timerPresets = safeGet('study_timer_presets', [1500, 3000]);
 let darkThemeMode = safeGet('study_dark_mode', 'auto');
 let fsrsRetention = safeGet('study_fsrs_retention', 90);
 let cachedWotd = safeGet('study_wotd_cache', { date: '', word: null, exampleHtml: '', meaning: '' });
-let activeWidgets = safeGet('study_active_widgets', ['wotd', 'hero', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'subj-chart', 'heatmap', 'calendar', 'quick-capture-inbox', 'today-plan', 'today-log']);
+let activeWidgets = safeGet('study_active_widgets', ['wotd', 'countdown', 'yearly', 'actions', 'streak', 'weekly-chart', 'radar-chart', 'srs-chart', 'srs-scatter', 'stability-chart', 'subj-chart', 'heatmap', 'calendar', 'quick-capture-inbox', 'today-plan', 'today-log']);
 let widgetColumnMode = safeGet('study_widget_column_mode', '1');
 let shuffleSettings = safeGet('study_shuffle_settings', { mode: 'random' });
 
@@ -952,7 +1224,7 @@ const applyTheme = () => {
   document.documentElement.setAttribute('data-theme', isD ? 'dark' : '');
   const b = $('dark-toggle-btn');
   if (b) {
-    b.textContent = darkThemeMode === 'auto' ? 'Auto' : isD ? 'Light' : 'Dark';
+    b.textContent = darkThemeMode === 'auto' ? (currentLang === 'ja' ? '自動' : 'Auto') : isD ? (currentLang === 'ja' ? 'ライト' : 'Light') : (currentLang === 'ja' ? 'ダーク' : 'Dark');
   }
   
   Chart.defaults.color = isD ? '#A8A49E' : '#5C5952';
@@ -1594,17 +1866,17 @@ const timerStartStop = () => {
     timerRunning = false;
     timerTime = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
     const s = $('timer-status');
-    if (s) s.textContent = isPomodoroBreak ? 'Break Stopped' : 'Stopped';
+    if (s) s.textContent = isPomodoroBreak ? (currentLang === 'ja' ? '休憩停止中' : 'Break Stopped') : (currentLang === 'ja' ? '停止中' : 'Stopped');
     const b = $('timer-start-btn');
-    if (b) b.textContent = 'Start';
+    if (b) b.textContent = currentLang === 'ja' ? 'スタート' : 'Start';
   } else {
     timerRunning = true;
     timerEndTime = Date.now() + (timerTime * 1000);
     localStorage.setItem('study_timer_end', timerEndTime.toString());
     const s = $('timer-status');
-    if (s) s.textContent = isPomodoroBreak ? 'Break' : 'Running';
+    if (s) s.textContent = isPomodoroBreak ? (currentLang === 'ja' ? '休憩中' : 'Break') : (currentLang === 'ja' ? '実行中' : 'Running');
     const b = $('timer-start-btn');
-    if (b) b.textContent = 'Stop';
+    if (b) b.textContent = currentLang === 'ja' ? 'ストップ' : 'Stop';
     
     timerInt = setInterval(() => {
       const remain = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
@@ -1629,9 +1901,9 @@ const timerStartStop = () => {
             timerTime = timerInitial;
             updateTimerDisplay();
             const s = $('timer-status');
-            if (s) s.textContent = 'Break Stopped';
+            if (s) s.textContent = currentLang === 'ja' ? '休憩停止中' : 'Break Stopped';
             const b = $('timer-start-btn');
-            if (b) b.textContent = 'Start';
+            if (b) b.textContent = currentLang === 'ja' ? 'スタート' : 'Start';
           } else {
             showToast('Break finished! Resume study');
             isPomodoroBreak = false;
@@ -1639,18 +1911,18 @@ const timerStartStop = () => {
             timerTime = timerInitial;
             updateTimerDisplay();
             const s = $('timer-status');
-            if (s) s.textContent = 'Stopped';
+            if (s) s.textContent = currentLang === 'ja' ? '停止中' : 'Stopped';
             const b = $('timer-start-btn');
-            if (b) b.textContent = 'Start';
+            if (b) b.textContent = currentLang === 'ja' ? 'スタート' : 'Start';
           }
         } else {
           showToast('Finished');
           studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: timerInitial, ts: Date.now() });
           save.logs();
           const s = $('timer-status');
-          if (s) s.textContent = 'Stopped';
+          if (s) s.textContent = currentLang === 'ja' ? '停止中' : 'Stopped';
           const b = $('timer-start-btn');
-          if (b) b.textContent = 'Start';
+          if (b) b.textContent = currentLang === 'ja' ? 'スタート' : 'Start';
         }
       }
     }, 1000);
@@ -1711,11 +1983,11 @@ const renderTimerPresets = () => {
     const min = Math.floor(t / 60);
     const sec = t % 60;
     return `
-      <div style="display:inline-flex;align-items:center;border:1.5px solid var(--border2);border-radius:50px;background:var(--bg);">
-        <button onclick="timerInitial=${t};timerTime=${t};updateTimerDisplay()" style="padding:6px 12px;border:none;background:transparent;color:var(--text-sub);cursor:pointer;font-size:calc(12px * var(--text-scale));font-weight:700">
+      <div style="display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:50px;background:var(--surface);box-shadow:var(--shadow-xs);">
+        <button onclick="timerInitial=${t};timerTime=${t};updateTimerDisplay()" style="padding:8px 16px;border:none;background:transparent;color:var(--text);cursor:pointer;font-size:calc(13px * var(--text-scale));font-weight:600">
           ${min}:${String(sec).padStart(2, '0')}
         </button>
-        <button onclick="timerDeletePreset(${t})" style="padding:6px 10px;border:none;border-left:1.5px solid var(--border2);background:transparent;color:var(--danger);cursor:pointer;font-weight:bold;font-size:calc(10px * var(--text-scale));">
+        <button onclick="timerDeletePreset(${t})" style="padding:8px 12px;border:none;border-left:1px solid var(--border);background:transparent;color:var(--danger);cursor:pointer;font-weight:bold;font-size:calc(12px * var(--text-scale));">
           ✕
         </button>
       </div>
@@ -1748,26 +2020,26 @@ window.toggleWidgetSortMode = () => {
   
   if (container.classList.contains('widget-sort-mode')) {
     container.classList.remove('widget-sort-mode');
-    btn.textContent = 'Sort';
+    btn.textContent = currentLang === 'ja' ? '並び替え' : 'Sort';
     btn.classList.remove('bg-accent', 'text-bg');
-    if (sortableWidgets) {
-      sortableWidgets.option("disabled", true);
+    if (window.sortableWidgets) {
+      window.sortableWidgets.option("disabled", true);
     }
     saveWidgetOrder();
   } else {
     container.classList.add('widget-sort-mode');
-    btn.textContent = 'Done';
+    btn.textContent = currentLang === 'ja' ? '完了' : 'Done';
     btn.classList.add('bg-accent', 'text-bg');
     
-    if (!sortableWidgets) {
-      sortableWidgets = Sortable.create(container, {
+    if (!window.sortableWidgets) {
+      window.sortableWidgets = Sortable.create(container, {
         animation: 150,
         ghostClass: 'sortable-ghost',
         dragClass: 'sortable-drag',
         disabled: false
       });
     } else {
-      sortableWidgets.option("disabled", false);
+      window.sortableWidgets.option("disabled", false);
     }
   }
 };
@@ -1800,7 +2072,6 @@ window.renderWidgetSettingsPanel = () => {
   
   const allWidgets = [
     { id: 'wotd', name: 'Word of the Day' },
-    { id: 'hero', name: 'Total Study Time & Rank' },
     { id: 'countdown', name: 'Goal Countdown' },
     { id: 'yearly', name: 'Monthly Goal' },
     { id: 'actions', name: 'Action Buttons (Weekly/Analysis)' },
@@ -1819,7 +2090,7 @@ window.renderWidgetSettingsPanel = () => {
   ];
   
   list.innerHTML = allWidgets.map(w => `
-    <label class="flex align-center gap-2 text-sm font-bold cursor-pointer p-10 border radius-sm bg-bg">
+    <label class="flex align-center gap-2 text-sm font-bold cursor-pointer p-10 border radius-sm bg-surface">
       <input type="checkbox" class="widget-toggle-cb" value="${w.id}" ${activeWidgets.includes(w.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--accent);">
       <span>${w.name}</span>
     </label>
@@ -1872,7 +2143,7 @@ const renderCountdown = () => {
   if (!display) return;
   
   if (!countdownData.name || !countdownData.date) {
-    display.innerHTML = '<p class="text-sm text-muted">Target date not set</p>';
+    display.innerHTML = `<p class="text-sm text-muted">${currentLang === 'ja' ? '目標日が設定されていません' : 'Target date not set'}</p>`;
     return;
   }
   
@@ -1953,14 +2224,14 @@ const renderQuickCaptures = () => {
   const list = $('quick-capture-list');
   if (!list) return;
   if (!quickCaptures.length) {
-    list.innerHTML = '<p class="text-xs text-muted text-center">No notes</p>';
+    list.innerHTML = `<p class="text-xs text-muted text-center">${currentLang === 'ja' ? 'メモがありません' : 'No notes'}</p>`;
     return;
   }
   list.innerHTML = quickCaptures.map(qc => `
-    <div class="card mb-2 p-10">
-      <div class="text-xs text-muted mb-1">${qc.date}</div>
-      <div class="text-sm line-height-15">${esc(qc.text).replace(/\n/g, '<br>')}</div>
-      <div class="flex justify-end mt-1">
+    <div class="card mb-2 p-14">
+      <div class="text-xs text-muted mb-2">${qc.date}</div>
+      <div class="text-sm line-height-16">${esc(qc.text).replace(/\n/g, '<br>')}</div>
+      <div class="flex justify-end mt-2">
         <button class="btn-clear text-danger text-xs" onclick="deleteQuickCapture('${qc.id}')">Delete</button>
       </div>
     </div>
@@ -2054,7 +2325,7 @@ const renderWordOfTheDay = async () => {
   
   if (cachedWotd.word) {
     const isSaved = ALL_WORDS.some(x => x.word.toLowerCase() === cachedWotd.word.word.toLowerCase());
-    sBtn.textContent = isSaved ? 'Saved' : 'Add to Vocab'; 
+    sBtn.textContent = isSaved ? (currentLang === 'ja' ? '保存済' : 'Saved') : (currentLang === 'ja' ? '単語帳に追加' : 'Add to Vocab'); 
     sBtn.className = `action-btn mb-0 flex-1 btn-md ${isSaved ? 'btn-secondary' : ''}`;
     sBtn.onclick = () => { 
       if (!isSaved) {
@@ -2080,20 +2351,14 @@ const renderWordOfTheDay = async () => {
   }
 };
 
-const nextWordOfTheDay = () => { 
+window.nextWordOfTheDay = () => { 
   cachedWotd = { date: '', word: null, exampleHtml: '', meaning: '' }; 
   renderWordOfTheDay(); 
 };
 
-const renderDashboard = () => {
+window.renderDashboard = () => {
   applyWidgetVisibility();
   
-  const tH = Math.floor(getTotalStudySeconds() / 3600);
-  const h = $('dash-hours-text');
-  if (h) {
-    h.textContent = `Total Study Time: ${tH}h | XP: ${userProfile.xp || 0}`;
-  }
-
   renderWordOfTheDay();
   renderCountdown();
   renderQuickCaptures();
@@ -2162,15 +2427,15 @@ const renderDashboard = () => {
       
       const lbl = $('dash-weekly-label');
       if (lbl) {
-        if (dashWeeklyOffset === 0) lbl.textContent = 'This Week';
-        else if (dashWeeklyOffset === 1) lbl.textContent = 'Last Week';
+        if (dashWeeklyOffset === 0) lbl.textContent = currentLang === 'ja' ? '今週' : 'This Week';
+        else if (dashWeeklyOffset === 1) lbl.textContent = currentLang === 'ja' ? '先週' : 'Last Week';
         else lbl.textContent = `${dashWeeklyOffset} weeks ago`;
       }
 
       if (dashWeeklyChart) dashWeeklyChart.destroy();
       dashWeeklyChart = new Chart(wCv, {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Study Time (min)', data, backgroundColor: '#2980B9', borderRadius: 4 }] },
+        data: { labels, datasets: [{ label: 'Study Time (min)', data, backgroundColor: '#3498DB', borderRadius: 6 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
       });
     });
@@ -2198,7 +2463,7 @@ const renderDashboard = () => {
           data: { 
             labels, 
             datasets: [
-              { label: 'Study Time (min)', data, backgroundColor: '#2980B9', borderRadius: 4 },
+              { label: 'Study Time (min)', data, backgroundColor: '#3498DB', borderRadius: 6 },
               { label: 'Target Time (min)', data: goals, type: 'line', borderColor: '#E67E22', backgroundColor: 'transparent', borderDash: [5, 5], pointRadius: 0 }
             ] 
           }, 
@@ -2226,12 +2491,12 @@ const renderDashboard = () => {
             datasets: [{
               label: 'Study Time (min)',
               data,
-              backgroundColor: 'rgba(45, 43, 39, 0.2)',
-              borderColor: '#2D2B27',
-              pointBackgroundColor: '#E67E22',
+              backgroundColor: 'rgba(52, 152, 219, 0.2)',
+              borderColor: '#3498DB',
+              pointBackgroundColor: '#3498DB',
               pointBorderColor: '#fff',
               pointHoverBackgroundColor: '#fff',
-              pointHoverBorderColor: '#E67E22'
+              pointHoverBorderColor: '#3498DB'
             }]
           },
           options: {
@@ -2277,8 +2542,8 @@ const renderDashboard = () => {
             datasets: [{
               label: 'Words',
               data: [buckets.today, buckets.d1, buckets.d3, buckets.d7, buckets.d14],
-              backgroundColor: ['#C0392B', '#E67E22', '#F1C40F', '#2E7D52', '#2980B9'],
-              borderRadius: 4
+              backgroundColor: ['#E74C3C', '#E67E22', '#F1C40F', '#2ECC71', '#3498DB'],
+              borderRadius: 6
             }]
           },
           options: {
@@ -2301,8 +2566,8 @@ const renderDashboard = () => {
             datasets: [{
               label: 'Word',
               data: scatterData,
-              backgroundColor: 'rgba(41, 128, 185, 0.5)',
-              pointRadius: 4
+              backgroundColor: 'rgba(52, 152, 219, 0.6)',
+              pointRadius: 5
             }]
           },
           options: {
@@ -2330,8 +2595,8 @@ const renderDashboard = () => {
             datasets: [{
               label: 'Stability',
               data: [avgStability],
-              backgroundColor: '#27AE60',
-              borderRadius: 4
+              backgroundColor: '#2ECC71',
+              borderRadius: 6
             }]
           },
           options: {
@@ -2359,7 +2624,7 @@ const renderDashboard = () => {
     stD.setDate(stD.getDate() - 89);
     
     for (let i = 0; i < stD.getDay(); i++) {
-      html += `<div style="width:12px;height:12px;border-radius:2px;background:transparent;"></div>`;
+      html += `<div style="width:14px;height:14px;border-radius:3px;background:transparent;"></div>`;
     }
     
     const sMap = {}; 
@@ -2408,7 +2673,7 @@ const renderDashboard = () => {
           title = `${ds}: New ${val} words`;
         }
       }
-      html += `<div style="width:12px;height:12px;border-radius:2px;background:${bg};cursor:pointer;" title="${title}" onclick="openStudyLogModal('${ds}')"></div>`;
+      html += `<div style="width:14px;height:14px;border-radius:3px;background:${bg};cursor:pointer;" title="${title}" onclick="openStudyLogModal('${ds}')"></div>`;
     }
     hm.innerHTML = html;
     hm.scrollLeft = hm.scrollWidth;
@@ -2422,12 +2687,12 @@ const renderDashboard = () => {
     const evs = events[today] || [];
     if (evs.length) {
       evL.innerHTML = evs.map(e => `
-        <div class="plan-item-row" style="margin-bottom:6px;border-left:3px solid #3498db;">
-          <div class="pi-text" style="font-size:13px;">${esc(e.text)}</div>
+        <div class="plan-item-row" style="margin-bottom:8px;border-left:4px solid #3498db;">
+          <div class="pi-text" style="font-size:14px;">${esc(e.text)}</div>
         </div>
       `).join('');
     } else {
-      evL.innerHTML = '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">No events</div>';
+      evL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">${currentLang === 'ja' ? '予定はありません' : 'No events'}</div>`;
     }
   }
   
@@ -2435,15 +2700,15 @@ const renderDashboard = () => {
     const pls = plans[today] || [];
     if (pls.length) {
       plL.innerHTML = pls.map((p, i) => `
-        <div class="plan-item-row" style="margin-bottom:6px;">
+        <div class="plan-item-row" style="margin-bottom:8px;">
           <input type="checkbox" ${p.done ? 'checked' : ''} onchange="toggleDashPlan(${i})">
           <div style="flex:1">
-            <div class="pi-text ${p.done ? 'done' : ''}" style="font-size:13px;">${esc(p.text)}</div>
+            <div class="pi-text ${p.done ? 'done' : ''}" style="font-size:14px;">${esc(p.text)}</div>
           </div>
         </div>
       `).join('');
     } else {
-      plL.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">No plans</div>';
+      plL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">${currentLang === 'ja' ? '計画はありません' : 'No plans'}</div>`;
     }
   }
   
@@ -2458,12 +2723,12 @@ const renderDashboard = () => {
         </div>
       `).join('');
     } else {
-      tdL.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px">No logs</div>';
+      tdL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px">${currentLang === 'ja' ? '記録はありません' : 'No logs'}</div>`;
     }
   }
 };
 
-const toggleDashPlan = i => {
+window.toggleDashPlan = i => {
   const today = todayDateStr();
   if (plans[today] && plans[today][i]) {
     plans[today][i].done = !plans[today][i].done;
@@ -2475,7 +2740,7 @@ const toggleDashPlan = i => {
   }
 };
 
-const dashCalPrev = () => {
+window.dashCalPrev = () => {
   dashCalMonth--;
   if (dashCalMonth < 0) {
     dashCalMonth = 11;
@@ -2484,7 +2749,7 @@ const dashCalPrev = () => {
   renderDashboardCalendar();
 };
 
-const dashCalNext = () => {
+window.dashCalNext = () => {
   dashCalMonth++;
   if (dashCalMonth > 11) {
     dashCalMonth = 0;
@@ -2522,7 +2787,6 @@ const renderDashboardCalendar = () => {
   const cd = $('cal-days');
   if (cd) cd.innerHTML = html;
 };
-
 // ============================================================
 // [10] VOCAB
 // ============================================================
@@ -2543,7 +2807,7 @@ const fetchFreeDictFallback = async (word) => {
   }
 };
 
-const toggleWordSave = w => {
+window.toggleWordSave = w => {
   const idx = savedWords.indexOf(w);
   const add = idx === -1;
   
@@ -2554,11 +2818,11 @@ const toggleWordSave = w => {
   }
   
   save.saved();
-  showToast(add ? 'Saved' : 'Removed');
+  showToast(add ? (currentLang === 'ja' ? '保存しました' : 'Saved') : (currentLang === 'ja' ? '解除しました' : 'Removed'));
   
   document.querySelectorAll(`[data-word="${w.replace(/"/g, '\\"')}"]`).forEach(b => {
     b.className = add ? 'save-btn saved' : 'save-btn unsaved';
-    b.textContent = add ? 'Saved' : 'Save';
+    b.textContent = add ? (currentLang === 'ja' ? '保存済' : 'Saved') : (currentLang === 'ja' ? '保存' : 'Save');
   });
 };
 
@@ -2569,7 +2833,7 @@ const setWordProgress = (w, p) => {
   save.prog();
 };
 
-const cycleWordProgress = (w, e) => {
+window.cycleWordProgress = (w, e) => {
   if (e) e.stopPropagation();
   const o = ['new', 'learning', 'mastered'];
   setWordProgress(w, o[(o.indexOf(getWordProgress(w)) + 1) % o.length]);
@@ -2577,7 +2841,7 @@ const cycleWordProgress = (w, e) => {
   renderVocabStats();
 };
 
-const deleteWord = w => {
+window.deleteWord = w => {
   const idx = ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.toLowerCase());
   if (idx === -1) return;
   const wordObj = ALL_WORDS[idx];
@@ -2607,7 +2871,7 @@ const deleteWord = w => {
   renderVocabStats();
   updateTagFilters();
 
-  showUndoSnackbar(`Deleted "${w}"`, () => {
+  showUndoSnackbar(currentLang === 'ja' ? `"${w}" を削除しました` : `Deleted "${w}"`, () => {
     ALL_WORDS.unshift(wordObj);
     save.words();
     renderVocab(true);
@@ -2616,7 +2880,7 @@ const deleteWord = w => {
   }, () => {});
 };
 
-const openAddWordModal = (editWord = null) => {
+window.openAddWordModal = (editWord = null) => {
   const t = $('add-word-modal-title');
   const w = $('manual-word-input');
   const m = $('manual-meaning-input');
@@ -2629,7 +2893,7 @@ const openAddWordModal = (editWord = null) => {
   if (editWord) {
     const fd = ALL_WORDS.find(x => x.word === editWord);
     if (fd) {
-      t.textContent = 'Edit Word';
+      t.textContent = currentLang === 'ja' ? '単語を編集' : 'Edit Word';
       w.value = fd.word;
       m.value = fd.meaning || '';
       old.value = fd.word;
@@ -2640,7 +2904,7 @@ const openAddWordModal = (editWord = null) => {
       tg.value = (fd.tags || []).join(', ');
     }
   } else {
-    t.textContent = 'Add Word Manually';
+    t.textContent = currentLang === 'ja' ? '単語を手動追加' : 'Add Word Manually';
     w.value = '';
     m.value = '';
     old.value = '';
@@ -2677,7 +2941,7 @@ window.addTagToInput = (tag) => {
   }
 };
 
-const addWordManual = () => {
+window.addWordManual = () => {
   const w = $('manual-word-input').value.trim();
   const m = $('manual-meaning-input').value.trim();
   const p = $('manual-pos-input').value;
@@ -2686,14 +2950,14 @@ const addWordManual = () => {
   const tg = $('manual-tags-input').value.split(',').map(x => x.trim()).filter(Boolean);
   const old = $('manual-word-old').value;
   
-  if (!w) return showToast('Please enter a word');
+  if (!w) return showToast(currentLang === 'ja' ? '単語を入力してください' : 'Please enter a word');
   
   const newObj = { id: generateId(), word: w, meaning: m, example: ex, note: nt, tags: tg };
   let existingIdx = old ? ALL_WORDS.findIndex(x => x.word === old) : ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.toLowerCase());
   
   if (old && old !== w) {
     if (ALL_WORDS.some(x => x.word.toLowerCase() === w.toLowerCase())) {
-      return showToast('Already registered');
+      return showToast(currentLang === 'ja' ? '既に登録されています' : 'Already registered');
     }
     if (savedWords.includes(old)) {
       savedWords = savedWords.filter(x => x !== old);
@@ -2712,7 +2976,7 @@ const addWordManual = () => {
       delete vocabMeta[old.toLowerCase()];
     }
   } else if (!old && existingIdx >= 0) {
-    return showToast('Already registered');
+    return showToast(currentLang === 'ja' ? '既に登録されています' : 'Already registered');
   }
   
   if (existingIdx >= 0) {
@@ -2733,7 +2997,7 @@ const addWordManual = () => {
   save.srs();
   save.prog();
   
-  showToast(old ? `Updated: ${w}` : `Added: ${w}`);
+  showToast(old ? (currentLang === 'ja' ? `更新しました: ${w}` : `Updated: ${w}`) : (currentLang === 'ja' ? `追加しました: ${w}` : `Added: ${w}`));
   closeModal('add-word-modal');
   renderVocab(true);
   renderVocabStats();
@@ -2747,12 +3011,12 @@ const addWordManual = () => {
 
 window.addDerivedWord = (word, meaning) => {
   if (ALL_WORDS.some(w => w.word.toLowerCase() === word.toLowerCase())) {
-    showToast('Already registered');
+    showToast(currentLang === 'ja' ? '既に登録されています' : 'Already registered');
     return;
   }
   ALL_WORDS.unshift({ id: generateId(), word, meaning, example: '', tags: [] });
   save.words();
-  showToast(`Added ${word}`);
+  showToast(currentLang === 'ja' ? `追加しました: ${word}` : `Added: ${word}`);
   updateTagFilters();
   renderVocab(true);
   renderVocabStats();
@@ -2764,7 +3028,7 @@ window.regenerateSearchWord = async (w) => {
   searchWord();
 };
 
-const searchWord = async (isSuggest = false) => {
+window.searchWord = async (isSuggest = false) => {
   const i = $('word-input');
   if (!i) return;
   const w = i.value.trim();
@@ -2877,7 +3141,7 @@ const searchWord = async (isSuggest = false) => {
     if (!fd) {
       ALL_WORDS.push({ id: generateId(), word: w, meaning: meaningText, detailHtml: html });
       save.words();
-      showToast(`Added: ${w}`);
+      showToast(currentLang === 'ja' ? `追加しました: ${w}` : `Added: ${w}`);
       updateTagFilters();
     } else {
       fd.detailHtml = html;
@@ -2894,18 +3158,18 @@ const searchWord = async (isSuggest = false) => {
           <div class="flex-between mb-1">
             <div class="result-word-header">
               <div class="result-word-title">${esc(w)}</div>
-              <button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">Pronounce</button>
+              <button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">${currentLang === 'ja' ? '発音' : 'Pronounce'}</button>
             </div>
             <div class="flex-gap-8">
-              <button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? 'Saved' : 'Save'}</button>
-              <button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">Copy</button>
-              <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">Delete</button>
+              <button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? (currentLang === 'ja' ? '保存済' : 'Saved') : (currentLang === 'ja' ? '保存' : 'Save')}</button>
+              <button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">${currentLang === 'ja' ? 'コピー' : 'Copy'}</button>
+              <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">${currentLang === 'ja' ? '削除' : 'Delete'}</button>
             </div>
           </div>
           <div class="result-meaning-badge">${esc(meaningText)}</div>
           ${html}
           <div class="text-center mt-3">
-            <button class="btn-pill btn-outline" onclick="regenerateSearchWord('${escJS(w)}')">Regenerate</button>
+            <button class="btn-pill btn-outline" onclick="regenerateSearchWord('${escJS(w)}')">${currentLang === 'ja' ? '再生成' : 'Regenerate'}</button>
           </div>
         </div>
       `;
@@ -2917,7 +3181,7 @@ const searchWord = async (isSuggest = false) => {
       if (!fd) {
         ALL_WORDS.push({ id: generateId(), word: w, meaning: fallbackMeaning, detailHtml: `<p>${esc(fallbackMeaning)}</p>` });
         save.words();
-        showToast(`Added: ${w}`);
+        showToast(currentLang === 'ja' ? `追加しました: ${w}` : `Added: ${w}`);
         updateTagFilters();
       }
       if (sr) {
@@ -2935,7 +3199,7 @@ const searchWord = async (isSuggest = false) => {
   }
 };
 
-const selectWord = w => {
+window.selectWord = w => {
   const i = $('word-input');
   if (i) {
     i.value = w;
@@ -3013,7 +3277,7 @@ window.regenerateWordDetail = async (w) => {
     mc.innerHTML = `
       <div class="mt-4">${parsedHtml}</div>
       <div class="text-center mt-3">
-        <button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">Regenerate</button>
+        <button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">${currentLang === 'ja' ? '再生成' : 'Regenerate'}</button>
       </div>
     `;
   } catch (e) {
@@ -3033,7 +3297,7 @@ window.showWordModal = async (w, m) => {
   if (fd && fd.tags && fd.tags.length) {
     tagsHtml = `
       <div class="flex gap-1 mb-2 flex-wrap">
-        ${fd.tags.map(t => `<span class="filter-chip" style="font-size:calc(9px * var(--text-scale));padding:2px 6px;">${esc(t)}</span>`).join('')}
+        ${fd.tags.map(t => `<span class="filter-chip" style="font-size:calc(10px * var(--text-scale));padding:4px 8px;">${esc(t)}</span>`).join('')}
       </div>
     `;
   }
@@ -3042,13 +3306,13 @@ window.showWordModal = async (w, m) => {
     <div class="word-detail-header">
       <div class="word-detail-title-row">
         <div class="result-word-title">${esc(w)}</div>
-        <button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">Pronounce</button>
+        <button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">${currentLang === 'ja' ? '発音' : 'Pronounce'}</button>
       </div>
       <div class="word-detail-actions">
         <span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w)}',event)" style="cursor:pointer;">${p}</span>
-        <button data-word="${esc(w)}" class="save-btn ${isS ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isS ? 'Saved' : 'Save'}</button>
-        <button class="copy-btn" onclick="openAddWordModal('${escJS(w)}')">Edit</button>
-        <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">Delete</button>
+        <button data-word="${esc(w)}" class="save-btn ${isS ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isS ? (currentLang === 'ja' ? '保存済' : 'Saved') : (currentLang === 'ja' ? '保存' : 'Save')}</button>
+        <button class="copy-btn" onclick="openAddWordModal('${escJS(w)}')">${currentLang === 'ja' ? '編集' : 'Edit'}</button>
+        <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">${currentLang === 'ja' ? '削除' : 'Delete'}</button>
       </div>
     </div>
     ${tagsHtml}
@@ -3074,7 +3338,7 @@ window.showWordModal = async (w, m) => {
     if (wordRetentionChart) wordRetentionChart.destroy();
     wordRetentionChart = new Chart(ctx, {
       type: 'line',
-      data: { labels, datasets: [{ label: 'Retention Rate (%)', data, borderColor: '#2980B9', backgroundColor: '#2980B933', fill: true, tension: 0.4 }] },
+      data: { labels, datasets: [{ label: 'Retention Rate (%)', data, borderColor: '#3498DB', backgroundColor: 'rgba(52, 152, 219, 0.2)', fill: true, tension: 0.4 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
     });
     
@@ -3099,16 +3363,16 @@ window.showWordModal = async (w, m) => {
   
   let customHtml = '';
   if (fd && (fd.example || fd.note)) {
-    customHtml = `<div class="mb-3 p-14 bg-main radius-sm border">`;
+    customHtml = `<div class="mb-3 p-16 bg-main radius-sm border">`;
     if (fd.example) {
       customHtml += `
-        <p class="text-xs font-bold text-muted mb-1">Example</p>
-        <p class="text-sm mb-2">${esc(fd.example)} <button class="btn-clear text-accent" onclick="speakWord('${escJS(fd.example)}',event)">Pronounce</button></p>
+        <p class="text-xs font-bold text-muted mb-2">Example</p>
+        <p class="text-sm mb-3">${esc(fd.example)} <button class="btn-clear text-accent" onclick="speakWord('${escJS(fd.example)}',event)">Pronounce</button></p>
       `;
     }
     if (fd.note) {
       customHtml += `
-        <p class="text-xs font-bold text-muted mb-1">Note</p>
+        <p class="text-xs font-bold text-muted mb-2">Note</p>
         <p class="text-sm">${esc(fd.note)}</p>
       `;
     }
@@ -3119,7 +3383,7 @@ window.showWordModal = async (w, m) => {
     mc.innerHTML = customHtml + `
       <div class="mt-4">${clean(fd.detailHtml)}</div>
       <div class="text-center mt-3">
-        <button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">Regenerate</button>
+        <button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">${currentLang === 'ja' ? '再生成' : 'Regenerate'}</button>
       </div>
     `;
   } else {
@@ -3160,7 +3424,7 @@ window.resetFsrsData = () => {
   const titleEl = document.querySelector('#modal-body .result-word-title');
   if (!titleEl) return;
   const w = titleEl.textContent;
-  if (!confirm('Reset study history for this word?')) return;
+  if (!confirm(currentLang === 'ja' ? 'この単語の学習履歴をリセットしますか？' : 'Reset study history for this word?')) return;
   
   delete srsData[w.toLowerCase()];
   setWordProgress(w, 'new');
@@ -3177,7 +3441,7 @@ const highlightText = (text, query) => {
   return esc(text).replace(regex, '<mark style="background:rgba(230,126,34,0.3);color:inherit;padding:0 2px;border-radius:2px;">$1</mark>');
 };
 
-const setPosFilter = p => {
+window.setPosFilter = p => {
   vocabPosFilter = p;
   document.querySelectorAll('#pos-filters .filter-chip').forEach(b => {
     b.classList.toggle('active', b.dataset.pos === p);
@@ -3185,7 +3449,7 @@ const setPosFilter = p => {
   renderVocab(true);
 };
 
-const setProgFilter = p => {
+window.setProgFilter = p => {
   vocabProgFilter = p;
   document.querySelectorAll('#prog-filters .filter-chip').forEach(b => {
     b.classList.toggle('active', b.dataset.prog === p);
@@ -3193,7 +3457,7 @@ const setProgFilter = p => {
   renderVocab(true);
 };
 
-const setTagFilter = t => {
+window.setTagFilter = t => {
   vocabTagFilter = t;
   document.querySelectorAll('#tag-filters .filter-chip').forEach(b => {
     b.classList.toggle('active', b.dataset.tag === t);
@@ -3201,7 +3465,7 @@ const setTagFilter = t => {
   renderVocab(true);
 };
 
-const setPrefixFilter = v => {
+window.setPrefixFilter = v => {
   vocabPrefixFilter = v.trim().toLowerCase();
   const b = $('prefix-clear-btn');
   if (b) {
@@ -3211,7 +3475,7 @@ const setPrefixFilter = v => {
   renderVocab(true);
 };
 
-const clearPrefixFilter = () => {
+window.clearPrefixFilter = () => {
   vocabPrefixFilter = '';
   const i = $('prefix-search-input');
   const b = $('prefix-clear-btn');
@@ -3231,7 +3495,7 @@ const updateTagFilters = () => {
   
   if (c) {
     c.innerHTML = `
-      <button class="filter-chip ${vocabTagFilter === 'all' ? 'active' : ''}" data-tag="all" onclick="setTagFilter('all')">All</button>
+      <button class="filter-chip ${vocabTagFilter === 'all' ? 'active' : ''}" data-tag="all" onclick="setTagFilter('all')">${currentLang === 'ja' ? 'すべて' : 'All'}</button>
     ` + Array.from(tags).map(t => `
       <button class="filter-chip ${vocabTagFilter === t ? 'active' : ''}" data-tag="${esc(t)}" onclick="setTagFilter('${escJS(t)}')">${esc(t)}</button>
     `).join('');
@@ -3239,7 +3503,7 @@ const updateTagFilters = () => {
   
   if (cs) {
     cs.innerHTML = `
-      <option value="all">All</option>
+      <option value="all">${currentLang === 'ja' ? 'すべて' : 'All'}</option>
     ` + Array.from(tags).map(t => `
       <option value="${esc(t)}">${esc(t)}</option>
     `).join('');
@@ -3253,15 +3517,15 @@ window.openTagManagerModal = () => {
     if (w.tags) w.tags.forEach(t => tags.add(t));
   });
   $('tag-manager-list').innerHTML = Array.from(tags).map(t => `
-    <div class="flex-between card p-10 mb-2">
+    <div class="flex-between card p-14 mb-2">
       <span class="font-bold">${esc(t)}</span>
-      <button class="btn-clear text-danger" onclick="deleteTagGlobally('${escJS(t)}')">Delete</button>
+      <button class="btn-clear text-danger" onclick="deleteTagGlobally('${escJS(t)}')">${currentLang === 'ja' ? '削除' : 'Delete'}</button>
     </div>
   `).join('');
 };
 
 window.deleteTagGlobally = (tag) => {
-  if (!confirm(`Delete tag "${tag}" from all words?`)) return;
+  if (!confirm(currentLang === 'ja' ? `タグ "${tag}" をすべての単語から削除しますか？` : `Delete tag "${tag}" from all words?`)) return;
   ALL_WORDS.forEach(w => {
     if (w.tags) w.tags = w.tags.filter(t => t !== tag);
   });
@@ -3271,7 +3535,7 @@ window.deleteTagGlobally = (tag) => {
   showToast('Deleted');
 };
 
-const analyzeVocabMeta = async () => {
+window.analyzeVocabMeta = async () => {
   const b = $('analyze-meta-btn');
   const s = $('meta-status');
   if (!localStorage.getItem('study_gemini_api_key')) return showToast('API Key not set');
@@ -3313,7 +3577,7 @@ const analyzeVocabMeta = async () => {
   } finally {
     if (b) {
       b.disabled = false;
-      b.textContent = 'Analyze POS & Etymology';
+      b.textContent = currentLang === 'ja' ? '品詞・語源を解析' : 'Analyze POS & Etymology';
     }
     if (s) s.textContent = 'Complete';
     renderVocab(true);
@@ -3344,7 +3608,7 @@ const renderVocabStats = () => {
 
 let currentFilteredWords = [];
 
-const renderVocab = (reset = false) => {
+window.renderVocab = (reset = false) => {
   const vi = $('vocab-search');
   const q = vi ? vi.value.toLowerCase() : '';
   const sortMode = $('vocab-sort-select') ? $('vocab-sort-select').value : 'newest';
@@ -3396,7 +3660,7 @@ const renderVocab = (reset = false) => {
   }
   
   if (!ALL_WORDS.length) {
-    vg.innerHTML = '<div class="vocab-empty">Empty</div>';
+    vg.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '空です' : 'Empty'}</div>`;
     if (btn) btn.classList.add('hidden');
     return;
   }
@@ -3407,7 +3671,7 @@ const renderVocab = (reset = false) => {
   const fragment = document.createDocumentFragment();
   itemsToRender.forEach(w => {
     const m = vocabMeta[w.word.toLowerCase()];
-    const pb = m ? `<span class="pos-badge" style="background:var(--bg2);color:var(--text-muted);font-size:10px;padding:2px 4px;border-radius:4px;">${posL[m.pos] || 'Oth'}</span>` : '';
+    const pb = m ? `<span class="pos-badge" style="background:var(--bg2);color:var(--text-muted);font-size:11px;padding:4px 6px;border-radius:6px;">${posL[m.pos] || 'Oth'}</span>` : '';
     const p = getWordProgress(w.word);
     const div = document.createElement('div');
     div.className = 'vocab-item';
@@ -3440,14 +3704,14 @@ const renderVocab = (reset = false) => {
   }
 };
 
-const loadMoreVocab = () => {
+window.loadMoreVocab = () => {
   vocabPage++;
   renderVocab(false);
 };
 
 window.bulkTagWords = () => {
   if (!currentFilteredWords.length) return;
-  const tag = prompt(`Enter tag to add to the currently displayed ${currentFilteredWords.length} words:`);
+  const tag = prompt(currentLang === 'ja' ? `表示中の ${currentFilteredWords.length} 単語に追加するタグを入力:` : `Enter tag to add to the currently displayed ${currentFilteredWords.length} words:`);
   if (!tag || !tag.trim()) return;
   const t = tag.trim();
   currentFilteredWords.forEach(w => {
@@ -3462,7 +3726,7 @@ window.bulkTagWords = () => {
 
 window.bulkResetProgress = () => {
   if (!currentFilteredWords.length) return;
-  if (!confirm(`Reset learning progress (FSRS) for the currently displayed ${currentFilteredWords.length} words?`)) return;
+  if (!confirm(currentLang === 'ja' ? `表示中の ${currentFilteredWords.length} 単語の学習進捗をリセットしますか？` : `Reset learning progress (FSRS) for the currently displayed ${currentFilteredWords.length} words?`)) return;
   currentFilteredWords.forEach(w => {
     delete srsData[w.word.toLowerCase()];
     setWordProgress(w.word, 'new');
@@ -3476,7 +3740,7 @@ window.bulkResetProgress = () => {
 
 window.bulkDeleteWords = () => {
   if (!currentFilteredWords.length) return;
-  if (!confirm(`Permanently delete the currently displayed ${currentFilteredWords.length} words? This action cannot be undone.`)) return;
+  if (!confirm(currentLang === 'ja' ? `表示中の ${currentFilteredWords.length} 単語を完全に削除しますか？この操作は元に戻せません。` : `Permanently delete the currently displayed ${currentFilteredWords.length} words? This action cannot be undone.`)) return;
   const wordsToDelete = new Set(currentFilteredWords.map(w => w.word.toLowerCase()));
   ALL_WORDS = ALL_WORDS.filter(w => !wordsToDelete.has(w.word.toLowerCase()));
   wordsToDelete.forEach(w => {
@@ -3496,13 +3760,13 @@ window.bulkDeleteWords = () => {
   showToast('Bulk deletion complete');
 };
 
-const printWordTest = () => {
+window.printWordTest = () => {
   const targets = ALL_WORDS.filter(w => getWordProgress(w.word) !== 'mastered');
   if (!targets.length) return showToast('No words to review');
   const words = [...targets].sort(() => 0.5 - Math.random()).slice(0, 50);
   const html = `
     <!DOCTYPE html>
-    <html lang="ja">
+    <html lang="en">
     <head>
       <title>Vocabulary Quiz</title>
       <style>
@@ -3510,7 +3774,7 @@ const printWordTest = () => {
         table{width:100%;border-collapse:collapse}
         th,td{border:1px solid #ccc;padding:10px}
         th{background:#f9f9f9}
-        .btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#2D2B27;color:#fff;border-radius:50px;cursor:pointer}
+        .btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#111;color:#fff;border-radius:50px;cursor:pointer}
         @media print{.btn{display:none}}
       </style>
     </head>
@@ -3527,11 +3791,11 @@ const printWordTest = () => {
   printHtml(html);
 };
 
-const exportVocabPDF = () => {
+window.exportVocabPDF = () => {
   if (!ALL_WORDS.length) return showToast('No words');
   const html = `
     <!DOCTYPE html>
-    <html lang="ja">
+    <html lang="en">
     <head>
       <title>Vocabulary List</title>
       <style>
@@ -3539,10 +3803,10 @@ const exportVocabPDF = () => {
         table{width:100%;border-collapse:collapse}
         th,td{border:1px solid #ddd;padding:8px}
         th{background:#f5f5f5}
-        .mastered{color:#1a6038;font-weight:bold}
-        .learning{color:#8a6200;font-weight:bold}
+        .mastered{color:#27AE60;font-weight:bold}
+        .learning{color:#D4AC0D;font-weight:bold}
         .new{color:#999}
-        .btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#2D2B27;color:#fff;border-radius:50px;cursor:pointer}
+        .btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#111;color:#fff;border-radius:50px;cursor:pointer}
         @media print{.btn{display:none}}
       </style>
     </head>
@@ -3561,6 +3825,7 @@ const exportVocabPDF = () => {
   `;
   printHtml(html);
 };
+
 // ============================================================
 // [12] SKILL UP
 // ============================================================
@@ -3854,14 +4119,14 @@ const renderWritingHistory = () => {
   if (filtered.length) {
     c.innerHTML = filtered.map(h => `
       <div class="writing-history-item" role="button" tabindex="0" onclick="showWritingHistoryDetail('${h.id}')">
-        <div class="text-xs text-muted mb-1">
+        <div class="text-xs text-muted mb-2">
           ${h.date}${h.score != null ? ' — ' + h.score + ' pts' : ''} (${h.type === 'analyze' ? 'Parse' : h.type === 'paraphrase' ? 'Para' : h.type === 'essay' ? 'Essay' : 'Correct'})
         </div>
         <div class="text-sm text-sub">${esc(h.original)}</div>
       </div>
     `).join('');
   } else {
-    c.innerHTML = '<div class="vocab-empty">No history</div>';
+    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '履歴がありません' : 'No history'}</div>`;
   }
 };
 
@@ -3879,7 +4144,7 @@ window.showWritingHistoryDetail = id => {
     html += `
       <div class="mb-3">
         <button class="btn-text-muted" onclick="showSavedImage('${h.imageId}')">View Original Image</button>
-        <div id="saved-img-${h.imageId}" class="mt-1"></div>
+        <div id="saved-img-${h.imageId}" class="mt-2"></div>
       </div>
     `;
   }
@@ -3887,7 +4152,7 @@ window.showWritingHistoryDetail = id => {
   if (h.type === 'analyze' || (!h.type && h.score === null)) {
     html += `
       <div class="text-xs font-bold text-muted mb-2">Blank Text Test</div>
-      <div class="text-base mb-3 p-14 bg-main radius-sm line-height-16">${esc(h.fullOriginal || h.original).replace(/\n/g, '<br>')}</div>
+      <div class="text-base mb-3 p-16 bg-main radius-sm line-height-16">${esc(h.fullOriginal || h.original).replace(/\n/g, '<br>')}</div>
       <button class="action-btn mb-0 bg-accent" onclick="document.getElementById('hist-analyzed-${id}').classList.remove('hidden');this.classList.add('hidden');">View Answer</button>
       <div id="hist-analyzed-${id}" class="hidden mt-14">
         <div class="correction-box mt-0">${h.result}</div>
@@ -3897,7 +4162,7 @@ window.showWritingHistoryDetail = id => {
     html += `<div class="correction-box">${h.result}</div>`;
   }
   
-  html += `<button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteWritingHistory('${id}')">Delete this history</button>`;
+  html += `<button class="action-btn mt-4 mb-0 btn-danger" onclick="deleteWritingHistory('${id}')">Delete this history</button>`;
   mb.innerHTML = html;
   openModal('writing-history-modal');
 };
@@ -3963,7 +4228,7 @@ const renderDaily = () => {
     
     if (!tasks.length) {
       html += `
-        <div class="card text-center p-36">
+        <div class="card text-center p-40">
           <button class="action-btn mb-0 btn-auto-width btn-lg-pad" onclick="generateDailyTask('${currentDailyTab}')">Create Question</button>
         </div>
       `;
@@ -3971,7 +4236,7 @@ const renderDaily = () => {
       html += tasks.map(task => {
         let qHtml = task.question;
         if (currentDailyTab === 'reading') {
-          qHtml = qHtml.replace(/<div class="translation hidden" id="([^"]+)">/g, '<button class="btn-text-muted mt-1 mb-2" onclick="toggleReadingTranslation(\'$1\')">Show Translation</button><div class="translation hidden text-sm text-sub bg-main p-10 radius-sm mb-3" id="$1">');
+          qHtml = qHtml.replace(/<div class="translation hidden" id="([^"]+)">/g, '<button class="btn-text-muted mt-2 mb-2" onclick="toggleReadingTranslation(\'$1\')">Show Translation</button><div class="translation hidden text-sm text-sub bg-main p-14 radius-sm mb-3" id="$1">');
         }
         
         if (!task.answer) {
@@ -3991,7 +4256,7 @@ const renderDaily = () => {
               <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Question:</b><br>${qHtml}</div>
               <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Answer:</b><br>${esc(task.answer)}</div>
               <div class="correction-box mt-0">${task.feedback}</div>
-              <button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromDaily('${task.id}')">Extract Key Syntax</button>
+              <button class="action-btn mt-4 mb-0 bg-accent2" onclick="extractSyntaxFromDaily('${task.id}')">Extract Key Syntax</button>
             </div>
           `;
         }
@@ -4010,7 +4275,7 @@ const renderDaily = () => {
           <p class="section-note">Past Questions</p>
           ${hist.map(h => `
             <div class="writing-history-item" role="button" tabindex="0" onclick="showDailyHistoryDetail('${h.id}')">
-              <div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + ' pts' : ''}</div>
+              <div class="text-xs text-muted mb-2">${h.date}${h.score != null ? ' — ' + h.score + ' pts' : ''}</div>
               <div class="text-sm">${h.question.replace(/<[^>]+>/g, '').substring(0, 60)}...</div>
             </div>
           `).join('')}
@@ -4026,7 +4291,7 @@ const renderDaily = () => {
 window.generateDailyTask = async type => {
   const a = $('daily-area-' + type);
   if (!a) return;
-  a.innerHTML = `<div class="p-36">${skeletonHtml}</div>`;
+  a.innerHTML = `<div class="p-40">${skeletonHtml}</div>`;
   
   const diff = $('daily-difficulty') ? $('daily-difficulty').value : 'standard';
   let diffText = diff === 'basic' ? '初級（共通テストレベル）の' : diff === 'advanced' ? '上級（難関大レベル）の極めて高度な' : '中級（国公立大レベル）の';
@@ -4140,7 +4405,7 @@ window.showDailyHistoryDetail = id => {
       </div>
       <p class="text-xs text-muted text-center mt-2">${sT}</p>
     </div>
-    <button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteDailyChallenge('${id}')">Delete this question</button>
+    <button class="action-btn mt-4 mb-0 btn-danger" onclick="deleteDailyChallenge('${id}')">Delete this question</button>
   `;
   mb.innerHTML = html;
   openModal('writing-history-modal');
@@ -4262,7 +4527,7 @@ const renderListenArea = () => {
     
     if (!tasks.length) {
       html += `
-        <div class="card text-center p-36">
+        <div class="card text-center p-40">
           <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2" onclick="generateDailyListen()">Create Multiple Choice</button>
         </div>
       `;
@@ -4295,11 +4560,11 @@ const renderListenArea = () => {
         
         if (ans) {
           card += `
-            <div style="background:${task.userAnswer === task.answer ? '#d4f0e0' : '#fde8e6'};border-radius:var(--radius-sm);padding:14px;margin-top:14px;">
+            <div style="background:${task.userAnswer === task.answer ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)'};border-radius:var(--radius-sm);padding:16px;margin-top:16px;">
               <p style="font-weight:700;margin-bottom:8px;color:${task.userAnswer === task.answer ? '#1a6038' : '#8b1c14'}">${task.userAnswer === task.answer ? 'Correct!' : 'Incorrect'}</p>
               <p class="text-sm line-height-16">${esc(task.explanation)}</p>
             </div>
-            <div class="mt-3 p-14 bg-main radius-sm border">
+            <div class="mt-3 p-16 bg-main radius-sm border">
               <p class="text-xs font-bold text-muted mb-2">Transcript</p>
               <p class="text-sm line-height-16" id="listen-transcript-${task.id}">${esc(task.transcript)}</p>
             </div>
@@ -4322,8 +4587,8 @@ const renderListenArea = () => {
           <p class="section-note">Past Questions</p>
           ${hist.map(h => `
             <div class="writing-history-item" role="button" tabindex="0" onclick="showListenHistoryDetail('${h.id}')">
-              <div class="text-xs text-muted mb-1">${h.date} — ${ACCENT_LABELS[h.accent] || h.accent}</div>
-              <div class="text-xs text-sub">${esc((h.transcript || '').substring(0, 40))}...</div>
+              <div class="text-xs text-muted mb-2">${h.date} — ${ACCENT_LABELS[h.accent] || h.accent}</div>
+              <div class="text-sm text-sub">${esc((h.transcript || '').substring(0, 40))}...</div>
             </div>
           `).join('')}
         </div>
@@ -4339,7 +4604,7 @@ const renderListenArea = () => {
     
     if (!tasks.length) {
       html += `
-        <div class="card text-center p-36">
+        <div class="card text-center p-40">
           <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2" onclick="generateDailyDictation()">Create Dictation</button>
         </div>
       `;
@@ -4391,8 +4656,8 @@ const renderListenArea = () => {
           <p class="section-note">Past Dictations</p>
           ${hist.map(h => `
             <div class="writing-history-item" role="button" tabindex="0" onclick="showListenHistoryDetail('${h.id}')">
-              <div class="text-xs text-muted mb-1">${h.date} — ${ACCENT_LABELS[h.accent] || h.accent}</div>
-              <div class="text-xs text-sub">${esc((h.transcript || '').substring(0, 40))}...</div>
+              <div class="text-xs text-muted mb-2">${h.date} — ${ACCENT_LABELS[h.accent] || h.accent}</div>
+              <div class="text-sm text-sub">${esc((h.transcript || '').substring(0, 40))}...</div>
             </div>
           `).join('')}
         </div>
@@ -4599,11 +4864,11 @@ window.showListenHistoryDetail = id => {
     
     if (ans) {
       ht += `
-        <div style="background:${h.userAnswer === h.answer ? '#d4f0e0' : '#fde8e6'};border-radius:var(--radius-sm);padding:14px;margin-top:14px;">
+        <div style="background:${h.userAnswer === h.answer ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)'};border-radius:var(--radius-sm);padding:16px;margin-top:16px;">
           <p style="font-weight:700;margin-bottom:8px;color:${h.userAnswer === h.answer ? '#1a6038' : '#8b1c14'}">${h.userAnswer === h.answer ? 'Correct!' : 'Incorrect'}</p>
           <p class="text-sm">${esc(h.explanation)}</p>
         </div>
-        <div class="mt-3 p-14 bg-main radius-sm border">
+        <div class="mt-3 p-16 bg-main radius-sm border">
           <p class="text-xs font-bold text-muted mb-2">Transcript</p>
           <p class="text-sm" id="listen-transcript-${h.id}">${esc(h.transcript)}</p>
         </div>
@@ -4622,7 +4887,7 @@ window.showListenHistoryDetail = id => {
       </div>
       <p class="text-xs text-muted text-center mt-2">${sT}</p>
     </div>
-    <button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteListenHistory('${h.id}')">Delete this question</button>
+    <button class="action-btn mt-4 mb-0 btn-danger" onclick="deleteListenHistory('${h.id}')">Delete this question</button>
   `;
   
   mb.innerHTML = ht;
@@ -4712,8 +4977,8 @@ const renderWordQuiz = () => {
   if (activeQuizIndex >= activeQuizList.length) {
     area.innerHTML = `
       <div class="card text-center p-40">
-        <h2 style="font-family:var(--font-block); font-size:32px; margin-bottom:10px;">RESULT</h2>
-        <p style="font-size:18px; font-weight:700; color:var(--accent); margin-bottom:20px;">${quizScore} / ${activeQuizList.length} Correct</p>
+        <h2 style="font-family:var(--font-block); font-size:36px; margin-bottom:12px;">RESULT</h2>
+        <p style="font-size:20px; font-weight:700; color:var(--accent); margin-bottom:24px;">${quizScore} / ${activeQuizList.length} Correct</p>
         <button class="action-btn" onclick="document.getElementById('word-quiz-area').innerHTML='';">Finish</button>
       </div>
     `;
@@ -4750,7 +5015,7 @@ const renderWordQuiz = () => {
   
   html += `
       </div>
-      <div id="quiz-feedback-area" class="hidden mt-16 p-12 radius-sm"></div>
+      <div id="quiz-feedback-area" class="hidden mt-16 p-16 radius-sm"></div>
     </div>
   `;
   area.innerHTML = html;
@@ -4798,12 +5063,12 @@ window.submitWordQuiz = (type, val) => {
   }
   
   fb.classList.remove('hidden');
-  fb.style.backgroundColor = isCorrect ? '#d4f0e0' : '#fde8e6';
+  fb.style.backgroundColor = isCorrect ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)';
   fb.style.border = `1px solid ${isCorrect ? 'var(--green)' : 'var(--danger)'}`;
   fb.innerHTML = `
     <p style="font-weight:700; color:${isCorrect ? '#1a6038' : '#8b1c14'}; margin-bottom:8px;">${isCorrect ? 'Correct!' : 'Incorrect'}</p>
     <p class="text-sm text-sub">Answer: ${esc(correctText)}</p>
-    <button class="action-btn mt-3 mb-0 bg-accent" onclick="activeQuizIndex++; renderWordQuiz();">Next Question</button>
+    <button class="action-btn mt-4 mb-0 bg-accent" onclick="activeQuizIndex++; renderWordQuiz();">Next Question</button>
   `;
 };
 
@@ -4957,13 +5222,13 @@ window.playShadowingModel = () => {
   const text = $('shadowing-text-input').value;
   if (!text) return showToast('Please enter English text');
   speakWord(text);
-  drawFakeWaveform('shadowing-model-canvas', '#2980B9');
+  drawFakeWaveform('shadowing-model-canvas', '#3498DB');
 };
 
 window.toggleShadowingRecord = async () => {
   const btn = $('shadowing-record-btn');
-  if (btn.textContent === 'Start Recording') {
-    btn.textContent = 'Stop';
+  if (btn.textContent === 'Start Recording' || btn.textContent === '録音開始') {
+    btn.textContent = currentLang === 'ja' ? '停止' : 'Stop';
     btn.classList.remove('bg-danger');
     btn.classList.add('bg-accent');
     try {
@@ -4978,7 +5243,7 @@ window.toggleShadowingRecord = async () => {
       window.toggleShadowingRecord();
     }
   } else {
-    btn.textContent = 'Start Recording';
+    btn.textContent = currentLang === 'ja' ? '録音開始' : 'Start Recording';
     btn.classList.remove('bg-accent');
     btn.classList.add('bg-danger');
     if (shadowingAudioCtx) shadowingAudioCtx.close();
@@ -5032,7 +5297,7 @@ const renderSyntax = () => {
   const c = $('syntax-list');
   if (!c) return;
   if (!syntaxList.length) {
-    c.innerHTML = '<div class="vocab-empty">No syntax available</div>';
+    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '構文がありません' : 'No syntax available'}</div>`;
     return;
   }
   
@@ -5042,12 +5307,12 @@ const renderSyntax = () => {
     const sT = r ? `Next: ${srsDaysDiff(srsNextDate(r)) <= 0 ? 'Today' : srsDaysDiff(srsNextDate(r)) + ' days'}` : 'Not registered';
     
     return `
-      <div class="card mb-2 p-14">
+      <div class="card mb-2 p-16">
         <div class="flex-between align-center mb-2">
           <div class="text-base font-bold line-height-15" style="font-family:var(--font-block);">${esc(s.syntax)}</div>
           <button onclick="deleteSyntax('${s.id}')" class="btn-clear text-danger">✕</button>
         </div>
-        <div class="text-sm text-sub mb-1">${esc(s.meaning || '')}</div>
+        <div class="text-sm text-sub mb-2">${esc(s.meaning || '')}</div>
         ${s.note ? `<div class="text-xs text-muted mt-2 pt-2 border-top border-dashed">${esc(s.note)}</div>` : ''}
         <div class="flex align-center gap-1 mt-3">
           <button onclick="srsReviewItem('${sK}',0);renderSyntax()" class="btn-srs bg-danger btn-pill">Forgot</button>
@@ -5103,7 +5368,7 @@ window.exportSyntaxPDF = () => {
   if (!syntaxList.length) return showToast('No syntax available');
   const html = `
     <!DOCTYPE html>
-    <html lang="ja">
+    <html lang="en">
     <head>
       <title>Syntax List</title>
       <style>
@@ -5111,7 +5376,7 @@ window.exportSyntaxPDF = () => {
         table{width:100%;border-collapse:collapse}
         th,td{border:1px solid #ddd;padding:8px}
         th{background:#f5f5f5}
-        .btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#2D2B27;color:#fff;border-radius:50px;cursor:pointer}
+        .btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#111;color:#fff;border-radius:50px;cursor:pointer}
         @media print{.btn{display:none}}
       </style>
     </head>
@@ -5303,7 +5568,7 @@ window.ccRenderCards = () => {
   if (!d || !cl) return;
   
   cl.innerHTML = d.cards.map((c, i) => `
-    <div class="card flex-between p-10">
+    <div class="card flex-between p-14">
       <div>
         <b>${esc(c.front)}</b><br>
         <span class="text-muted">${esc(c.back)}</span>
@@ -5443,7 +5708,7 @@ window.ccGenerateCardsAI = async () => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = 'Generate with AI';
+      btn.textContent = currentLang === 'ja' ? 'AIで生成' : 'Generate with AI';
     }
   }
 };
@@ -5459,7 +5724,7 @@ window.setSubject = s => {
   });
   
   const sl = $('subject-label');
-  if (sl) sl.textContent = subjConf[s] + ' Mode';
+  if (sl) sl.textContent = (currentLang === 'ja' ? subjConf[s] : subjConf[s]) + ' Mode';
   
   const ocrOpt = $('math-sci-ocr-option');
   if (ocrOpt) {
@@ -5543,7 +5808,7 @@ const _sendSubj = async (c, dt) => {
     const ld = $('sq-load');
     if (ld) ld.remove();
     
-    ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')} <button class="copy-btn mt-2" onclick="saveLastSubjectQA(this,'${curSubj}')">Save</button></div>`);
+    ct.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai">${cleanRep.replace(/\n/g, '<br>')} <button class="copy-btn mt-3" onclick="saveLastSubjectQA(this,'${curSubj}')">Save</button></div>`);
     renderMath(ct.lastElementChild);
   } catch (e) {
     const ld = $('sq-load');
@@ -5691,7 +5956,7 @@ const renderSubjectSaved = () => {
   const folderSel = $('subject-folder-select');
   if (folderSel) {
     const currentVal = folderSel.value;
-    folderSel.innerHTML = `<option value="all">All Folders</option><option value="uncategorized">Uncategorized</option>` + subjectFolders.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
+    folderSel.innerHTML = `<option value="all">${currentLang === 'ja' ? 'すべてのフォルダ' : 'All Folders'}</option><option value="uncategorized">${currentLang === 'ja' ? '未分類' : 'Uncategorized'}</option>` + subjectFolders.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
     folderSel.value = currentVal || 'all';
   }
   
@@ -5704,18 +5969,18 @@ const renderSubjectSaved = () => {
   if (ls.length) {
     sl.innerHTML = ls.map(x => `
       <div class="card mb-2">
-        <div class="text-xs text-muted mb-1">${x.date}</div>
-        <div class="text-sm font-bold mb-1">${esc(x.question)}</div>
-        ${x.imageId ? `<div class="mb-2"><button class="btn-text-muted" onclick="showSavedImage('${x.imageId}')">View Image</button><div id="saved-img-${x.imageId}" class="mt-1"></div></div>` : ''}
-        <div class="text-xs text-sub">${esc(x.answer)}</div>
-        <div class="flex-gap-8 mt-2">
+        <div class="text-xs text-muted mb-2">${x.date}</div>
+        <div class="text-sm font-bold mb-2">${esc(x.question)}</div>
+        ${x.imageId ? `<div class="mb-3"><button class="btn-text-muted" onclick="showSavedImage('${x.imageId}')">View Image</button><div id="saved-img-${x.imageId}" class="mt-2"></div></div>` : ''}
+        <div class="text-sm text-sub">${esc(x.answer)}</div>
+        <div class="flex-gap-8 mt-3">
           <button class="copy-btn" onclick="generateSimilarSubject('${x.id}')">Generate Similar</button>
           <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteSubjectSaved('${x.id}')">Delete</button>
         </div>
       </div>
     `).join('');
   } else {
-    sl.innerHTML = '<div class="vocab-empty">Empty</div>';
+    sl.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '空です' : 'Empty'}</div>`;
   }
   
   sl.querySelectorAll('.text-sub').forEach(el => renderMath(el));
@@ -5768,7 +6033,7 @@ const renderSubjectQuiz = () => {
     if (hl) {
       hl.innerHTML = hist.length ? `<p class="section-note">Past Review Questions</p>` + hist.map(h => `
         <div class="writing-history-item" role="button" tabindex="0" onclick="showSubjectQuizHistory('${h.id}')">
-          <div class="text-xs text-muted mb-1">${h.date}${h.score != null ? ' — ' + h.score + ' pts' : ''}</div>
+          <div class="text-xs text-muted mb-2">${h.date}${h.score != null ? ' — ' + h.score + ' pts' : ''}</div>
           <div class="text-sm">${h.question.replace(/<[^>]+>/g, '').substring(0, 60)}...</div>
         </div>
       `).join('') : '';
@@ -5787,7 +6052,7 @@ window.generateSubjectQuiz = async () => {
   if (sqs) sqs.classList.add('hidden');
   if (sqa) {
     sqa.classList.remove('hidden');
-    sqa.innerHTML = `<div class="p-36">${skeletonHtml}</div>`;
+    sqa.innerHTML = `<div class="p-40">${skeletonHtml}</div>`;
   }
   
   try {
@@ -5831,7 +6096,7 @@ const renderSubjectQuizActive = quiz => {
         <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Question:</b><br>${quiz.question}</div>
         <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Answer:</b><br>${esc(quiz.answer)}</div>
         <div class="correction-box mt-0">${quiz.feedback}</div>
-        <button class="action-btn mt-3 mb-0 bg-accent2" onclick="renderSubjectQuiz()">Back</button>
+        <button class="action-btn mt-4 mb-0 bg-accent2" onclick="renderSubjectQuiz()">Back</button>
       </div>
     `;
   }
@@ -5885,7 +6150,7 @@ window.showSubjectQuizHistory = id => {
     <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Question:</b><br>${h.question}</div>
     <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Answer:</b><br>${esc(h.answer)}</div>
     <div class="correction-box mt-0">${h.feedback}</div>
-    <button class="action-btn mt-3 mb-0 btn-danger" onclick="deleteSubjectQuizHistory('${id}')">Delete this question</button>
+    <button class="action-btn mt-4 mb-0 btn-danger" onclick="deleteSubjectQuizHistory('${id}')">Delete this question</button>
   `;
   mb.innerHTML = html;
   openModal('writing-history-modal');
@@ -5984,14 +6249,14 @@ const renderPlanCalendar = () => {
     let dotHtml = '';
     const dp = plans[ds];
     if (dp && dp.length > 0) {
-      dotHtml += `<div style="width:5px;height:5px;border-radius:50%;background:${dp.every(p => p.done) ? 'var(--green)' : 'var(--streak)'};"></div>`;
+      dotHtml += `<div style="width:6px;height:6px;border-radius:50%;background:${dp.every(p => p.done) ? 'var(--green)' : 'var(--streak)'};"></div>`;
     }
     const ev = events[ds];
     if (ev && ev.length > 0) {
-      dotHtml += `<div style="width:5px;height:5px;border-radius:50%;background:#3498db;"></div>`;
+      dotHtml += `<div style="width:6px;height:6px;border-radius:50%;background:#3498db;"></div>`;
     }
     
-    const dot = dotHtml ? `<div style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);display:flex;gap:2px;">${dotHtml}</div>` : '';
+    const dot = dotHtml ? `<div style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%);display:flex;gap:3px;">${dotHtml}</div>` : '';
     html += `<div class="${cls}" onclick="selectPlanDate('${ds}')">${d}${dot}</div>`;
   }
   
@@ -6013,13 +6278,13 @@ const renderPlanDateList = () => {
   const lsE = events[selectedPlanDate] || [];
   if (evL) {
     evL.innerHTML = lsE.length ? lsE.map((e, i) => `
-      <div class="plan-item-row" style="margin-bottom:6px;border-left:3px solid #3498db;">
+      <div class="plan-item-row" style="margin-bottom:8px;border-left:4px solid #3498db;">
         <div style="flex:1">
-          <div class="pi-text" style="font-size:14px;">${esc(e.text)}</div>
+          <div class="pi-text" style="font-size:15px;">${esc(e.text)}</div>
         </div>
         <button class="plan-del" onclick="deletePlanEvent(${i})">✕</button>
       </div>
-    `).join('') : '<div class="text-center text-xs text-muted">No events</div>';
+    `).join('') : `<div class="text-center text-xs text-muted">${currentLang === 'ja' ? '予定はありません' : 'No events'}</div>`;
   }
   
   const plL = $('plan-content');
@@ -6029,12 +6294,12 @@ const renderPlanDateList = () => {
       <div class="plan-item-row">
         <input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePlanDatePlan(${i})">
         <div style="flex:1">
-          <div class="pi-text ${p.done ? 'done' : ''}" style="font-size:14px;">${esc(p.text)}</div>
-          ${p.time ? `<div class="pi-time" style="font-size:11px;color:var(--text-muted);">${esc(p.time)}</div>` : ''}
+          <div class="pi-text ${p.done ? 'done' : ''}" style="font-size:15px;">${esc(p.text)}</div>
+          ${p.time ? `<div class="pi-time" style="font-size:12px;color:var(--text-muted);margin-top:4px;">${esc(p.time)}</div>` : ''}
         </div>
         <button class="plan-del" onclick="deletePlanDatePlan(${i})">✕</button>
       </div>
-    `).join('') : '<p class="text-center text-xs text-muted p-10">No plans</p>';
+    `).join('') : `<p class="text-center text-xs text-muted p-10">${currentLang === 'ja' ? '計画はありません' : 'No plans'}</p>`;
   }
 };
 
@@ -6147,7 +6412,7 @@ window.deletePlanDatePlan = i => {
 };
 
 window.rebuildScheduleAI = async () => {
-  if (!confirm('Automatically reschedule past incomplete plans to today or later?')) return;
+  if (!confirm(currentLang === 'ja' ? '過去の未完了タスクを今日以降に自動再配置しますか？' : 'Automatically reschedule past incomplete plans to today or later?')) return;
   const today = todayDateStr();
   let pendingTasks = [];
   
@@ -6199,9 +6464,9 @@ const renderTextbooks = () => {
   
   if (textbooks.length) {
     c.innerHTML = textbooks.map((t, i) => `
-      <div class="filter-chip flex-between w-full" data-id="${t.id}" style="cursor:grab; padding:8px 12px;">
+      <div class="filter-chip flex-between w-full" data-id="${t.id}" style="cursor:grab; padding:10px 16px;">
         <div class="flex align-center">
-          <span class="material-symbols-rounded text-muted mr-2" style="font-size:16px;">drag_indicator</span>
+          <span class="material-symbols-rounded text-muted mr-2" style="font-size:18px;">drag_indicator</span>
           <span class="subj-badge ${t.subject}">${SCORE_SUBJECTS[t.subject]?.label || 'Oth'}</span>
           <span class="font-bold">${esc(t.name)}</span>
         </div>
@@ -6209,12 +6474,12 @@ const renderTextbooks = () => {
       </div>
     `).join('');
   } else {
-    c.innerHTML = '<span class="text-xs text-muted">Empty</span>';
+    c.innerHTML = `<span class="text-xs text-muted">${currentLang === 'ja' ? '空です' : 'Empty'}</span>`;
   }
   
   const ws = $('weekly-textbook-select');
   if (ws) {
-    ws.innerHTML = '<option value="">Select textbook...</option>' + textbooks.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+    ws.innerHTML = `<option value="">${currentLang === 'ja' ? '参考書を選択...' : 'Select textbook...'}</option>` + textbooks.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
   }
 
   if (sortableTextbooks) sortableTextbooks.destroy();
@@ -6267,8 +6532,8 @@ const renderWeeklyPlan = () => {
   if (!c) return;
   
   if (lbl) {
-    if (planWeeklyOffset === 0) lbl.textContent = 'This Week';
-    else if (planWeeklyOffset === 1) lbl.textContent = 'Last Week';
+    if (planWeeklyOffset === 0) lbl.textContent = currentLang === 'ja' ? '今週' : 'This Week';
+    else if (planWeeklyOffset === 1) lbl.textContent = currentLang === 'ja' ? '先週' : 'Last Week';
     else lbl.textContent = `${planWeeklyOffset} weeks ago`;
   }
 
@@ -6290,12 +6555,12 @@ const renderWeeklyPlan = () => {
     
     const dayPlans = plans[ds] || [];
     const planHtml = dayPlans.length ? dayPlans.map((p, idx) => `
-      <div class="plan-item-row" style="padding:6px 10px; margin-bottom:4px;">
+      <div class="plan-item-row" style="padding:8px 12px; margin-bottom:6px;">
         <input type="checkbox" ${p.done ? 'checked' : ''} onchange="toggleWeeklyPlan('${ds}', ${idx})">
-        <div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:13px;">${esc(p.text)}</div></div>
+        <div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:14px;">${esc(p.text)}</div></div>
         <button class="plan-del" onclick="deleteWeeklyPlan('${ds}', ${idx})">✕</button>
       </div>
-    `).join('') : '<div class="text-xs text-muted text-center py-2">No plans</div>';
+    `).join('') : `<div class="text-xs text-muted text-center py-2">${currentLang === 'ja' ? '計画はありません' : 'No plans'}</div>`;
 
     html += `
       <div class="weekly-day-card" style="${isToday ? 'border-color:var(--accent); background:var(--bg2);' : ''}">
@@ -6384,7 +6649,7 @@ const renderYearlyPlan = () => {
     const isCur = i === curMonth;
     html += `
       <div class="yearly-month-card" style="${isCur ? 'border-color:var(--accent); background:var(--bg2);' : ''}">
-        <div class="yearly-month-label">${getAcademicYearLabel(i)} ${isCur ? '<span class="text-accent">(This Month)</span>' : ''}</div>
+        <div class="yearly-month-label">${getAcademicYearLabel(i)} ${isCur ? `<span class="text-accent">(${currentLang === 'ja' ? '今月' : 'This Month'})</span>` : ''}</div>
         <textarea class="yearly-month-input" rows="3" placeholder="Goals / Plans..." oninput="updateYearlyMonth(${i}, this.value)">${esc(val)}</textarea>
       </div>
     `;
@@ -6789,7 +7054,7 @@ const renderScoreList = () => {
   const c = $('score-list');
   if (!c) return;
   if (!examScores.length) {
-    c.innerHTML = '<div class="vocab-empty">No scores</div>';
+    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '成績がありません' : 'No scores'}</div>`;
     return;
   }
   
@@ -6802,23 +7067,23 @@ const renderScoreList = () => {
     `).join('');
     
     const judgeHtml = (s.judges || []).map(x => `
-      <span class="inline-block bg-main border radius-sm px-6 py-2 mr-4 mb-2 text-xs font-bold">
+      <span class="inline-block bg-main border radius-sm px-8 py-4 mr-4 mb-2 text-xs font-bold">
         ${esc(x.univ)} <span class="text-danger">${esc(x.rank)}</span>
       </span>
     `).join('');
     
     return `
       <div class="card mb-2">
-        <div class="flex-between align-center mb-2">
+        <div class="flex-between align-center mb-3">
           <div>
             <div class="text-base font-bold">${esc(s.name)}</div>
             ${s.date ? `<div class="text-xs text-muted mt-1">${esc(s.date)}</div>` : ''}
           </div>
           <button onclick="deleteExamScore(${s.id})" class="btn-clear">✕</button>
         </div>
-        ${subjHtml ? `<div class="mb-2">${subjHtml}</div>` : ''}
+        ${subjHtml ? `<div class="mb-3">${subjHtml}</div>` : ''}
         ${judgeHtml ? `<div class="mb-2">${judgeHtml}</div>` : ''}
-        ${s.memo ? `<div class="text-xs text-muted pt-2 border-top">${esc(s.memo)}</div>` : ''}
+        ${s.memo ? `<div class="text-xs text-muted pt-3 border-top">${esc(s.memo)}</div>` : ''}
       </div>
     `;
   }).join('');
@@ -6851,7 +7116,7 @@ const renderScoreChart = () => {
   
   const sorted = [...scored].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
   const labels = sorted.map(s => s.date || s.name);
-  const colors = ['#2980B9', '#C0392B', '#2E7D52', '#E67E22', '#8E44AD', '#16A085', '#D35400', '#2C3E50'];
+  const colors = ['#3498DB', '#E74C3C', '#2ECC71', '#E67E22', '#9B59B6', '#1ABC9C', '#D35400', '#34495E'];
   
   let datasets = [];
   let allDetails = [];
@@ -6937,16 +7202,16 @@ const renderLogListModal = () => {
   const c = $('log-list-container');
   if (!c) return;
   if (!studyLogs.length) {
-    c.innerHTML = '<div class="vocab-empty">No study logs</div>';
+    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '学習記録がありません' : 'No study logs'}</div>`;
     return;
   }
   
   const sortedLogs = [...studyLogs].sort((a, b) => b.ts - a.ts);
   
   c.innerHTML = sortedLogs.map(l => `
-    <div class="card flex-between align-center p-14 mb-0">
+    <div class="card flex-between align-center p-16 mb-0">
       <div>
-        <div class="text-xs text-muted mb-1">${l.date}</div>
+        <div class="text-xs text-muted mb-2">${l.date}</div>
         <div class="text-sm font-bold"><span class="sli-subj mr-2">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span> ${Math.floor(l.seconds / 60)} min</div>
       </div>
       <div class="flex-gap-8">
@@ -7029,11 +7294,11 @@ const renderDailyEventList = () => {
   const ls = events[currentLogDate] || [];
   if (c) {
     c.innerHTML = ls.length ? ls.map((e, i) => `
-      <div class="plan-item-row" style="margin-bottom:6px;border-left:3px solid #3498db;">
-        <div style="flex:1"><div class="pi-text" style="font-size:14px;">${esc(e.text)}</div></div>
+      <div class="plan-item-row" style="margin-bottom:8px;border-left:4px solid #3498db;">
+        <div style="flex:1"><div class="pi-text" style="font-size:15px;">${esc(e.text)}</div></div>
         <button class="plan-del" onclick="deleteDailyEventFromModal(${i})">✕</button>
       </div>
-    `).join('') : '<div class="text-xs text-muted text-center">No events</div>';
+    `).join('') : `<div class="text-xs text-muted text-center">${currentLang === 'ja' ? '予定はありません' : 'No events'}</div>`;
   }
 };
 
@@ -7063,12 +7328,12 @@ const renderDailyPlanList = () => {
   const ls = plans[currentLogDate] || [];
   if (c) {
     c.innerHTML = ls.length ? ls.map((p, i) => `
-      <div class="plan-item-row" style="margin-bottom:6px;">
+      <div class="plan-item-row" style="margin-bottom:8px;">
         <input type="checkbox" ${p.done ? 'checked' : ''} onchange="toggleDailyPlanFromModal(${i})">
-        <div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:14px;">${esc(p.text)}</div></div>
+        <div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:15px;">${esc(p.text)}</div></div>
         <button class="plan-del" onclick="deleteDailyPlanFromModal(${i})">✕</button>
       </div>
-    `).join('') : '<div class="text-xs text-muted text-center">No plans</div>';
+    `).join('') : `<div class="text-xs text-muted text-center">${currentLang === 'ja' ? '計画はありません' : 'No plans'}</div>`;
   }
 };
 
@@ -7107,14 +7372,14 @@ const renderLogModalList = () => {
   const ls = studyLogs.filter(l => l.date === currentLogDate);
   if (c) {
     c.innerHTML = ls.length ? ls.map(l => `
-      <div class="card flex-between mb-2 p-14">
+      <div class="card flex-between mb-2 p-16">
         <div>
           <span class="sli-subj">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span>
           <span class="font-bold ml-2">${Math.floor(l.seconds / 60)} min</span>
         </div>
         <button onclick="deleteStudyLog(${l.ts})" class="btn-clear text-danger">✕</button>
       </div>
-    `).join('') : '<div class="vocab-empty p-20">No logs</div>';
+    `).join('') : `<div class="vocab-empty p-20">${currentLang === 'ja' ? '記録はありません' : 'No logs'}</div>`;
   }
 };
 
@@ -7161,6 +7426,8 @@ window.deleteStudyLog = ts => {
 // ============================================================
 // [16] MISTAKES
 // ============================================================
+let mistakeTagFilter = 'all';
+
 window.switchMistakeTab = t => {
   mistakeTab = t;
   ['saved', 'exam', 'calc', 'other'].forEach(x => {
@@ -7175,13 +7442,53 @@ window.switchMistakeTab = t => {
       else pn.classList.add('hidden');
     }
   });
+  
+  const filterContainer = $('mistake-tag-filter-container');
+  if (filterContainer) {
+    if (t === 'saved') filterContainer.classList.add('hidden');
+    else filterContainer.classList.remove('hidden');
+  }
+  
   if (t === 'saved') renderSubjectSaved();
   if (t === 'exam') {
+    updateMistakeTagFilters();
     renderExamMistakes();
     renderMistakeRadarChart();
   }
-  if (t === 'calc') renderCalcMistakes();
-  if (t === 'other') renderOtherMistakes();
+  if (t === 'calc') {
+    updateMistakeTagFilters();
+    renderCalcMistakes();
+  }
+  if (t === 'other') {
+    updateMistakeTagFilters();
+    renderOtherMistakes();
+  }
+};
+
+const updateMistakeTagFilters = () => {
+  const tags = new Set();
+  examMistakes.forEach(m => m.tags.forEach(t => tags.add(t)));
+  calcMistakes.forEach(m => m.tags.forEach(t => tags.add(t)));
+  otherMistakes.forEach(m => m.tags.forEach(t => tags.add(t)));
+  
+  const c = $('mistake-tag-filters');
+  if (c) {
+    c.innerHTML = `
+      <button class="filter-chip ${mistakeTagFilter === 'all' ? 'active' : ''}" data-tag="all" onclick="setMistakeTagFilter('all')">${currentLang === 'ja' ? 'すべて' : 'All'}</button>
+    ` + Array.from(tags).map(t => `
+      <button class="filter-chip ${mistakeTagFilter === t ? 'active' : ''}" data-tag="${esc(t)}" onclick="setMistakeTagFilter('${escJS(t)}')">${esc(t)}</button>
+    `).join('');
+  }
+};
+
+window.setMistakeTagFilter = t => {
+  mistakeTagFilter = t;
+  document.querySelectorAll('#mistake-tag-filters .filter-chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.tag === t);
+  });
+  if (mistakeTab === 'exam') renderExamMistakes();
+  if (mistakeTab === 'calc') renderCalcMistakes();
+  if (mistakeTab === 'other') renderOtherMistakes();
 };
 
 window.addExamMistake = () => {
@@ -7191,7 +7498,8 @@ window.addExamMistake = () => {
   const reason = $('exam-mistake-reason').value.trim();
   const action = $('exam-mistake-action').value.trim();
   
-  const tags = Array.from(document.querySelectorAll('.mistake-cause-tag:checked')).map(cb => cb.value);
+  const tagsInput = $('exam-mistake-tags');
+  const tags = tagsInput && tagsInput.value.trim() ? tagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
   
   if (!name || !qDesc) return showToast('Exam name and question description are required');
   
@@ -7202,6 +7510,7 @@ window.addExamMistake = () => {
   });
   
   save.examMistakes();
+  updateMistakeTagFilters();
   renderExamMistakes();
   renderMistakeRadarChart();
   
@@ -7210,34 +7519,38 @@ window.addExamMistake = () => {
   $('exam-mistake-wrong-ans').value = '';
   $('exam-mistake-reason').value = '';
   $('exam-mistake-action').value = '';
-  document.querySelectorAll('.mistake-cause-tag').forEach(cb => cb.checked = false);
+  if (tagsInput) tagsInput.value = '';
   showToast('Added');
 };
 
 window.renderExamMistakes = () => {
   const c = $('mistake-exam-list');
   if (!c) return;
-  if (!examMistakes.length) {
-    c.innerHTML = '<div class="vocab-empty">No mistake history</div>';
+  
+  let ls = examMistakes;
+  if (mistakeTagFilter !== 'all') {
+    ls = ls.filter(m => m.tags.includes(mistakeTagFilter));
+  }
+  
+  if (!ls.length) {
+    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '履歴がありません' : 'No mistake history'}</div>`;
     return;
   }
   
-  const tagLabels = { careless: 'Careless', knowledge: 'Knowledge', time: 'Time', reading: 'Reading', calculation: 'Calculation' };
-  
-  c.innerHTML = examMistakes.map(m => `
+  c.innerHTML = ls.map(m => `
     <div class="card mb-2">
-      <div class="flex-between mb-2">
-        <span class="text-sm font-bold">${esc(m.name)}</span>
+      <div class="flex-between mb-3">
+        <span class="text-base font-bold">${esc(m.name)}</span>
         <span class="text-xs text-muted">${m.date}</span>
       </div>
-      <div class="flex gap-1 mb-2 flex-wrap">
-        ${m.tags.map(t => `<span class="filter-chip" style="font-size:10px;padding:2px 6px;">${tagLabels[t] || t}</span>`).join('')}
+      <div class="flex gap-1 mb-3 flex-wrap">
+        ${m.tags.map(t => `<span class="filter-chip" style="font-size:11px;padding:4px 8px;">${esc(t)}</span>`).join('')}
       </div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
-      <div class="text-sm mb-2"><b>Action:</b><br>${esc(m.action)}</div>
-      <div class="flex-gap-8 mt-3">
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
+      <div class="text-sm mb-3"><b>Action:</b><br>${esc(m.action)}</div>
+      <div class="flex-gap-8 mt-4">
         <button class="action-btn mb-0 flex-1 btn-sm bg-accent2" onclick="addMistakeToPlan('${m.id}')">Add review to plan</button>
         <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteExamMistake('${m.id}')">Delete</button>
       </div>
@@ -7249,6 +7562,7 @@ window.deleteExamMistake = id => {
   if (!confirm('Delete?')) return;
   examMistakes = examMistakes.filter(m => m.id !== id);
   save.examMistakes();
+  updateMistakeTagFilters();
   renderExamMistakes();
   renderMistakeRadarChart();
 };
@@ -7271,13 +7585,20 @@ window.renderMistakeRadarChart = () => {
     const cv = $('mistake-radar-chart');
     if (!cv) return;
     
-    const counts = { careless: 0, knowledge: 0, time: 0, reading: 0, calculation: 0 };
+    const counts = {};
     examMistakes.forEach(m => {
-      m.tags.forEach(t => { if (counts[t] !== undefined) counts[t]++; });
+      m.tags.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
     });
     
-    const labels = ['Careless', 'Knowledge', 'Time', 'Reading', 'Calculation'];
-    const data = [counts.careless, counts.knowledge, counts.time, counts.reading, counts.calculation];
+    const labels = Object.keys(counts).slice(0, 6);
+    const data = labels.map(l => counts[l]);
+    
+    if (labels.length === 0) {
+      cv.parentElement.classList.add('hidden');
+      return;
+    } else {
+      cv.parentElement.classList.remove('hidden');
+    }
     
     if (mistakeRadarChart) mistakeRadarChart.destroy();
     mistakeRadarChart = new Chart(cv, {
@@ -7287,9 +7608,9 @@ window.renderMistakeRadarChart = () => {
         datasets: [{
           label: 'Mistake Count',
           data,
-          backgroundColor: 'rgba(192, 57, 43, 0.2)',
-          borderColor: '#C0392B',
-          pointBackgroundColor: '#C0392B'
+          backgroundColor: 'rgba(231, 76, 60, 0.2)',
+          borderColor: '#E74C3C',
+          pointBackgroundColor: '#E74C3C'
         }]
       },
       options: {
@@ -7330,15 +7651,19 @@ window.addCalcMistake = () => {
   const reason = $('calc-mistake-reason').value.trim();
   const action = $('calc-mistake-action').value.trim();
   
+  const tagsInput = $('calc-mistake-tags');
+  const tags = tagsInput && tagsInput.value.trim() ? tagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+  
   if (!name || !qDesc) return showToast('Question name and description are required');
   
   calcMistakes.unshift({
     id: generateId(),
     date: todayDateStr(),
-    name, qDesc, wrongAns, reason, action
+    name, qDesc, wrongAns, reason, action, tags
   });
   
   save.calcMistakes();
+  updateMistakeTagFilters();
   renderCalcMistakes();
   
   $('calc-mistake-name').value = '';
@@ -7346,28 +7671,38 @@ window.addCalcMistake = () => {
   $('calc-mistake-wrong-ans').value = '';
   $('calc-mistake-reason').value = '';
   $('calc-mistake-action').value = '';
+  if (tagsInput) tagsInput.value = '';
   showToast('Added');
 };
 
 window.renderCalcMistakes = () => {
   const c = $('mistake-calc-list');
   if (!c) return;
-  if (!calcMistakes.length) {
-    c.innerHTML = '<div class="vocab-empty">No calculation mistake history</div>';
+  
+  let ls = calcMistakes;
+  if (mistakeTagFilter !== 'all') {
+    ls = ls.filter(m => m.tags && m.tags.includes(mistakeTagFilter));
+  }
+  
+  if (!ls.length) {
+    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '履歴がありません' : 'No calculation mistake history'}</div>`;
     return;
   }
   
-  c.innerHTML = calcMistakes.map(m => `
+  c.innerHTML = ls.map(m => `
     <div class="card mb-2">
-      <div class="flex-between mb-2">
-        <span class="text-sm font-bold">${esc(m.name)}</span>
+      <div class="flex-between mb-3">
+        <span class="text-base font-bold">${esc(m.name)}</span>
         <span class="text-xs text-muted">${m.date}</span>
       </div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
-      <div class="text-sm mb-2"><b>Action:</b><br>${esc(m.action)}</div>
-      <div class="flex-gap-8 mt-3">
+      <div class="flex gap-1 mb-3 flex-wrap">
+        ${(m.tags || []).map(t => `<span class="filter-chip" style="font-size:11px;padding:4px 8px;">${esc(t)}</span>`).join('')}
+      </div>
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
+      <div class="text-sm mb-3"><b>Action:</b><br>${esc(m.action)}</div>
+      <div class="flex-gap-8 mt-4">
         <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteCalcMistake('${m.id}')">Delete</button>
       </div>
     </div>
@@ -7378,6 +7713,7 @@ window.deleteCalcMistake = id => {
   if (!confirm('Delete?')) return;
   calcMistakes = calcMistakes.filter(m => m.id !== id);
   save.calcMistakes();
+  updateMistakeTagFilters();
   renderCalcMistakes();
 };
 
@@ -7388,15 +7724,19 @@ window.addOtherMistake = () => {
   const reason = $('other-mistake-reason').value.trim();
   const action = $('other-mistake-action').value.trim();
   
+  const tagsInput = $('other-mistake-tags');
+  const tags = tagsInput && tagsInput.value.trim() ? tagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+  
   if (!name || !qDesc) return showToast('Question name and description are required');
   
   otherMistakes.unshift({
     id: generateId(),
     date: todayDateStr(),
-    name, qDesc, wrongAns, reason, action
+    name, qDesc, wrongAns, reason, action, tags
   });
   
   save.otherMistakes();
+  updateMistakeTagFilters();
   renderOtherMistakes();
   
   $('other-mistake-name').value = '';
@@ -7404,28 +7744,38 @@ window.addOtherMistake = () => {
   $('other-mistake-wrong-ans').value = '';
   $('other-mistake-reason').value = '';
   $('other-mistake-action').value = '';
+  if (tagsInput) tagsInput.value = '';
   showToast('Added');
 };
 
 window.renderOtherMistakes = () => {
   const c = $('mistake-other-list');
   if (!c) return;
-  if (!otherMistakes.length) {
-    c.innerHTML = '<div class="vocab-empty">No other mistake history</div>';
+  
+  let ls = otherMistakes;
+  if (mistakeTagFilter !== 'all') {
+    ls = ls.filter(m => m.tags && m.tags.includes(mistakeTagFilter));
+  }
+  
+  if (!ls.length) {
+    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '履歴がありません' : 'No other mistake history'}</div>`;
     return;
   }
   
-  c.innerHTML = otherMistakes.map(m => `
+  c.innerHTML = ls.map(m => `
     <div class="card mb-2">
-      <div class="flex-between mb-2">
-        <span class="text-sm font-bold">${esc(m.name)}</span>
+      <div class="flex-between mb-3">
+        <span class="text-base font-bold">${esc(m.name)}</span>
         <span class="text-xs text-muted">${m.date}</span>
       </div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
-      <div class="text-sm mb-2 pb-2 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
-      <div class="text-sm mb-2"><b>Action:</b><br>${esc(m.action)}</div>
-      <div class="flex-gap-8 mt-3">
+      <div class="flex gap-1 mb-3 flex-wrap">
+        ${(m.tags || []).map(t => `<span class="filter-chip" style="font-size:11px;padding:4px 8px;">${esc(t)}</span>`).join('')}
+      </div>
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
+      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
+      <div class="text-sm mb-3"><b>Action:</b><br>${esc(m.action)}</div>
+      <div class="flex-gap-8 mt-4">
         <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteOtherMistake('${m.id}')">Delete</button>
       </div>
     </div>
@@ -7436,6 +7786,7 @@ window.deleteOtherMistake = id => {
   if (!confirm('Delete?')) return;
   otherMistakes = otherMistakes.filter(m => m.id !== id);
   save.otherMistakes();
+  updateMistakeTagFilters();
   renderOtherMistakes();
 };
 
@@ -7874,7 +8225,7 @@ window.toggleProfileCard = () => {
   } else {
     f.classList.add('hidden');
   }
-  b.textContent = hid ? 'Collapse' : 'Expand';
+  b.textContent = hid ? (currentLang === 'ja' ? '折りたたむ' : 'Collapse') : (currentLang === 'ja' ? '展開する' : 'Expand');
 };
 
 window.saveGoalTimes = () => {
@@ -8035,7 +8386,7 @@ window.exportWeeklyReportPDF = () => {
   const content = $('weekly-report-content').innerHTML;
   const html = `
     <!DOCTYPE html>
-    <html lang="ja">
+    <html lang="en">
     <head>
       <title>Weekly Report</title>
       <style>
@@ -8056,7 +8407,6 @@ window.openWeaknessAnalysis = async () => {
   openModal('weakness-modal');
   const contentArea = $('weakness-content');
   contentArea.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
-  $('weakness-focus-btn').classList.add('hidden');
   
   const overdue = Object.entries(srsData).map(([w, r]) => ({
     word: w,
@@ -8080,19 +8430,8 @@ window.openWeaknessAnalysis = async () => {
   try {
     let rep = await callGemini([{ role: 'user', content: prompt }], 8192);
     contentArea.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim());
-    $('weakness-focus-btn').classList.remove('hidden');
   } catch (e) {
     contentArea.innerHTML = '<p class="text-danger">Analysis failed. Please check your network connection.</p><button class="action-btn mt-3" onclick="openWeaknessAnalysis()">Retry</button>';
-  }
-};
-
-window.startWeaknessFocusMode = () => {
-  closeModal('weakness-modal');
-  window.setTabByIndex(2);
-  const vs = $('vocab-sort-select');
-  if (vs) {
-    vs.value = 'low_retention';
-    renderVocab(true);
   }
 };
 
@@ -8105,12 +8444,12 @@ window.toggleAutoListen = () => {
   if (autoListenInt) {
     clearTimeout(autoListenInt);
     autoListenInt = null;
-    btn.textContent = 'Start Playback';
+    btn.textContent = currentLang === 'ja' ? '再生開始' : 'Start Playback';
     btn.classList.remove('bg-danger');
     btn.classList.add('bg-purple');
     speechSynthesis.cancel();
   } else {
-    btn.textContent = 'Stop';
+    btn.textContent = currentLang === 'ja' ? '停止' : 'Stop';
     btn.classList.remove('bg-purple');
     btn.classList.add('bg-danger');
     const onlyReview = $('auto-listen-only-review').checked;
@@ -8127,7 +8466,7 @@ window.toggleAutoListen = () => {
 };
 
 const playNextAutoListen = () => {
-  if (!autoListenInt && $('auto-listen-start-btn').textContent === 'Start Playback') return;
+  if (!autoListenInt && ($('auto-listen-start-btn').textContent === 'Start Playback' || $('auto-listen-start-btn').textContent === '再生開始')) return;
   if (autoListenIdx >= autoListenWords.length) autoListenIdx = 0;
   
   const w = autoListenWords[autoListenIdx];
@@ -8192,31 +8531,6 @@ window.generateStory = async () => {
   } finally {
     if (ld) ld.classList.add('hidden');
   }
-};
-
-window.openTagManagerModal = () => {
-  openModal('tag-manager-modal');
-  const tags = new Set();
-  ALL_WORDS.forEach(w => {
-    if (w.tags) w.tags.forEach(t => tags.add(t));
-  });
-  $('tag-manager-list').innerHTML = Array.from(tags).map(t => `
-    <div class="flex-between card p-10 mb-2">
-      <span class="font-bold">${esc(t)}</span>
-      <button class="btn-clear text-danger" onclick="deleteTagGlobally('${escJS(t)}')">Delete</button>
-    </div>
-  `).join('');
-};
-
-window.deleteTagGlobally = (tag) => {
-  if (!confirm(`Delete tag "${tag}" from all words?`)) return;
-  ALL_WORDS.forEach(w => {
-    if (w.tags) w.tags = w.tags.filter(t => t !== tag);
-  });
-  save.words();
-  updateTagFilters();
-  window.openTagManagerModal();
-  showToast('Deleted');
 };
 
 window.openShuffleSettingsModal = () => {
@@ -8310,6 +8624,9 @@ const triggerTabEffects = (id) => {
       const el = $(`goal-time-${k}`);
       if (el) el.value = goalTimes[k] || '';
     });
+    
+    const langSelect = $('language-select');
+    if (langSelect) langSelect.value = currentLang;
   }
   if (id === 'SkillUp') window.switchWritingTab('input');
   if (id === 'Subject') {
@@ -8396,7 +8713,7 @@ async function initAppData() {
   examScores = exams || [];
   textbooks = books || [];
   srsData = srs || {};
-  userProfile = prof || { targetUniv: '', grade: '', courses: '', xp: 0, autoSync: false, reminderTime: '', fsrsAutoOptimize: true, freezeItems: 0, themeColor: 'default', customThemeColor: '' };
+  userProfile = prof || { targetUniv: '', grade: '', courses: '', autoSync: false, reminderTime: '', fsrsAutoOptimize: true, freezeItems: 0, themeColor: 'default', customThemeColor: '' };
   customDecks = decks || [];
   wordProgress = prog || {};
   vocabMeta = meta || {};
@@ -8457,6 +8774,7 @@ async function initAppData() {
   
   applyThemeColor();
   loadWidgetOrder();
+  applyLanguage();
   
   const wi = $('word-input');
   if (wi) wi.addEventListener('input', debounce(() => searchWord(true), 200));
