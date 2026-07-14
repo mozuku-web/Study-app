@@ -106,19 +106,22 @@ const i18nDict = {
     btn_edit: "Edit", msg_target_not_set: "Target date not set", widget_monthly_goal: "Monthly Goal",
     widget_yearly_goal: "Yearly Main Goal:", btn_weekly_report: "Weekly Report", btn_weakness_analysis: "Weakness Analysis",
     label_streak_days: "Streak Days", label_total_days: "Total Days", widget_weekly_chart: "Weekly Study Time",
-    label_this_week: "This Week", widget_radar_chart: "Study Balance (Radar Chart)", widget_srs_chart: "Forgetting Curve",
+    label_this_week: "This Week", label_last_week: "Last Week", weeks_ago: "weeks ago",
+    widget_radar_chart: "Study Balance (Radar Chart)", widget_srs_chart: "Forgetting Curve",
     widget_srs_scatter: "Retention Distribution (Stability)", widget_stability_chart: "Average Retention Trend (Stability)",
     widget_forecast: "Review Forecast", widget_subj_chart: "Study Time by Subject", widget_heatmap: "Study Heatmap (Past 90 Days)",
     opt_study_time: "Study Time", opt_accuracy: "Accuracy", opt_new_words: "New Words",
     day_mon: "Mon", day_tue: "Tue", day_wed: "Wed", day_thu: "Thu", day_fri: "Fri", day_sat: "Sat", day_sun: "Sun",
+    month_1: "Jan", month_2: "Feb", month_3: "Mar", month_4: "Apr", month_5: "May", month_6: "Jun",
+    month_7: "Jul", month_8: "Aug", month_9: "Sep", month_10: "Oct", month_11: "Nov", month_12: "Dec",
     widget_quick_notes: "Quick Notes", msg_no_notes: "No notes", widget_today_plan: "Today's Plan & Events",
     btn_auto_generate: "Auto Generate", widget_today_log: "Today's Study Log", btn_add: "+ Add",
     title_timer: "Timer", status_stopped: "Stopped", btn_start: "Start", btn_reset: "Reset",
-    label_pomodoro: "Pomodoro Mode (25m study + 5m break)", label_ambient_sounds: "Ambient Sounds",
+    label_pomodoro: "Pomodoro Mode (25m study + 5m break)", label_ambient_sounds: "White Noise",
     sound_rain: "Rain", sound_forest: "Forest", sound_ocean: "Ocean", label_set_timer: "Set Timer",
     label_min: "min", label_sec: "sec", btn_set: "Set", label_presets: "Presets", btn_save: "Save",
     title_vocab: "Vocabulary", btn_import_words: "+ Import Words", ph_search_word: "Search or enter a word...",
-    btn_search: "Search", btn_auto_listen: "Auto-Listen", btn_contextual_story: "Contextual Story",
+    btn_search: "Search", btn_auto_listen: "Auto-Listen", btn_contextual_story: "Story Generator",
     btn_retention_forecast: "Retention Forecast", btn_add_word: "+ Add Word", btn_print_test: "Print Test",
     btn_export_pdf: "Export PDF", ph_filter_words: "Filter words...", filter_pos: "POS", pos_all: "All",
     pos_noun: "Noun", pos_verb: "Verb", pos_adj: "Adjective", pos_adv: "Adverb", pos_other: "Other",
@@ -137,14 +140,14 @@ const i18nDict = {
     dtab_reading: "Reading", dtab_listening: "Listening", dtab_drill: "Drill", label_difficulty: "Difficulty:",
     diff_basic: "Basic", diff_standard: "Standard", diff_advanced: "Advanced", listen_mc: "Multiple Choice", listen_dict: "Dictation",
     msg_drill_desc: "Automatically generates personalized grammar and vocabulary drills based on past corrections and mistakes.",
-    btn_gen_weakness_drill: "Generate Weakness Drill", msg_trick_desc: "Generates 'trick questions' that are easy to make mistakes based on past mistake trends.",
-    btn_gen_trick_drill: "Hardcore Drill", label_ai_word_quiz: "AI Word Quiz", quiz_range_all: "From All Words",
+    btn_gen_weakness_drill: "Generate Weakness Drill", msg_trick_desc: "Generates \"trick questions\" that are easy to make mistakes based on past mistake trends.",
+    btn_gen_trick_drill: "Advanced Drill", label_ai_word_quiz: "AI Word Quiz", quiz_range_all: "From All Words",
     quiz_range_saved: "From Saved", quiz_range_review: "From Review", quiz_count_5: "5 Qs", quiz_count_10: "10 Qs", quiz_count_15: "15 Qs",
     label_include_fill: "Include fill-in-the-blank questions", btn_gen_quiz: "Generate Quiz", label_yt_lesson: "YouTube to Lesson",
     msg_yt_desc: "Generates summaries, translations, and comprehension quizzes from YouTube URLs.", ph_yt_url: "YouTube URL",
     btn_gen_lesson: "Generate Lesson", label_pdf_reader: "PDF / EPUB Reader", msg_pdf_desc: "Read English documents and tap words to look them up in the dictionary and add them to your vocabulary.",
     btn_open_reader: "Open Reader", msg_shadowing_desc: "Visually compare the AI model's audio waveform with your own pronunciation waveform to improve rhythm and intonation.",
-    btn_shadowing_studio: "Shadowing Studio", btn_export_syntax_pdf: "Export Syntax PDF", label_add_syntax: "Add Syntax Manually",
+    btn_shadowing_studio: "Shadowing", btn_export_syntax_pdf: "Export Syntax PDF", label_add_syntax: "Add Syntax Manually",
     ph_syntax_phrase: "Syntax / Phrase", ph_syntax_meaning: "Meaning / Translation", ph_note: "Note",
     hist_type_all: "All Types", hist_type_correct: "Correction", hist_type_parse: "Parse Syntax", hist_type_para: "Paraphrase",
     hist_type_essay: "Essay", hist_score_all: "All Scores", hist_score_under80: "Under 80", title_decks: "Decks",
@@ -162,14 +165,14 @@ const i18nDict = {
     routine_once: "Once", routine_daily: "Daily", routine_weekly: "Weekly", routine_monthly: "Monthly", label_textbooks: "Textbooks",
     ph_add_textbook: "Add textbook", label_weekly_plan: "Weekly Plan", label_add_plan_tb: "Add to Plan from Textbook",
     ph_page_range: "Page range", label_yearly_main_goal: "Yearly Main Goal", btn_milestone_gen: "Milestone Generator",
-    ph_yearly_goal: "e.g. Pass first choice univ, TOEIC 800", label_backcasting: "Backcasting Planner", btn_delay_slide: "Delay Slide",
+    ph_yearly_goal: "e.g. Pass first choice univ, TOEIC 800", label_backcasting: "Backcasting Planner", btn_delay_slide: "Reschedule",
     msg_backcasting_desc: "Enter the target date and the reference books/tasks to be used, and the AI will calculate backwards the number of days until the exam date and automatically register a daily schedule on the calendar.",
     label_target_name: "Target / Exam Name", ph_target_name: "e.g. Final Exam, TOEIC", label_target_date: "Target Date (Deadline)",
     label_tb_range: "Textbooks & Page Range", ph_tb_range: "e.g. Target 1900 1-800\nBlue Chart p10-p50", btn_gen_backcasting: "Generate Backcasting Schedule",
     msg_gen_complete: "Schedule Generation Complete", btn_check_calendar: "Check Calendar", label_profile: "Profile", btn_collapse: "Collapse",
     prof_target_univ: "Target University", prof_grade: "Grade", prof_courses: "Cram School / Courses", btn_simulator: "Simulator",
     btn_custom_exam: "Custom Exam", ph_enter_concerns: "Enter questions or concerns...", label_add_score: "Add Score",
-    btn_smart_scan: "Smart Scan (Score Report)", ph_exam_name: "Exam Name", ph_exam_date: "Date (e.g. 2025/01)",
+    btn_smart_scan: "Smart Scan", ph_exam_name: "Exam Name", ph_exam_date: "Date (e.g. 2025/01)",
     label_subj_score_dev: "Subject / Score / Deviation", btn_add_subj: "+ Add Subject", label_univ_judgment: "University Judgment",
     btn_add_judgment: "+ Add Judgment", ph_memo: "Memo", btn_save_score: "Save Score", label_graph: "Graph", chart_mode_dev: "Deviation",
     chart_mode_judge: "Judgment", title_mistakes: "Review", mistake_tab_saved: "Saved", mistake_tab_exam: "Exams / Tests",
@@ -179,8 +182,8 @@ const i18nDict = {
     ph_wrong_ans: "How did you make a mistake?", mistake_cause_tags: "③ Cause & Tags", ph_reason: "Detailed cause",
     mistake_action: "④ What to do next (Action)", ph_action: "Specific action to prevent the same mistake", label_mistake_trend: "Mistake Trend Analysis",
     btn_gen_root_cause: "Generate AI Root Cause Report", label_add_calc_mistake: "Add Calculation Mistake Record", label_add_other_mistake: "Add Other Mistake Record",
-    title_settings: "Settings", label_language: "Language Settings", opt_lang_mixed: "Mixed (English UI / Japanese Text)",
-    opt_lang_en: "English Only", opt_lang_ja: "Japanese Only", label_api_key: "Gemini API Key", ph_api_key: "Enter API Key",
+    title_settings: "Settings", label_language: "Language Settings", opt_lang_mixed: "Mixed (UI: English / AI: Japanese)",
+    opt_lang_en: "English", opt_lang_ja: "Japanese", label_api_key: "Gemini API Key", ph_api_key: "Enter API Key",
     msg_api_key_local: "※ Saved locally only.", label_manage_data: "Manage Study Data", btn_view_logs: "View / Edit Study Logs",
     label_weekly_goal_time: "Weekly Goal Time by Subject (min)", label_auto_backup: "Auto Backup & Restore", msg_auto_backup: "Data from the past 7 days is automatically saved.",
     btn_restore: "Restore", btn_create_backup: "Create Backup Now", label_dash_display: "Dashboard Display Settings",
@@ -218,7 +221,10 @@ const i18nDict = {
     btn_highlight_off: "Highlight: OFF", btn_add_note: "Add Note", msg_no_file: "No file selected", btn_play_model: "Play Model",
     btn_start_recording: "Start Recording", label_model_waveform: "Model Waveform", label_your_waveform: "Your Waveform",
     title_image_crop: "Image Cropping", btn_crop: "Crop", nav_dashboard: "Overview", nav_timer: "Timer", nav_vocab: "Vocabulary",
-    nav_skillup: "Practice", nav_decks: "Decks", nav_qa_ai: "AI Tutor", nav_plan: "Planner", nav_mistakes: "Review", nav_settings: "Settings"
+    nav_skillup: "Practice", nav_decks: "Decks", nav_qa_ai: "AI Tutor", nav_plan: "Planner", nav_mistakes: "Review", nav_settings: "Settings",
+    label_goal: "Goal", label_plan: "Plan", label_total: "Total", label_mastered: "Mastered", label_learning: "Learning",
+    label_events_suffix: "Events", label_score: "Score", label_dev: "Dev", label_univ: "Univ", label_rank: "Rank",
+    btn_create_question: "Create Question", opt_select: "-- Select --", btn_delete: "Delete"
   },
   ja: {
     theme_auto: "自動", header_settings: "設定", msg_deleted: "削除しました", btn_undo: "元に戻す",
@@ -228,11 +234,14 @@ const i18nDict = {
     btn_edit: "編集", msg_target_not_set: "目標日が設定されていません", widget_monthly_goal: "今月の目標",
     widget_yearly_goal: "年間目標:", btn_weekly_report: "週次レポート", btn_weakness_analysis: "弱点分析",
     label_streak_days: "連続学習日数", label_total_days: "累計学習日数", widget_weekly_chart: "週間学習時間",
-    label_this_week: "今週", widget_radar_chart: "学習バランス (レーダーチャート)", widget_srs_chart: "忘却曲線",
+    label_this_week: "今週", label_last_week: "先週", weeks_ago: "週間前",
+    widget_radar_chart: "学習バランス (レーダーチャート)", widget_srs_chart: "忘却曲線",
     widget_srs_scatter: "定着度分布 (安定度)", widget_stability_chart: "平均定着度推移 (安定度)",
     widget_forecast: "復習予測", widget_subj_chart: "科目別学習時間", widget_heatmap: "学習ヒートマップ (過去90日)",
     opt_study_time: "学習時間", opt_accuracy: "正答率", opt_new_words: "新規単語数",
     day_mon: "月", day_tue: "火", day_wed: "水", day_thu: "木", day_fri: "金", day_sat: "土", day_sun: "日",
+    month_1: "1月", month_2: "2月", month_3: "3月", month_4: "4月", month_5: "5月", month_6: "6月",
+    month_7: "7月", month_8: "8月", month_9: "9月", month_10: "10月", month_11: "11月", month_12: "12月",
     widget_quick_notes: "クイックメモ", msg_no_notes: "メモがありません", widget_today_plan: "今日の予定と計画",
     btn_auto_generate: "自動生成", widget_today_log: "今日の学習記録", btn_add: "+ 追加",
     title_timer: "タイマー", status_stopped: "停止中", btn_start: "スタート", btn_reset: "リセット",
@@ -266,7 +275,7 @@ const i18nDict = {
     msg_yt_desc: "YouTubeのURLから要約、翻訳、理解度クイズを生成します。", ph_yt_url: "YouTube URL",
     btn_gen_lesson: "レッスン生成", label_pdf_reader: "PDF / EPUB リーダー", msg_pdf_desc: "英語のドキュメントを読みながら、単語をタップして辞書引き・単語帳に追加できます。",
     btn_open_reader: "リーダーを開く", msg_shadowing_desc: "AIモデルの音声波形と自分の発音波形を視覚的に比較し、リズムやイントネーションを改善します。",
-    btn_shadowing_studio: "シャドーイングスタジオ", btn_export_syntax_pdf: "構文PDF出力", label_add_syntax: "構文を手動追加",
+    btn_shadowing_studio: "シャドーイング", btn_export_syntax_pdf: "構文PDF出力", label_add_syntax: "構文を手動追加",
     ph_syntax_phrase: "構文 / フレーズ", ph_syntax_meaning: "意味 / 和訳", ph_note: "メモ",
     hist_type_all: "すべての種類", hist_type_correct: "添削", hist_type_parse: "構文解析", hist_type_para: "言い換え",
     hist_type_essay: "エッセイ", hist_score_all: "すべてのスコア", hist_score_under80: "80点未満", title_decks: "デッキ",
@@ -301,8 +310,8 @@ const i18nDict = {
     ph_wrong_ans: "誤答の内容", mistake_cause_tags: "③ 原因とタグ", ph_reason: "具体的な原因を深掘り",
     mistake_action: "④ 次にどうするか (アクション)", ph_action: "同じミスを防ぐための具体的なアクション", label_mistake_trend: "ミス傾向分析",
     btn_gen_root_cause: "AI根本原因レポート生成", label_add_calc_mistake: "計算ミスの記録を追加", label_add_other_mistake: "その他のミスの記録を追加",
-    title_settings: "設定", label_language: "言語設定", opt_lang_mixed: "ミックス (英語UI / 日本語テキスト)",
-    opt_lang_en: "英語のみ", opt_lang_ja: "日本語のみ", label_api_key: "Gemini API Key", ph_api_key: "API Keyを入力",
+    title_settings: "設定", label_language: "言語設定", opt_lang_mixed: "ミックス (UI: 英語 / AI: 日本語)",
+    opt_lang_en: "英語", opt_lang_ja: "日本語", label_api_key: "Gemini API Key", ph_api_key: "API Keyを入力",
     msg_api_key_local: "※ ローカルにのみ保存されます。", label_manage_data: "学習データ管理", btn_view_logs: "学習記録の確認 / 編集",
     label_weekly_goal_time: "科目別 週間目標時間 (分)", label_auto_backup: "自動バックアップと復元", msg_auto_backup: "過去7日間のデータが自動的に保存されます。",
     btn_restore: "復元", btn_create_backup: "今すぐバックアップ作成", label_dash_display: "ダッシュボード表示設定",
@@ -340,11 +349,23 @@ const i18nDict = {
     btn_highlight_off: "ハイライト: OFF", btn_add_note: "メモ追加", msg_no_file: "ファイルが選択されていません", btn_play_model: "お手本を再生",
     btn_start_recording: "録音開始", label_model_waveform: "お手本の波形", label_your_waveform: "あなたの波形",
     title_image_crop: "画像の切り抜き", btn_crop: "切り抜き", nav_dashboard: "概要", nav_timer: "タイマー", nav_vocab: "単語帳",
-    nav_skillup: "演習", nav_decks: "デッキ", nav_qa_ai: "AIチューター", nav_plan: "計画", nav_mistakes: "復習", nav_settings: "設定"
+    nav_skillup: "演習", nav_decks: "デッキ", nav_qa_ai: "AIチューター", nav_plan: "計画", nav_mistakes: "復習", nav_settings: "設定",
+    label_goal: "目標", label_plan: "計画", label_total: "合計", label_mastered: "習得済", label_learning: "学習中",
+    label_events_suffix: "の予定", label_score: "点数", label_dev: "偏差値", label_univ: "志望校", label_rank: "判定",
+    btn_create_question: "問題を作成", opt_select: "-- 選択 --", btn_delete: "削除"
   }
 };
 
 let currentLang = safeGet('study_language', 'mixed');
+let customTexts = safeGet('study_custom_texts', {});
+
+const getUiLang = () => (currentLang === 'ja') ? 'ja' : 'en';
+const getPromptLang = () => (currentLang === 'en') ? 'en' : 'ja';
+
+const t = (key) => {
+  if (customTexts[key]) return customTexts[key];
+  return i18nDict[getUiLang()][key] || key;
+};
 
 window.changeLanguage = () => {
   const sel = $('language-select');
@@ -352,16 +373,22 @@ window.changeLanguage = () => {
     currentLang = sel.value;
     safeSet('study_language', currentLang);
     applyLanguage();
+    if (typeof renderDashboard === 'function') renderDashboard();
+    if (typeof renderWeeklyPlan === 'function') renderWeeklyPlan();
+    if (typeof renderPlanCalendar === 'function') renderPlanCalendar();
   }
 };
 
 const applyLanguage = () => {
-  const langKey = currentLang === 'ja' ? 'ja' : 'en';
-  const dict = i18nDict[langKey];
+  const dict = i18nDict[getUiLang()];
   
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (dict[key]) el.textContent = dict[key];
+    if (customTexts[key]) {
+      el.textContent = customTexts[key];
+    } else if (dict[key]) {
+      el.textContent = dict[key];
+    }
   });
   
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
@@ -387,14 +414,14 @@ const processToastQueue = () => {
   }
   isToastShowing = true;
   const msg = toastQueue.shift();
-  const t = $('toast');
-  if (!t) return;
+  const tEl = $('toast');
+  if (!tEl) return;
   
-  t.textContent = msg;
-  t.classList.add('show');
+  tEl.textContent = msg;
+  tEl.classList.add('show');
   
   setTimeout(() => {
-    t.classList.remove('show');
+    tEl.classList.remove('show');
     setTimeout(processToastQueue, 300);
   }, 2200);
 };
@@ -627,29 +654,30 @@ const BASE_SYSTEM_PROMPT = `あなたはプロの予備校講師だ。客観的�
 const TABS = ['Dashboard', 'Timer', 'Vocab', 'SkillUp', 'CustomCards', 'Subject', 'Plan', 'Mistakes', 'Manage'];
 const ACCENTS = ['en_US', 'en_GB', 'en_AU'];
 const ACCENT_LABELS = { en_US: 'US English', en_GB: 'UK English', en_AU: 'AU English' };
+
 const SCORE_SUBJECTS = {
-  japanese: { label: 'Japanese', details: ['Modern', 'Classical', 'Chinese', 'Comprehensive'] },
-  math: { label: 'Math', details: ['Math I・A', 'Math II・B', 'Math III・C', 'Comprehensive'] },
-  english: { label: 'English', details: ['Reading', 'Listening', 'Writing', 'Comprehensive'] },
-  science: { label: 'Science', details: ['Physics', 'Chemistry', 'Biology', 'Earth Science', 'Basic', 'Comprehensive'] },
-  social: { label: 'Social', details: ['History', 'Geography', 'Public', 'Ethics', 'Politics', 'Comprehensive'] },
-  other: { label: 'Other', details: ['Info', 'Comprehensive'] },
-  total: { label: 'Total', details: ['Humanities', 'Science', 'Overall'] }
+  japanese: { get label() { return t('subj_japanese'); }, details: ['Modern', 'Classical', 'Chinese', 'Comprehensive'] },
+  math: { get label() { return t('subj_math'); }, details: ['Math I・A', 'Math II・B', 'Math III・C', 'Comprehensive'] },
+  english: { get label() { return t('subj_english'); }, details: ['Reading', 'Listening', 'Writing', 'Comprehensive'] },
+  science: { get label() { return t('subj_science'); }, details: ['Physics', 'Chemistry', 'Biology', 'Earth Science', 'Basic', 'Comprehensive'] },
+  social: { get label() { return t('subj_social'); }, details: ['History', 'Geography', 'Public', 'Ethics', 'Politics', 'Comprehensive'] },
+  other: { get label() { return t('subj_other'); }, details: ['Info', 'Comprehensive'] },
+  total: { get label() { return t('label_total'); }, details: ['Humanities', 'Science', 'Overall'] }
 };
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 const ACADEMIC_YEAR_MONTHS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
 const VOCAB_PER_PAGE = 50;
 
 const THEMES = {
-  default: { accent: '#111111', streak: '#E67E22' },
-  red: { accent: '#E74C3C', streak: '#C0392B' },
-  blue: { accent: '#3498DB', streak: '#2980B9' },
-  green: { accent: '#2ECC71', streak: '#27AE60' },
-  orange: { accent: '#E67E22', streak: '#D35400' },
-  purple: { accent: '#9B59B6', streak: '#8E44AD' },
-  teal: { accent: '#1ABC9C', streak: '#16A085' },
-  indigo: { accent: '#5C6BC0', streak: '#3F51B5' },
-  gray: { accent: '#95A5A6', streak: '#7F8C8D' }
+  default: { accent: '#0F172A', streak: '#F97316' },
+  red: { accent: '#EF4444', streak: '#B91C1C' },
+  blue: { accent: '#3B82F6', streak: '#1D4ED8' },
+  green: { accent: '#10B981', streak: '#047857' },
+  orange: { accent: '#F97316', streak: '#C2410C' },
+  purple: { accent: '#8B5CF6', streak: '#6D28D9' },
+  teal: { accent: '#14B8A6', streak: '#0F766E' },
+  indigo: { accent: '#6366F1', streak: '#4338CA' },
+  gray: { accent: '#64748B', streak: '#475569' }
 };
 
 let ALL_WORDS = [];
@@ -773,7 +801,6 @@ let subjHist = {};
 let sqMode = 'text';
 let sqFileData = '';
 let sqPhotoData = null;
-const subjConf = { japanese: 'Japanese', math: 'Math', english: 'English', science: 'Science', social: 'Social', other: 'Other' };
 
 let curImpTab = 'file';
 let impWords = [];
@@ -894,7 +921,7 @@ window.renderBackupList = async () => {
 window.restoreBackup = async () => {
   const sel = $('backup-restore-select');
   if (!sel || !sel.value) return showToast('Please select a restore point');
-  if (!confirm('現在のデータは上書きされます。復元しますか？')) return;
+  if (!confirm(getUiLang() === 'ja' ? '現在のデータは上書きされます。復元しますか？' : 'Current data will be overwritten. Restore?')) return;
   
   const data = await localforage.getItem(sel.value);
   if (data) {
@@ -1224,11 +1251,11 @@ const applyTheme = () => {
   document.documentElement.setAttribute('data-theme', isD ? 'dark' : '');
   const b = $('dark-toggle-btn');
   if (b) {
-    b.textContent = darkThemeMode === 'auto' ? (currentLang === 'ja' ? '自動' : 'Auto') : isD ? (currentLang === 'ja' ? 'ライト' : 'Light') : (currentLang === 'ja' ? 'ダーク' : 'Dark');
+    b.textContent = darkThemeMode === 'auto' ? (getUiLang() === 'ja' ? '自動' : 'Auto') : isD ? (getUiLang() === 'ja' ? 'ライト' : 'Light') : (getUiLang() === 'ja' ? 'ダーク' : 'Dark');
   }
   
-  Chart.defaults.color = isD ? '#A8A49E' : '#5C5952';
-  Chart.defaults.borderColor = isD ? '#3E3C37' : '#E2DFD8';
+  Chart.defaults.color = isD ? '#94A3B8' : '#4A5568';
+  Chart.defaults.borderColor = isD ? '#333A45' : '#E2E5E9';
   
   if (currentTabIndex === 0) renderDashboard();
   if (currentTabIndex === 6 && planMode === 'score') renderScoreChart();
@@ -1266,10 +1293,10 @@ const applyThemeColor = () => {
     document.documentElement.style.setProperty('--accent', userProfile.customThemeColor);
     document.documentElement.style.setProperty('--streak', userProfile.customThemeColor);
   } else {
-    const t = THEMES[userProfile.themeColor || 'default'];
-    if (t) {
-      document.documentElement.style.setProperty('--accent', t.accent);
-      document.documentElement.style.setProperty('--streak', t.streak);
+    const th = THEMES[userProfile.themeColor || 'default'];
+    if (th) {
+      document.documentElement.style.setProperty('--accent', th.accent);
+      document.documentElement.style.setProperty('--streak', th.streak);
     }
   }
 };
@@ -1405,6 +1432,45 @@ window.saveApiKey = () => {
   }
 };
 
+window.openTextCustomizerPanel = () => {
+  const list = $('text-customizer-list');
+  if (!list) return;
+  const inputs = list.querySelectorAll('input[data-key]');
+  inputs.forEach(inp => {
+    const key = inp.getAttribute('data-key');
+    inp.value = customTexts[key] || '';
+  });
+};
+
+window.saveCustomTexts = () => {
+  const list = $('text-customizer-list');
+  if (!list) return;
+  const inputs = list.querySelectorAll('input[data-key]');
+  inputs.forEach(inp => {
+    const key = inp.getAttribute('data-key');
+    const val = inp.value.trim();
+    if (val) {
+      customTexts[key] = val;
+    } else {
+      delete customTexts[key];
+    }
+  });
+  safeSet('study_custom_texts', customTexts);
+  applyLanguage();
+  showToast(getUiLang() === 'ja' ? 'テキストを保存しました' : 'Custom texts saved');
+};
+
+window.resetCustomTexts = () => {
+  customTexts = {};
+  safeSet('study_custom_texts', customTexts);
+  const list = $('text-customizer-list');
+  if (list) {
+    list.querySelectorAll('input[data-key]').forEach(inp => inp.value = '');
+  }
+  applyLanguage();
+  showToast(getUiLang() === 'ja' ? 'デフォルトにリセットしました' : 'Reset to default');
+};
+
 // ============================================================
 // [5] FSRS ALGORITHM
 // ============================================================
@@ -1435,7 +1501,6 @@ const srsReview = (w, rt) => {
   r.history.push(rt);
   if (r.history.length > 10) r.history.shift();
 
-  // FSRS Auto-Optimization
   const autoOpt = $('fsrs-auto-optimize');
   if (autoOpt && autoOpt.checked && r.history.length >= 5) {
     const recentCorrect = r.history.filter(x => x >= 2).length / r.history.length;
@@ -1650,11 +1715,11 @@ if (SR) {
   };
   
   rec.onresult = e => {
-    const t = e.results[0][0].transcript;
+    const tStr = e.results[0][0].transcript;
     if (aInp) {
       const s = aInp.selectionStart;
       const v = aInp.value;
-      aInp.value = v.slice(0, s) + t + v.slice(aInp.selectionEnd);
+      aInp.value = v.slice(0, s) + tStr + v.slice(aInp.selectionEnd);
       aInp.dispatchEvent(new Event('input'));
     }
   };
@@ -1866,17 +1931,17 @@ const timerStartStop = () => {
     timerRunning = false;
     timerTime = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
     const s = $('timer-status');
-    if (s) s.textContent = isPomodoroBreak ? (currentLang === 'ja' ? '休憩停止中' : 'Break Stopped') : (currentLang === 'ja' ? '停止中' : 'Stopped');
+    if (s) s.textContent = isPomodoroBreak ? (getUiLang() === 'ja' ? '休憩停止中' : 'Break Stopped') : (getUiLang() === 'ja' ? '停止中' : 'Stopped');
     const b = $('timer-start-btn');
-    if (b) b.textContent = currentLang === 'ja' ? 'スタート' : 'Start';
+    if (b) b.textContent = getUiLang() === 'ja' ? 'スタート' : 'Start';
   } else {
     timerRunning = true;
     timerEndTime = Date.now() + (timerTime * 1000);
     localStorage.setItem('study_timer_end', timerEndTime.toString());
     const s = $('timer-status');
-    if (s) s.textContent = isPomodoroBreak ? (currentLang === 'ja' ? '休憩中' : 'Break') : (currentLang === 'ja' ? '実行中' : 'Running');
+    if (s) s.textContent = isPomodoroBreak ? (getUiLang() === 'ja' ? '休憩中' : 'Break') : (getUiLang() === 'ja' ? '実行中' : 'Running');
     const b = $('timer-start-btn');
-    if (b) b.textContent = currentLang === 'ja' ? 'ストップ' : 'Stop';
+    if (b) b.textContent = getUiLang() === 'ja' ? 'ストップ' : 'Stop';
     
     timerInt = setInterval(() => {
       const remain = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
@@ -1901,9 +1966,9 @@ const timerStartStop = () => {
             timerTime = timerInitial;
             updateTimerDisplay();
             const s = $('timer-status');
-            if (s) s.textContent = currentLang === 'ja' ? '休憩停止中' : 'Break Stopped';
+            if (s) s.textContent = getUiLang() === 'ja' ? '休憩停止中' : 'Break Stopped';
             const b = $('timer-start-btn');
-            if (b) b.textContent = currentLang === 'ja' ? 'スタート' : 'Start';
+            if (b) b.textContent = getUiLang() === 'ja' ? 'スタート' : 'Start';
           } else {
             showToast('Break finished! Resume study');
             isPomodoroBreak = false;
@@ -1911,18 +1976,18 @@ const timerStartStop = () => {
             timerTime = timerInitial;
             updateTimerDisplay();
             const s = $('timer-status');
-            if (s) s.textContent = currentLang === 'ja' ? '停止中' : 'Stopped';
+            if (s) s.textContent = getUiLang() === 'ja' ? '停止中' : 'Stopped';
             const b = $('timer-start-btn');
-            if (b) b.textContent = currentLang === 'ja' ? 'スタート' : 'Start';
+            if (b) b.textContent = getUiLang() === 'ja' ? 'スタート' : 'Start';
           }
         } else {
           showToast('Finished');
           studyLogs.push({ date: todayDateStr(), subj: 'other', seconds: timerInitial, ts: Date.now() });
           save.logs();
           const s = $('timer-status');
-          if (s) s.textContent = currentLang === 'ja' ? '停止中' : 'Stopped';
+          if (s) s.textContent = getUiLang() === 'ja' ? '停止中' : 'Stopped';
           const b = $('timer-start-btn');
-          if (b) b.textContent = currentLang === 'ja' ? 'スタート' : 'Start';
+          if (b) b.textContent = getUiLang() === 'ja' ? 'スタート' : 'Start';
         }
       }
     }, 1000);
@@ -1979,15 +2044,15 @@ const timerSavePreset = () => {
 const renderTimerPresets = () => {
   const p = $('timer-presets');
   if (!p) return;
-  p.innerHTML = timerPresets.map(t => {
-    const min = Math.floor(t / 60);
-    const sec = t % 60;
+  p.innerHTML = timerPresets.map(tStr => {
+    const min = Math.floor(tStr / 60);
+    const sec = tStr % 60;
     return `
       <div style="display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:50px;background:var(--surface);box-shadow:var(--shadow-xs);">
-        <button onclick="timerInitial=${t};timerTime=${t};updateTimerDisplay()" style="padding:8px 16px;border:none;background:transparent;color:var(--text);cursor:pointer;font-size:calc(13px * var(--text-scale));font-weight:600">
+        <button onclick="timerInitial=${tStr};timerTime=${tStr};updateTimerDisplay()" style="padding:8px 16px;border:none;background:transparent;color:var(--text);cursor:pointer;font-size:calc(13px * var(--text-scale));font-weight:600">
           ${min}:${String(sec).padStart(2, '0')}
         </button>
-        <button onclick="timerDeletePreset(${t})" style="padding:8px 12px;border:none;border-left:1px solid var(--border);background:transparent;color:var(--danger);cursor:pointer;font-weight:bold;font-size:calc(12px * var(--text-scale));">
+        <button onclick="timerDeletePreset(${tStr})" style="padding:8px 12px;border:none;border-left:1px solid var(--border);background:transparent;color:var(--danger);cursor:pointer;font-weight:bold;font-size:calc(12px * var(--text-scale));">
           ✕
         </button>
       </div>
@@ -1995,8 +2060,8 @@ const renderTimerPresets = () => {
   }).join('');
 };
 
-const timerDeletePreset = t => {
-  timerPresets = timerPresets.filter(x => x !== t);
+const timerDeletePreset = tStr => {
+  timerPresets = timerPresets.filter(x => x !== tStr);
   safeSet('study_timer_presets', timerPresets);
   renderTimerPresets();
 };
@@ -2020,7 +2085,7 @@ window.toggleWidgetSortMode = () => {
   
   if (container.classList.contains('widget-sort-mode')) {
     container.classList.remove('widget-sort-mode');
-    btn.textContent = currentLang === 'ja' ? '並び替え' : 'Sort';
+    btn.textContent = getUiLang() === 'ja' ? '並び替え' : 'Sort';
     btn.classList.remove('bg-accent', 'text-bg');
     if (window.sortableWidgets) {
       window.sortableWidgets.option("disabled", true);
@@ -2028,7 +2093,7 @@ window.toggleWidgetSortMode = () => {
     saveWidgetOrder();
   } else {
     container.classList.add('widget-sort-mode');
-    btn.textContent = currentLang === 'ja' ? '完了' : 'Done';
+    btn.textContent = getUiLang() === 'ja' ? '完了' : 'Done';
     btn.classList.add('bg-accent', 'text-bg');
     
     if (!window.sortableWidgets) {
@@ -2090,7 +2155,7 @@ window.renderWidgetSettingsPanel = () => {
   ];
   
   list.innerHTML = allWidgets.map(w => `
-    <label class="flex align-center gap-2 text-sm font-bold cursor-pointer p-10 border radius-sm bg-surface">
+    <label class="flex align-center gap-2 text-sm font-bold cursor-pointer p-12 border radius-sm bg-surface">
       <input type="checkbox" class="widget-toggle-cb" value="${w.id}" ${activeWidgets.includes(w.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--accent);">
       <span>${w.name}</span>
     </label>
@@ -2143,7 +2208,7 @@ const renderCountdown = () => {
   if (!display) return;
   
   if (!countdownData.name || !countdownData.date) {
-    display.innerHTML = `<p class="text-sm text-muted">${currentLang === 'ja' ? '目標日が設定されていません' : 'Target date not set'}</p>`;
+    display.innerHTML = `<p class="text-sm text-muted">${t('msg_target_not_set')}</p>`;
     return;
   }
   
@@ -2157,17 +2222,17 @@ const renderCountdown = () => {
   
   if (diffDays > 0) {
     display.innerHTML = `
-      <div class="countdown-label mb-1">Days until ${esc(countdownData.name)}</div>
+      <div class="countdown-label mb-2">Days until ${esc(countdownData.name)}</div>
       <div class="countdown-number">${diffDays}<span style="font-size:16px; color:var(--text-sub); margin-left:4px;">Days</span></div>
     `;
   } else if (diffDays === 0) {
     display.innerHTML = `
-      <div class="countdown-label mb-1">${esc(countdownData.name)}</div>
+      <div class="countdown-label mb-2">${esc(countdownData.name)}</div>
       <div class="countdown-number text-danger" style="font-size:32px;">Today is the day!</div>
     `;
   } else {
     display.innerHTML = `
-      <div class="countdown-label mb-1">Days passed since ${esc(countdownData.name)}</div>
+      <div class="countdown-label mb-2">Days passed since ${esc(countdownData.name)}</div>
       <div class="countdown-number text-muted">${Math.abs(diffDays)}<span style="font-size:16px; margin-left:4px;">Days</span></div>
     `;
   }
@@ -2224,14 +2289,14 @@ const renderQuickCaptures = () => {
   const list = $('quick-capture-list');
   if (!list) return;
   if (!quickCaptures.length) {
-    list.innerHTML = `<p class="text-xs text-muted text-center">${currentLang === 'ja' ? 'メモがありません' : 'No notes'}</p>`;
+    list.innerHTML = `<p class="text-xs text-muted text-center">${t('msg_no_notes')}</p>`;
     return;
   }
   list.innerHTML = quickCaptures.map(qc => `
-    <div class="card mb-2 p-14">
+    <div class="card mb-2 p-16">
       <div class="text-xs text-muted mb-2">${qc.date}</div>
       <div class="text-sm line-height-16">${esc(qc.text).replace(/\n/g, '<br>')}</div>
-      <div class="flex justify-end mt-2">
+      <div class="flex justify-end mt-3">
         <button class="btn-clear text-danger text-xs" onclick="deleteQuickCapture('${qc.id}')">Delete</button>
       </div>
     </div>
@@ -2325,12 +2390,12 @@ const renderWordOfTheDay = async () => {
   
   if (cachedWotd.word) {
     const isSaved = ALL_WORDS.some(x => x.word.toLowerCase() === cachedWotd.word.word.toLowerCase());
-    sBtn.textContent = isSaved ? (currentLang === 'ja' ? '保存済' : 'Saved') : (currentLang === 'ja' ? '単語帳に追加' : 'Add to Vocab'); 
-    sBtn.className = `action-btn mb-0 flex-1 btn-md ${isSaved ? 'btn-secondary' : ''}`;
+    sBtn.textContent = isSaved ? (getUiLang() === 'ja' ? '保存済' : 'Saved') : (getUiLang() === 'ja' ? '単語帳に追加' : 'Add to Vocab'); 
+    sBtn.className = `action-btn mb-0 flex-1 min-w-100 whitespace-nowrap ${isSaved ? 'btn-secondary' : ''}`;
     sBtn.onclick = () => { 
       if (!isSaved) {
         const tagInput = $('wotd-tag-input');
-        const tags = tagInput && tagInput.value.trim() ? tagInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+        const tags = tagInput && tagInput.value.trim() ? tagInput.value.split(',').map(tStr => tStr.trim()).filter(Boolean) : [];
         const exText = cachedWotd.exampleHtml ? cachedWotd.exampleHtml.replace(/<br>/gi, '\n').replace(/<[^>]+>/g, '') : '';
         
         ALL_WORDS.unshift({ 
@@ -2427,15 +2492,15 @@ window.renderDashboard = () => {
       
       const lbl = $('dash-weekly-label');
       if (lbl) {
-        if (dashWeeklyOffset === 0) lbl.textContent = currentLang === 'ja' ? '今週' : 'This Week';
-        else if (dashWeeklyOffset === 1) lbl.textContent = currentLang === 'ja' ? '先週' : 'Last Week';
-        else lbl.textContent = `${dashWeeklyOffset} weeks ago`;
+        if (dashWeeklyOffset === 0) lbl.textContent = t('label_this_week');
+        else if (dashWeeklyOffset === 1) lbl.textContent = t('label_last_week');
+        else lbl.textContent = `${dashWeeklyOffset} ${t('weeks_ago')}`;
       }
 
       if (dashWeeklyChart) dashWeeklyChart.destroy();
       dashWeeklyChart = new Chart(wCv, {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Study Time (min)', data, backgroundColor: '#3498DB', borderRadius: 6 }] },
+        data: { labels, datasets: [{ label: 'Study Time (min)', data, backgroundColor: '#3B82F6', borderRadius: 6 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
       });
     });
@@ -2463,8 +2528,8 @@ window.renderDashboard = () => {
           data: { 
             labels, 
             datasets: [
-              { label: 'Study Time (min)', data, backgroundColor: '#3498DB', borderRadius: 6 },
-              { label: 'Target Time (min)', data: goals, type: 'line', borderColor: '#E67E22', backgroundColor: 'transparent', borderDash: [5, 5], pointRadius: 0 }
+              { label: 'Study Time (min)', data, backgroundColor: '#3B82F6', borderRadius: 6 },
+              { label: 'Target Time (min)', data: goals, type: 'line', borderColor: '#F97316', backgroundColor: 'transparent', borderDash: [5, 5], pointRadius: 0 }
             ] 
           }, 
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } 
@@ -2480,7 +2545,7 @@ window.renderDashboard = () => {
         $('dash-radar-chart-card').classList.add('hidden');
       } else {
         $('dash-radar-chart-card').classList.remove('hidden');
-        const labels = ['English', 'Math', 'Japanese', 'Science', 'Social', 'Other'];
+        const labels = ['English', 'Math', 'Japanese', 'Science', 'Social', 'Other'].map(k => SCORE_SUBJECTS[k.toLowerCase()]?.label || k);
         const keys = ['english', 'math', 'japanese', 'science', 'social', 'other'];
         const data = keys.map(k => Math.floor((subjTotals[k] || 0) / 60));
         if (dashRadarChart) dashRadarChart.destroy();
@@ -2491,12 +2556,12 @@ window.renderDashboard = () => {
             datasets: [{
               label: 'Study Time (min)',
               data,
-              backgroundColor: 'rgba(52, 152, 219, 0.2)',
-              borderColor: '#3498DB',
-              pointBackgroundColor: '#3498DB',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              borderColor: '#3B82F6',
+              pointBackgroundColor: '#3B82F6',
               pointBorderColor: '#fff',
               pointHoverBackgroundColor: '#fff',
-              pointHoverBorderColor: '#3498DB'
+              pointHoverBorderColor: '#3B82F6'
             }]
           },
           options: {
@@ -2542,7 +2607,7 @@ window.renderDashboard = () => {
             datasets: [{
               label: 'Words',
               data: [buckets.today, buckets.d1, buckets.d3, buckets.d7, buckets.d14],
-              backgroundColor: ['#E74C3C', '#E67E22', '#F1C40F', '#2ECC71', '#3498DB'],
+              backgroundColor: ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#3B82F6'],
               borderRadius: 6
             }]
           },
@@ -2566,7 +2631,7 @@ window.renderDashboard = () => {
             datasets: [{
               label: 'Word',
               data: scatterData,
-              backgroundColor: 'rgba(52, 152, 219, 0.6)',
+              backgroundColor: 'rgba(59, 130, 246, 0.6)',
               pointRadius: 5
             }]
           },
@@ -2595,7 +2660,7 @@ window.renderDashboard = () => {
             datasets: [{
               label: 'Stability',
               data: [avgStability],
-              backgroundColor: '#2ECC71',
+              backgroundColor: '#10B981',
               borderRadius: 6
             }]
           },
@@ -2687,12 +2752,12 @@ window.renderDashboard = () => {
     const evs = events[today] || [];
     if (evs.length) {
       evL.innerHTML = evs.map(e => `
-        <div class="plan-item-row" style="margin-bottom:8px;border-left:4px solid #3498db;">
+        <div class="plan-item-row" style="margin-bottom:8px;border-left:4px solid #3B82F6;">
           <div class="pi-text" style="font-size:14px;">${esc(e.text)}</div>
         </div>
       `).join('');
     } else {
-      evL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">${currentLang === 'ja' ? '予定はありません' : 'No events'}</div>`;
+      evL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">${getUiLang() === 'ja' ? '予定はありません' : 'No events'}</div>`;
     }
   }
   
@@ -2708,7 +2773,7 @@ window.renderDashboard = () => {
         </div>
       `).join('');
     } else {
-      plL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">${currentLang === 'ja' ? '計画はありません' : 'No plans'}</div>`;
+      plL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">${getUiLang() === 'ja' ? '計画はありません' : 'No plans'}</div>`;
     }
   }
   
@@ -2723,7 +2788,7 @@ window.renderDashboard = () => {
         </div>
       `).join('');
     } else {
-      tdL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px">${currentLang === 'ja' ? '記録はありません' : 'No logs'}</div>`;
+      tdL.innerHTML = `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px">${getUiLang() === 'ja' ? '記録はありません' : 'No logs'}</div>`;
     }
   }
 };
@@ -2761,7 +2826,7 @@ window.dashCalNext = () => {
 const renderDashboardCalendar = () => {
   if (!activeWidgets.includes('calendar')) return;
   const cl = $('cal-month-label');
-  if (cl) cl.textContent = `${dashCalYear} ${MONTHS[dashCalMonth]}`;
+  if (cl) cl.textContent = `${dashCalYear} ${t('month_' + (dashCalMonth + 1))}`;
   
   const firstDay = new Date(dashCalYear, dashCalMonth, 1);
   const lastDay = new Date(dashCalYear, dashCalMonth + 1, 0);
@@ -2787,6 +2852,7 @@ const renderDashboardCalendar = () => {
   const cd = $('cal-days');
   if (cd) cd.innerHTML = html;
 };
+
 // ============================================================
 // [10] VOCAB
 // ============================================================
@@ -2818,11 +2884,11 @@ window.toggleWordSave = w => {
   }
   
   save.saved();
-  showToast(add ? (currentLang === 'ja' ? '保存しました' : 'Saved') : (currentLang === 'ja' ? '解除しました' : 'Removed'));
+  showToast(add ? (getUiLang() === 'ja' ? '保存しました' : 'Saved') : (getUiLang() === 'ja' ? '解除しました' : 'Removed'));
   
   document.querySelectorAll(`[data-word="${w.replace(/"/g, '\\"')}"]`).forEach(b => {
     b.className = add ? 'save-btn saved' : 'save-btn unsaved';
-    b.textContent = add ? (currentLang === 'ja' ? '保存済' : 'Saved') : (currentLang === 'ja' ? '保存' : 'Save');
+    b.textContent = add ? (getUiLang() === 'ja' ? '保存済' : 'Saved') : (getUiLang() === 'ja' ? '保存' : 'Save');
   });
 };
 
@@ -2871,7 +2937,7 @@ window.deleteWord = w => {
   renderVocabStats();
   updateTagFilters();
 
-  showUndoSnackbar(currentLang === 'ja' ? `"${w}" を削除しました` : `Deleted "${w}"`, () => {
+  showUndoSnackbar(getUiLang() === 'ja' ? `"${w}" を削除しました` : `Deleted "${w}"`, () => {
     ALL_WORDS.unshift(wordObj);
     save.words();
     renderVocab(true);
@@ -2881,7 +2947,7 @@ window.deleteWord = w => {
 };
 
 window.openAddWordModal = (editWord = null) => {
-  const t = $('add-word-modal-title');
+  const tEl = $('add-word-modal-title');
   const w = $('manual-word-input');
   const m = $('manual-meaning-input');
   const p = $('manual-pos-input');
@@ -2893,7 +2959,7 @@ window.openAddWordModal = (editWord = null) => {
   if (editWord) {
     const fd = ALL_WORDS.find(x => x.word === editWord);
     if (fd) {
-      t.textContent = currentLang === 'ja' ? '単語を編集' : 'Edit Word';
+      tEl.textContent = getUiLang() === 'ja' ? '単語を編集' : 'Edit Word';
       w.value = fd.word;
       m.value = fd.meaning || '';
       old.value = fd.word;
@@ -2904,7 +2970,7 @@ window.openAddWordModal = (editWord = null) => {
       tg.value = (fd.tags || []).join(', ');
     }
   } else {
-    t.textContent = currentLang === 'ja' ? '単語を手動追加' : 'Add Word Manually';
+    tEl.textContent = getUiLang() === 'ja' ? '単語を手動追加' : 'Add Word Manually';
     w.value = '';
     m.value = '';
     old.value = '';
@@ -2934,7 +3000,7 @@ window.openAddWordModal = (editWord = null) => {
 window.addTagToInput = (tag) => {
   const input = $('manual-tags-input');
   if (!input) return;
-  let current = input.value.split(',').map(t => t.trim()).filter(Boolean);
+  let current = input.value.split(',').map(tStr => tStr.trim()).filter(Boolean);
   if (!current.includes(tag)) {
     current.push(tag);
     input.value = current.join(', ');
@@ -2950,14 +3016,14 @@ window.addWordManual = () => {
   const tg = $('manual-tags-input').value.split(',').map(x => x.trim()).filter(Boolean);
   const old = $('manual-word-old').value;
   
-  if (!w) return showToast(currentLang === 'ja' ? '単語を入力してください' : 'Please enter a word');
+  if (!w) return showToast(getUiLang() === 'ja' ? '単語を入力してください' : 'Please enter a word');
   
   const newObj = { id: generateId(), word: w, meaning: m, example: ex, note: nt, tags: tg };
   let existingIdx = old ? ALL_WORDS.findIndex(x => x.word === old) : ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.toLowerCase());
   
   if (old && old !== w) {
     if (ALL_WORDS.some(x => x.word.toLowerCase() === w.toLowerCase())) {
-      return showToast(currentLang === 'ja' ? '既に登録されています' : 'Already registered');
+      return showToast(getUiLang() === 'ja' ? '既に登録されています' : 'Already registered');
     }
     if (savedWords.includes(old)) {
       savedWords = savedWords.filter(x => x !== old);
@@ -2976,7 +3042,7 @@ window.addWordManual = () => {
       delete vocabMeta[old.toLowerCase()];
     }
   } else if (!old && existingIdx >= 0) {
-    return showToast(currentLang === 'ja' ? '既に登録されています' : 'Already registered');
+    return showToast(getUiLang() === 'ja' ? '既に登録されています' : 'Already registered');
   }
   
   if (existingIdx >= 0) {
@@ -2997,7 +3063,7 @@ window.addWordManual = () => {
   save.srs();
   save.prog();
   
-  showToast(old ? (currentLang === 'ja' ? `更新しました: ${w}` : `Updated: ${w}`) : (currentLang === 'ja' ? `追加しました: ${w}` : `Added: ${w}`));
+  showToast(old ? (getUiLang() === 'ja' ? `更新しました: ${w}` : `Updated: ${w}`) : (getUiLang() === 'ja' ? `追加しました: ${w}` : `Added: ${w}`));
   closeModal('add-word-modal');
   renderVocab(true);
   renderVocabStats();
@@ -3011,12 +3077,12 @@ window.addWordManual = () => {
 
 window.addDerivedWord = (word, meaning) => {
   if (ALL_WORDS.some(w => w.word.toLowerCase() === word.toLowerCase())) {
-    showToast(currentLang === 'ja' ? '既に登録されています' : 'Already registered');
+    showToast(getUiLang() === 'ja' ? '既に登録されています' : 'Already registered');
     return;
   }
   ALL_WORDS.unshift({ id: generateId(), word, meaning, example: '', tags: [] });
   save.words();
-  showToast(currentLang === 'ja' ? `追加しました: ${word}` : `Added: ${word}`);
+  showToast(getUiLang() === 'ja' ? `追加しました: ${word}` : `Added: ${word}`);
   updateTagFilters();
   renderVocab(true);
   renderVocabStats();
@@ -3141,7 +3207,7 @@ window.searchWord = async (isSuggest = false) => {
     if (!fd) {
       ALL_WORDS.push({ id: generateId(), word: w, meaning: meaningText, detailHtml: html });
       save.words();
-      showToast(currentLang === 'ja' ? `追加しました: ${w}` : `Added: ${w}`);
+      showToast(getUiLang() === 'ja' ? `追加しました: ${w}` : `Added: ${w}`);
       updateTagFilters();
     } else {
       fd.detailHtml = html;
@@ -3155,21 +3221,21 @@ window.searchWord = async (isSuggest = false) => {
     if (sr) {
       sr.innerHTML = `
         <div class="card result-box">
-          <div class="flex-between mb-1">
-            <div class="result-word-header">
+          <div class="flex-between align-center mb-3 flex-wrap gap-2">
+            <div class="result-word-header mb-0">
               <div class="result-word-title">${esc(w)}</div>
-              <button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">${currentLang === 'ja' ? '発音' : 'Pronounce'}</button>
+              <button class="speak-btn-large btn-pill btn-outline whitespace-nowrap" onclick="speakWord('${escJS(w)}',event)">${getUiLang() === 'ja' ? '発音' : 'Pronounce'}</button>
             </div>
-            <div class="flex-gap-8">
-              <button data-word="${esc(w)}" class="save-btn ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? (currentLang === 'ja' ? '保存済' : 'Saved') : (currentLang === 'ja' ? '保存' : 'Save')}</button>
-              <button class="copy-btn" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">${currentLang === 'ja' ? 'コピー' : 'Copy'}</button>
-              <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">${currentLang === 'ja' ? '削除' : 'Delete'}</button>
+            <div class="flex-gap-8 flex-wrap">
+              <button data-word="${esc(w)}" class="save-btn whitespace-nowrap ${isSaved ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isSaved ? (getUiLang() === 'ja' ? '保存済' : 'Saved') : (getUiLang() === 'ja' ? '保存' : 'Save')}</button>
+              <button class="copy-btn whitespace-nowrap" onclick="copyText(\`${pt.replace(/`/g, '\\`')}\`,this)">${getUiLang() === 'ja' ? 'コピー' : 'Copy'}</button>
+              <button class="copy-btn text-danger whitespace-nowrap" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">${getUiLang() === 'ja' ? '削除' : 'Delete'}</button>
             </div>
           </div>
           <div class="result-meaning-badge">${esc(meaningText)}</div>
           ${html}
-          <div class="text-center mt-3">
-            <button class="btn-pill btn-outline" onclick="regenerateSearchWord('${escJS(w)}')">${currentLang === 'ja' ? '再生成' : 'Regenerate'}</button>
+          <div class="text-center mt-4">
+            <button class="btn-pill btn-outline whitespace-nowrap" onclick="regenerateSearchWord('${escJS(w)}')">${getUiLang() === 'ja' ? '再生成' : 'Regenerate'}</button>
           </div>
         </div>
       `;
@@ -3181,7 +3247,7 @@ window.searchWord = async (isSuggest = false) => {
       if (!fd) {
         ALL_WORDS.push({ id: generateId(), word: w, meaning: fallbackMeaning, detailHtml: `<p>${esc(fallbackMeaning)}</p>` });
         save.words();
-        showToast(currentLang === 'ja' ? `追加しました: ${w}` : `Added: ${w}`);
+        showToast(getUiLang() === 'ja' ? `追加しました: ${w}` : `Added: ${w}`);
         updateTagFilters();
       }
       if (sr) {
@@ -3276,8 +3342,8 @@ window.regenerateWordDetail = async (w) => {
     }
     mc.innerHTML = `
       <div class="mt-4">${parsedHtml}</div>
-      <div class="text-center mt-3">
-        <button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">${currentLang === 'ja' ? '再生成' : 'Regenerate'}</button>
+      <div class="text-center mt-4">
+        <button class="btn-pill btn-outline whitespace-nowrap" onclick="regenerateWordDetail('${escJS(w)}')">${getUiLang() === 'ja' ? '再生成' : 'Regenerate'}</button>
       </div>
     `;
   } catch (e) {
@@ -3296,8 +3362,8 @@ window.showWordModal = async (w, m) => {
   let tagsHtml = '';
   if (fd && fd.tags && fd.tags.length) {
     tagsHtml = `
-      <div class="flex gap-1 mb-2 flex-wrap">
-        ${fd.tags.map(t => `<span class="filter-chip" style="font-size:calc(10px * var(--text-scale));padding:4px 8px;">${esc(t)}</span>`).join('')}
+      <div class="flex gap-2 mb-3 flex-wrap">
+        ${fd.tags.map(tStr => `<span class="filter-chip" style="font-size:calc(10px * var(--text-scale));padding:4px 8px;">${esc(tStr)}</span>`).join('')}
       </div>
     `;
   }
@@ -3306,13 +3372,13 @@ window.showWordModal = async (w, m) => {
     <div class="word-detail-header">
       <div class="word-detail-title-row">
         <div class="result-word-title">${esc(w)}</div>
-        <button class="speak-btn-large btn-pill btn-outline" onclick="speakWord('${escJS(w)}',event)">${currentLang === 'ja' ? '発音' : 'Pronounce'}</button>
+        <button class="speak-btn-large btn-pill btn-outline whitespace-nowrap" onclick="speakWord('${escJS(w)}',event)">${getUiLang() === 'ja' ? '発音' : 'Pronounce'}</button>
       </div>
       <div class="word-detail-actions">
-        <span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w)}',event)" style="cursor:pointer;">${p}</span>
-        <button data-word="${esc(w)}" class="save-btn ${isS ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isS ? (currentLang === 'ja' ? '保存済' : 'Saved') : (currentLang === 'ja' ? '保存' : 'Save')}</button>
-        <button class="copy-btn" onclick="openAddWordModal('${escJS(w)}')">${currentLang === 'ja' ? '編集' : 'Edit'}</button>
-        <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">${currentLang === 'ja' ? '削除' : 'Delete'}</button>
+        <span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w)}',event)" style="cursor:pointer;">${t('prog_' + p)}</span>
+        <button data-word="${esc(w)}" class="save-btn whitespace-nowrap ${isS ? 'saved' : 'unsaved'}" onclick="toggleWordSave('${escJS(w)}')">${isS ? (getUiLang() === 'ja' ? '保存済' : 'Saved') : (getUiLang() === 'ja' ? '保存' : 'Save')}</button>
+        <button class="copy-btn whitespace-nowrap" onclick="openAddWordModal('${escJS(w)}')">${getUiLang() === 'ja' ? '編集' : 'Edit'}</button>
+        <button class="copy-btn text-danger whitespace-nowrap" style="border-color:#f0d4d0;" onclick="deleteWord('${escJS(w)}')">${getUiLang() === 'ja' ? '削除' : 'Delete'}</button>
       </div>
     </div>
     ${tagsHtml}
@@ -3338,7 +3404,7 @@ window.showWordModal = async (w, m) => {
     if (wordRetentionChart) wordRetentionChart.destroy();
     wordRetentionChart = new Chart(ctx, {
       type: 'line',
-      data: { labels, datasets: [{ label: 'Retention Rate (%)', data, borderColor: '#3498DB', backgroundColor: 'rgba(52, 152, 219, 0.2)', fill: true, tension: 0.4 }] },
+      data: { labels, datasets: [{ label: 'Retention Rate (%)', data, borderColor: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.2)', fill: true, tension: 0.4 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
     });
     
@@ -3363,17 +3429,17 @@ window.showWordModal = async (w, m) => {
   
   let customHtml = '';
   if (fd && (fd.example || fd.note)) {
-    customHtml = `<div class="mb-3 p-16 bg-main radius-sm border">`;
+    customHtml = `<div class="mb-4 p-16 bg-main radius-sm border">`;
     if (fd.example) {
       customHtml += `
         <p class="text-xs font-bold text-muted mb-2">Example</p>
-        <p class="text-sm mb-3">${esc(fd.example)} <button class="btn-clear text-accent" onclick="speakWord('${escJS(fd.example)}',event)">Pronounce</button></p>
+        <p class="text-sm mb-3 line-height-16">${esc(fd.example)} <button class="btn-clear text-accent" onclick="speakWord('${escJS(fd.example)}',event)">Pronounce</button></p>
       `;
     }
     if (fd.note) {
       customHtml += `
         <p class="text-xs font-bold text-muted mb-2">Note</p>
-        <p class="text-sm">${esc(fd.note)}</p>
+        <p class="text-sm line-height-16">${esc(fd.note)}</p>
       `;
     }
     customHtml += `</div>`;
@@ -3382,8 +3448,8 @@ window.showWordModal = async (w, m) => {
   if (fd && fd.detailHtml) {
     mc.innerHTML = customHtml + `
       <div class="mt-4">${clean(fd.detailHtml)}</div>
-      <div class="text-center mt-3">
-        <button class="btn-pill btn-outline" onclick="regenerateWordDetail('${escJS(w)}')">${currentLang === 'ja' ? '再生成' : 'Regenerate'}</button>
+      <div class="text-center mt-4">
+        <button class="btn-pill btn-outline whitespace-nowrap" onclick="regenerateWordDetail('${escJS(w)}')">${getUiLang() === 'ja' ? '再生成' : 'Regenerate'}</button>
       </div>
     `;
   } else {
@@ -3424,7 +3490,7 @@ window.resetFsrsData = () => {
   const titleEl = document.querySelector('#modal-body .result-word-title');
   if (!titleEl) return;
   const w = titleEl.textContent;
-  if (!confirm(currentLang === 'ja' ? 'この単語の学習履歴をリセットしますか？' : 'Reset study history for this word?')) return;
+  if (!confirm(getUiLang() === 'ja' ? 'この単語の学習履歴をリセットしますか？' : 'Reset study history for this word?')) return;
   
   delete srsData[w.toLowerCase()];
   setWordProgress(w, 'new');
@@ -3438,7 +3504,7 @@ window.resetFsrsData = () => {
 const highlightText = (text, query) => {
   if (!query) return esc(text);
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  return esc(text).replace(regex, '<mark style="background:rgba(230,126,34,0.3);color:inherit;padding:0 2px;border-radius:2px;">$1</mark>');
+  return esc(text).replace(regex, '<mark style="background:rgba(249,115,22,0.3);color:inherit;padding:0 2px;border-radius:2px;">$1</mark>');
 };
 
 window.setPosFilter = p => {
@@ -3457,10 +3523,10 @@ window.setProgFilter = p => {
   renderVocab(true);
 };
 
-window.setTagFilter = t => {
-  vocabTagFilter = t;
+window.setTagFilter = tStr => {
+  vocabTagFilter = tStr;
   document.querySelectorAll('#tag-filters .filter-chip').forEach(b => {
-    b.classList.toggle('active', b.dataset.tag === t);
+    b.classList.toggle('active', b.dataset.tag === tStr);
   });
   renderVocab(true);
 };
@@ -3487,7 +3553,7 @@ window.clearPrefixFilter = () => {
 const updateTagFilters = () => {
   const tags = new Set();
   ALL_WORDS.forEach(w => {
-    if (w.tags) w.tags.forEach(t => tags.add(t));
+    if (w.tags) w.tags.forEach(tStr => tags.add(tStr));
   });
   
   const c = $('tag-filters');
@@ -3495,17 +3561,17 @@ const updateTagFilters = () => {
   
   if (c) {
     c.innerHTML = `
-      <button class="filter-chip ${vocabTagFilter === 'all' ? 'active' : ''}" data-tag="all" onclick="setTagFilter('all')">${currentLang === 'ja' ? 'すべて' : 'All'}</button>
-    ` + Array.from(tags).map(t => `
-      <button class="filter-chip ${vocabTagFilter === t ? 'active' : ''}" data-tag="${esc(t)}" onclick="setTagFilter('${escJS(t)}')">${esc(t)}</button>
+      <button class="filter-chip ${vocabTagFilter === 'all' ? 'active' : ''}" data-tag="all" onclick="setTagFilter('all')">${t('tag_all')}</button>
+    ` + Array.from(tags).map(tStr => `
+      <button class="filter-chip ${vocabTagFilter === tStr ? 'active' : ''}" data-tag="${esc(tStr)}" onclick="setTagFilter('${escJS(tStr)}')">${esc(tStr)}</button>
     `).join('');
   }
   
   if (cs) {
     cs.innerHTML = `
-      <option value="all">${currentLang === 'ja' ? 'すべて' : 'All'}</option>
-    ` + Array.from(tags).map(t => `
-      <option value="${esc(t)}">${esc(t)}</option>
+      <option value="all">${t('tag_all')}</option>
+    ` + Array.from(tags).map(tStr => `
+      <option value="${esc(tStr)}">${esc(tStr)}</option>
     `).join('');
   }
 };
@@ -3514,20 +3580,20 @@ window.openTagManagerModal = () => {
   openModal('tag-manager-modal');
   const tags = new Set();
   ALL_WORDS.forEach(w => {
-    if (w.tags) w.tags.forEach(t => tags.add(t));
+    if (w.tags) w.tags.forEach(tStr => tags.add(tStr));
   });
-  $('tag-manager-list').innerHTML = Array.from(tags).map(t => `
-    <div class="flex-between card p-14 mb-2">
-      <span class="font-bold">${esc(t)}</span>
-      <button class="btn-clear text-danger" onclick="deleteTagGlobally('${escJS(t)}')">${currentLang === 'ja' ? '削除' : 'Delete'}</button>
+  $('tag-manager-list').innerHTML = Array.from(tags).map(tStr => `
+    <div class="flex-between align-center card p-16 mb-2">
+      <span class="font-bold">${esc(tStr)}</span>
+      <button class="btn-clear text-danger whitespace-nowrap" onclick="deleteTagGlobally('${escJS(tStr)}')">${getUiLang() === 'ja' ? '削除' : 'Delete'}</button>
     </div>
   `).join('');
 };
 
 window.deleteTagGlobally = (tag) => {
-  if (!confirm(currentLang === 'ja' ? `タグ "${tag}" をすべての単語から削除しますか？` : `Delete tag "${tag}" from all words?`)) return;
+  if (!confirm(getUiLang() === 'ja' ? `タグ "${tag}" をすべての単語から削除しますか？` : `Delete tag "${tag}" from all words?`)) return;
   ALL_WORDS.forEach(w => {
-    if (w.tags) w.tags = w.tags.filter(t => t !== tag);
+    if (w.tags) w.tags = w.tags.filter(tStr => tStr !== tag);
   });
   save.words();
   updateTagFilters();
@@ -3577,7 +3643,7 @@ window.analyzeVocabMeta = async () => {
   } finally {
     if (b) {
       b.disabled = false;
-      b.textContent = currentLang === 'ja' ? '品詞・語源を解析' : 'Analyze POS & Etymology';
+      b.textContent = getUiLang() === 'ja' ? '品詞・語源を解析' : 'Analyze POS & Etymology';
     }
     if (s) s.textContent = 'Complete';
     renderVocab(true);
@@ -3592,15 +3658,15 @@ const renderVocabStats = () => {
     b.innerHTML = `
       <div class="vsb-item">
         <div class="vsb-num">${ALL_WORDS.length}</div>
-        <div class="vsb-label">Total</div>
+        <div class="vsb-label">${t('label_total')}</div>
       </div>
       <div class="vsb-item">
         <div class="vsb-num text-green">${m}</div>
-        <div class="vsb-label">Mastered</div>
+        <div class="vsb-label">${t('label_mastered')}</div>
       </div>
       <div class="vsb-item">
         <div class="vsb-num text-streak">${l}</div>
-        <div class="vsb-label">Learning</div>
+        <div class="vsb-label">${t('label_learning')}</div>
       </div>
     `;
   }
@@ -3660,7 +3726,7 @@ window.renderVocab = (reset = false) => {
   }
   
   if (!ALL_WORDS.length) {
-    vg.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '空です' : 'Empty'}</div>`;
+    vg.innerHTML = `<div class="vocab-empty">${getUiLang() === 'ja' ? '空です' : 'Empty'}</div>`;
     if (btn) btn.classList.add('hidden');
     return;
   }
@@ -3689,7 +3755,7 @@ window.renderVocab = (reset = false) => {
         <span class="vi-word">${displayWord}</span>
       </div>
       <div class="vi-right">
-        <span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w.word)}',event)">${p}</span>
+        <span class="prog-badge ${p}" onclick="cycleWordProgress('${escJS(w.word)}',event)">${t('prog_' + p)}</span>
         <span class="vi-mean">${displayMeaning}</span>
       </div>
     `;
@@ -3711,12 +3777,12 @@ window.loadMoreVocab = () => {
 
 window.bulkTagWords = () => {
   if (!currentFilteredWords.length) return;
-  const tag = prompt(currentLang === 'ja' ? `表示中の ${currentFilteredWords.length} 単語に追加するタグを入力:` : `Enter tag to add to the currently displayed ${currentFilteredWords.length} words:`);
+  const tag = prompt(getUiLang() === 'ja' ? `表示中の ${currentFilteredWords.length} 単語に追加するタグを入力:` : `Enter tag to add to the currently displayed ${currentFilteredWords.length} words:`);
   if (!tag || !tag.trim()) return;
-  const t = tag.trim();
+  const tStr = tag.trim();
   currentFilteredWords.forEach(w => {
     if (!w.tags) w.tags = [];
-    if (!w.tags.includes(t)) w.tags.push(t);
+    if (!w.tags.includes(tStr)) w.tags.push(tStr);
   });
   save.words();
   updateTagFilters();
@@ -3726,7 +3792,7 @@ window.bulkTagWords = () => {
 
 window.bulkResetProgress = () => {
   if (!currentFilteredWords.length) return;
-  if (!confirm(currentLang === 'ja' ? `表示中の ${currentFilteredWords.length} 単語の学習進捗をリセットしますか？` : `Reset learning progress (FSRS) for the currently displayed ${currentFilteredWords.length} words?`)) return;
+  if (!confirm(getUiLang() === 'ja' ? `表示中の ${currentFilteredWords.length} 単語の学習進捗をリセットしますか？` : `Reset learning progress (FSRS) for the currently displayed ${currentFilteredWords.length} words?`)) return;
   currentFilteredWords.forEach(w => {
     delete srsData[w.word.toLowerCase()];
     setWordProgress(w.word, 'new');
@@ -3740,7 +3806,7 @@ window.bulkResetProgress = () => {
 
 window.bulkDeleteWords = () => {
   if (!currentFilteredWords.length) return;
-  if (!confirm(currentLang === 'ja' ? `表示中の ${currentFilteredWords.length} 単語を完全に削除しますか？この操作は元に戻せません。` : `Permanently delete the currently displayed ${currentFilteredWords.length} words? This action cannot be undone.`)) return;
+  if (!confirm(getUiLang() === 'ja' ? `表示中の ${currentFilteredWords.length} 単語を完全に削除しますか？この操作は元に戻せません。` : `Permanently delete the currently displayed ${currentFilteredWords.length} words? This action cannot be undone.`)) return;
   const wordsToDelete = new Set(currentFilteredWords.map(w => w.word.toLowerCase()));
   ALL_WORDS = ALL_WORDS.filter(w => !wordsToDelete.has(w.word.toLowerCase()));
   wordsToDelete.forEach(w => {
@@ -3803,9 +3869,9 @@ window.exportVocabPDF = () => {
         table{width:100%;border-collapse:collapse}
         th,td{border:1px solid #ddd;padding:8px}
         th{background:#f5f5f5}
-        .mastered{color:#27AE60;font-weight:bold}
-        .learning{color:#D4AC0D;font-weight:bold}
-        .new{color:#999}
+        .mastered{color:#10B981;font-weight:bold}
+        .learning{color:#F59E0B;font-weight:bold}
+        .new{color:#94A3B8}
         .btn{display:block;width:180px;margin:0 auto 20px;padding:10px;text-align:center;background:#111;color:#fff;border-radius:50px;cursor:pointer}
         @media print{.btn{display:none}}
       </style>
@@ -3817,7 +3883,7 @@ window.exportVocabPDF = () => {
         <tr><th>Word</th><th>Meaning</th><th>Progress</th></tr>
         ${ALL_WORDS.map(w => {
           const p = getWordProgress(w.word);
-          return `<tr><td><b>${esc(w.word)}</b></td><td>${esc(w.meaning || '')}</td><td class="${p}">${p}</td></tr>`;
+          return `<tr><td><b>${esc(w.word)}</b></td><td>${esc(w.meaning || '')}</td><td class="${p}">${t('prog_' + p)}</td></tr>`;
         }).join('')}
       </table>
     </body>
@@ -3829,25 +3895,25 @@ window.exportVocabPDF = () => {
 // ============================================================
 // [12] SKILL UP
 // ============================================================
-window.switchWritingTab = t => {
+window.switchWritingTab = tStr => {
   ['input', 'daily', 'quiz', 'media', 'shadowing', 'syntax', 'history'].forEach(x => {
     const tb = $('wtab-' + x);
     const pn = $('wpane-' + x);
     if (tb) {
-      if (x === t) tb.classList.add('active');
+      if (x === tStr) tb.classList.add('active');
       else tb.classList.remove('active');
     }
     if (pn) {
-      if (x === t) pn.classList.add('active');
+      if (x === tStr) pn.classList.add('active');
       else pn.classList.remove('active');
     }
   });
-  if (t === 'history') renderWritingHistory();
-  if (t === 'daily') {
+  if (tStr === 'history') renderWritingHistory();
+  if (tStr === 'daily') {
     window.switchDailyTab(currentDailyTab);
     renderDaily();
   }
-  if (t === 'syntax') renderSyntax();
+  if (tStr === 'syntax') renderSyntax();
 };
 
 window.setWritingInputMode = m => {
@@ -3976,15 +4042,15 @@ window.submitWriting = async type => {
   let imageId = null;
   
   if (wInputMode === 'text') {
-    const t = $('writing-text-input')?.value.trim();
-    if (!t) return;
-    histTxt = t;
-    c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${t}` : type === 'paraphrase' ? `言い換え:\n${t}` : type === 'essay' ? `エッセイ評価:\n${t}` : `添削:\n${t}` }];
+    const tStr = $('writing-text-input')?.value.trim();
+    if (!tStr) return;
+    histTxt = tStr;
+    c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${tStr}` : type === 'paraphrase' ? `言い換え:\n${tStr}` : type === 'essay' ? `エッセイ評価:\n${tStr}` : `添削:\n${tStr}` }];
   } else if (wInputMode === 'file') {
-    const t = $('writing-file-text')?.value.trim();
-    if (!t) return;
-    histTxt = t;
-    c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${t}` : type === 'paraphrase' ? `言い換え:\n${t}` : type === 'essay' ? `エッセイ評価:\n${t}` : `添削:\n${t}` }];
+    const tStr = $('writing-file-text')?.value.trim();
+    if (!tStr) return;
+    histTxt = tStr;
+    c = [{ type: 'text', text: type === 'analyze' ? `構文解析と和訳:\n${tStr}` : type === 'paraphrase' ? `言い換え:\n${tStr}` : type === 'essay' ? `エッセイ評価:\n${tStr}` : `添削:\n${tStr}` }];
   } else if (wInputMode === 'photo') {
     if (!wPhotoData) return;
     const b = wPhotoData.split(',')[1];
@@ -4070,18 +4136,18 @@ window.submitWriting = async type => {
         rs.innerHTML = `
           <div class="card">
             <div class="text-xs font-bold text-muted mb-2">Blank Text Test</div>
-            <div class="text-base mb-3" style="line-height:1.6;">${esc(histTxt).replace(/\n/g, '<br>')}</div>
+            <div class="text-base mb-4" style="line-height:1.6;">${esc(histTxt).replace(/\n/g, '<br>')}</div>
             <button class="action-btn mb-0 bg-accent" onclick="document.getElementById('res-analyzed-${newId}').classList.remove('hidden');this.classList.add('hidden');">View Answer</button>
             <div id="res-analyzed-${newId}" class="hidden mt-14">
               <div class="correction-box mt-0">${ht}</div>
-              <button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">Extract Key Syntax</button>
+              <button class="action-btn mt-4 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">Extract Key Syntax</button>
             </div>
           </div>
         `;
       } else {
         rs.innerHTML = `
           <div class="correction-box">${ht}</div>
-          ${(type === 'correct' || type === 'essay') ? `<button class="action-btn mt-3 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">Extract Key Syntax</button>` : ''}
+          ${(type === 'correct' || type === 'essay') ? `<button class="action-btn mt-4 mb-0 bg-accent2" onclick="extractSyntaxFromHistory('${newId}')">Extract Key Syntax</button>` : ''}
         `;
       }
     }
@@ -4126,7 +4192,7 @@ const renderWritingHistory = () => {
       </div>
     `).join('');
   } else {
-    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '履歴がありません' : 'No history'}</div>`;
+    c.innerHTML = `<div class="vocab-empty">${getUiLang() === 'ja' ? '履歴がありません' : 'No history'}</div>`;
   }
 };
 
@@ -4142,9 +4208,9 @@ window.showWritingHistoryDetail = id => {
   let html = '';
   if (h.imageId) {
     html += `
-      <div class="mb-3">
+      <div class="mb-4">
         <button class="btn-text-muted" onclick="showSavedImage('${h.imageId}')">View Original Image</button>
-        <div id="saved-img-${h.imageId}" class="mt-2"></div>
+        <div id="saved-img-${h.imageId}" class="mt-3"></div>
       </div>
     `;
   }
@@ -4152,7 +4218,7 @@ window.showWritingHistoryDetail = id => {
   if (h.type === 'analyze' || (!h.type && h.score === null)) {
     html += `
       <div class="text-xs font-bold text-muted mb-2">Blank Text Test</div>
-      <div class="text-base mb-3 p-16 bg-main radius-sm line-height-16">${esc(h.fullOriginal || h.original).replace(/\n/g, '<br>')}</div>
+      <div class="text-base mb-4 p-16 bg-main radius-sm line-height-16">${esc(h.fullOriginal || h.original).replace(/\n/g, '<br>')}</div>
       <button class="action-btn mb-0 bg-accent" onclick="document.getElementById('hist-analyzed-${id}').classList.remove('hidden');this.classList.add('hidden');">View Answer</button>
       <div id="hist-analyzed-${id}" class="hidden mt-14">
         <div class="correction-box mt-0">${h.result}</div>
@@ -4182,24 +4248,24 @@ window.deleteWritingHistory = id => {
   }, () => {});
 };
 
-window.switchDailyTab = t => {
-  currentDailyTab = t;
+window.switchDailyTab = tStr => {
+  currentDailyTab = tStr;
   ['comp', 'parse', 'reading', 'listen', 'drill'].forEach(x => {
     const b = $('dtab-' + x);
     const a = $('daily-area-' + x);
     if (b) {
-      if (x === t) b.classList.add('active');
+      if (x === tStr) b.classList.add('active');
       else b.classList.remove('active');
     }
     if (a) {
-      if (x === t) a.classList.remove('hidden');
+      if (x === tStr) a.classList.remove('hidden');
       else a.classList.add('hidden');
     }
   });
   
   const diffWrap = $('daily-difficulty-wrap');
   if (diffWrap) {
-    if (t === 'drill') diffWrap.classList.add('hidden');
+    if (tStr === 'drill') diffWrap.classList.add('hidden');
     else diffWrap.classList.remove('hidden');
   }
   renderDaily();
@@ -4229,14 +4295,14 @@ const renderDaily = () => {
     if (!tasks.length) {
       html += `
         <div class="card text-center p-40">
-          <button class="action-btn mb-0 btn-auto-width btn-lg-pad" onclick="generateDailyTask('${currentDailyTab}')">Create Question</button>
+          <button class="action-btn mb-0 btn-auto-width btn-lg-pad whitespace-nowrap" onclick="generateDailyTask('${currentDailyTab}')">${t('btn_create_question')}</button>
         </div>
       `;
     } else {
       html += tasks.map(task => {
         let qHtml = task.question;
         if (currentDailyTab === 'reading') {
-          qHtml = qHtml.replace(/<div class="translation hidden" id="([^"]+)">/g, '<button class="btn-text-muted mt-2 mb-2" onclick="toggleReadingTranslation(\'$1\')">Show Translation</button><div class="translation hidden text-sm text-sub bg-main p-14 radius-sm mb-3" id="$1">');
+          qHtml = qHtml.replace(/<div class="translation hidden" id="([^"]+)">/g, '<button class="btn-text-muted mt-2 mb-3" onclick="toggleReadingTranslation(\'$1\')">Show Translation</button><div class="translation hidden text-sm text-sub bg-main p-16 radius-sm mb-4" id="$1">');
         }
         
         if (!task.answer) {
@@ -4244,7 +4310,7 @@ const renderDaily = () => {
             <div class="card">
               <p class="text-xs font-bold text-muted mb-3">Question (${task.date})</p>
               <div class="text-base mb-4 line-height-16">${qHtml}</div>
-              <textarea id="daily-ans-${task.id}" class="writing-textarea" placeholder="Answer..."></textarea>
+              <textarea id="daily-ans-${task.id}" class="writing-textarea mb-3" placeholder="Answer..."></textarea>
               <button class="action-btn mb-0" id="daily-submit-${task.id}" onclick="submitDailyAnswer('${task.id}')">Submit & Correct</button>
               <div id="daily-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div>
             </div>
@@ -4263,7 +4329,7 @@ const renderDaily = () => {
       }).join('');
       html += `
         <div class="text-center mt-4">
-          <button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyTask('${currentDailyTab}')">+ Create More</button>
+          <button class="action-btn btn-secondary btn-auto-width btn-md-pad whitespace-nowrap" onclick="generateDailyTask('${currentDailyTab}')">+ Create More</button>
         </div>
       `;
     }
@@ -4271,7 +4337,7 @@ const renderDaily = () => {
     const hist = dailyChallenges.filter(d => d.date !== ts && d.taskType === currentDailyTab);
     if (hist.length) {
       html += `
-        <div class="mt-4 pt-3 border-top">
+        <div class="mt-4 pt-4 border-top">
           <p class="section-note">Past Questions</p>
           ${hist.map(h => `
             <div class="writing-history-item" role="button" tabindex="0" onclick="showDailyHistoryDetail('${h.id}')">
@@ -4395,15 +4461,15 @@ window.showDailyHistoryDetail = id => {
     <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Question (${h.date}):</b><br>${h.question}</div>
     <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Answer:</b><br>${esc(h.answer)}</div>
     <div class="correction-box mt-0">${h.feedback}</div>
-    <div class="mt-4 pt-3 border-top">
-      <p class="text-xs font-bold mb-2">Retention (FSRS)</p>
-      <div class="flex-gap-8">
-        <button onclick="srsReviewItem('${sK}',0);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-danger">Forgot</button>
-        <button onclick="srsReviewItem('${sK}',1);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-streak">Hard</button>
-        <button onclick="srsReviewItem('${sK}',2);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-green">Good</button>
-        <button onclick="srsReviewItem('${sK}',3);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-blue">Easy</button>
+    <div class="mt-4 pt-4 border-top">
+      <p class="text-xs font-bold mb-3">Retention (FSRS)</p>
+      <div class="flex-gap-8 flex-wrap">
+        <button onclick="srsReviewItem('${sK}',0);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-danger flex-1 min-w-60">Forgot</button>
+        <button onclick="srsReviewItem('${sK}',1);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-streak flex-1 min-w-60">Hard</button>
+        <button onclick="srsReviewItem('${sK}',2);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-green flex-1 min-w-60">Good</button>
+        <button onclick="srsReviewItem('${sK}',3);showDailyHistoryDetail('${h.id}')" class="btn-srs bg-blue flex-1 min-w-60">Easy</button>
       </div>
-      <p class="text-xs text-muted text-center mt-2">${sT}</p>
+      <p class="text-xs text-muted text-center mt-3">${sT}</p>
     </div>
     <button class="action-btn mt-4 mb-0 btn-danger" onclick="deleteDailyChallenge('${id}')">Delete this question</button>
   `;
@@ -4455,8 +4521,8 @@ window.generateWeaknessDrill = async () => {
     if (area) {
       area.innerHTML = `
         <div class="card">${html}</div>
-        <div class="text-center mt-3">
-          <button class="action-btn btn-secondary btn-auto-width" onclick="generateWeaknessDrill()">Regenerate</button>
+        <div class="text-center mt-4">
+          <button class="action-btn btn-secondary btn-auto-width whitespace-nowrap" onclick="generateWeaknessDrill()">Regenerate</button>
         </div>
       `;
     }
@@ -4528,7 +4594,7 @@ const renderListenArea = () => {
     if (!tasks.length) {
       html += `
         <div class="card text-center p-40">
-          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2" onclick="generateDailyListen()">Create Multiple Choice</button>
+          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2 whitespace-nowrap" onclick="generateDailyListen()">${t('btn_create_question')}</button>
         </div>
       `;
     } else {
@@ -4545,26 +4611,26 @@ const renderListenArea = () => {
         }).join('');
         
         let card = `
-          <div class="card mb-3">
+          <div class="card mb-4">
             <div class="flex-between align-center mb-3">
               <span class="text-xs font-bold text-muted">LISTENING — ${accL}</span>
               <span class="text-xs text-muted">${task.date}</span>
             </div>
-            <div class="flex-center gap-2 mb-4">
-              <button onclick="playListenAudioById('${task.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">Normal Speed</button>
-              <button onclick="playListenAudioById('${task.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">Slow Speed</button>
+            <div class="flex-center gap-3 mb-4 flex-wrap">
+              <button onclick="playListenAudioById('${task.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad whitespace-nowrap">Normal Speed</button>
+              <button onclick="playListenAudioById('${task.id}', 0.7)" class="btn-pill btn-outline btn-md-pad whitespace-nowrap">Slow Speed</button>
             </div>
-            <p class="text-base font-bold mb-3">${esc(task.question)}</p>
+            <p class="text-base font-bold mb-4 line-height-15">${esc(task.question)}</p>
             <div class="listen-options">${opts}</div>
         `;
         
         if (ans) {
           card += `
-            <div style="background:${task.userAnswer === task.answer ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)'};border-radius:var(--radius-sm);padding:16px;margin-top:16px;">
-              <p style="font-weight:700;margin-bottom:8px;color:${task.userAnswer === task.answer ? '#1a6038' : '#8b1c14'}">${task.userAnswer === task.answer ? 'Correct!' : 'Incorrect'}</p>
+            <div style="background:${task.userAnswer === task.answer ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};border-radius:var(--radius-sm);padding:16px;margin-top:16px;">
+              <p style="font-weight:700;margin-bottom:8px;color:${task.userAnswer === task.answer ? '#065F46' : '#991B1B'}">${task.userAnswer === task.answer ? 'Correct!' : 'Incorrect'}</p>
               <p class="text-sm line-height-16">${esc(task.explanation)}</p>
             </div>
-            <div class="mt-3 p-16 bg-main radius-sm border">
+            <div class="mt-4 p-16 bg-main radius-sm border">
               <p class="text-xs font-bold text-muted mb-2">Transcript</p>
               <p class="text-sm line-height-16" id="listen-transcript-${task.id}">${esc(task.transcript)}</p>
             </div>
@@ -4575,7 +4641,7 @@ const renderListenArea = () => {
       
       html += `
         <div class="text-center mt-4">
-          <button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyListen()">+ Create More</button>
+          <button class="action-btn btn-secondary btn-auto-width btn-md-pad whitespace-nowrap" onclick="generateDailyListen()">+ Create More</button>
         </div>
       `;
     }
@@ -4583,7 +4649,7 @@ const renderListenArea = () => {
     const hist = listenHistory.filter(d => d.date !== ts && d.type !== 'dict');
     if (hist.length) {
       html += `
-        <div class="mt-4 pt-3 border-top">
+        <div class="mt-4 pt-4 border-top">
           <p class="section-note">Past Questions</p>
           ${hist.map(h => `
             <div class="writing-history-item" role="button" tabindex="0" onclick="showListenHistoryDetail('${h.id}')">
@@ -4605,7 +4671,7 @@ const renderListenArea = () => {
     if (!tasks.length) {
       html += `
         <div class="card text-center p-40">
-          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2" onclick="generateDailyDictation()">Create Dictation</button>
+          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2 whitespace-nowrap" onclick="generateDailyDictation()">${t('btn_create_question')}</button>
         </div>
       `;
     } else {
@@ -4613,23 +4679,23 @@ const renderListenArea = () => {
         const isDone = task.userAnswer !== undefined;
         const accL = ACCENT_LABELS[task.accent] || task.accent || 'US English';
         let card = `
-          <div class="card mb-3">
+          <div class="card mb-4">
             <div class="flex-between align-center mb-3">
               <span class="text-xs font-bold text-muted">DICTATION — ${accL}</span>
               <span class="text-xs text-muted">${task.date}</span>
             </div>
-            <div class="flex-center gap-2 mb-4">
-              <button onclick="playListenAudioById('${task.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">Normal Speed</button>
-              <button onclick="playListenAudioById('${task.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">Slow Speed</button>
+            <div class="flex-center gap-3 mb-4 flex-wrap">
+              <button onclick="playListenAudioById('${task.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad whitespace-nowrap">Normal Speed</button>
+              <button onclick="playListenAudioById('${task.id}', 0.7)" class="btn-pill btn-outline btn-md-pad whitespace-nowrap">Slow Speed</button>
             </div>
         `;
         
         if (!isDone) {
           card += `
-            <textarea id="dict-ans-${task.id}" class="writing-textarea" placeholder="Enter the English you heard..."></textarea>
-            <div class="flex-gap-8">
-              <button class="action-btn mb-0 flex-1" id="dict-submit-${task.id}" onclick="submitDailyDictation('${task.id}')">Grade</button>
-              <button class="action-btn mb-0 btn-secondary w-auto" onclick="showDictationHint('${task.id}')">Hint</button>
+            <textarea id="dict-ans-${task.id}" class="writing-textarea mb-3" placeholder="Enter the English you heard..."></textarea>
+            <div class="flex-gap-8 flex-wrap">
+              <button class="action-btn mb-0 flex-1 min-w-100" id="dict-submit-${task.id}" onclick="submitDailyDictation('${task.id}')">Grade</button>
+              <button class="action-btn mb-0 btn-secondary w-auto flex-shrink-0" onclick="showDictationHint('${task.id}')">Hint</button>
             </div>
             <div id="dict-load-${task.id}" class="hidden text-center mt-10"><span class="loading-dots"></span></div>
           `;
@@ -4644,7 +4710,7 @@ const renderListenArea = () => {
       
       html += `
         <div class="text-center mt-4">
-          <button class="action-btn btn-secondary btn-auto-width btn-md-pad" onclick="generateDailyDictation()">+ Create More</button>
+          <button class="action-btn btn-secondary btn-auto-width btn-md-pad whitespace-nowrap" onclick="generateDailyDictation()">+ Create More</button>
         </div>
       `;
     }
@@ -4652,7 +4718,7 @@ const renderListenArea = () => {
     const hist = listenHistory.filter(d => d.date !== ts && d.type === 'dict');
     if (hist.length) {
       html += `
-        <div class="mt-4 pt-3 border-top">
+        <div class="mt-4 pt-4 border-top">
           <p class="section-note">Past Dictations</p>
           ${hist.map(h => `
             <div class="writing-history-item" role="button" tabindex="0" onclick="showListenHistoryDetail('${h.id}')">
@@ -4704,9 +4770,9 @@ window.generateDailyListen = async () => {
 };
 
 window.submitDailyListenAnswer = (id, idx) => {
-  const t = listenHistory.find(x => String(x.id) === String(id));
-  if (!t || t.userAnswer >= 0) return;
-  t.userAnswer = idx;
+  const tObj = listenHistory.find(x => String(x.id) === String(id));
+  if (!tObj || tObj.userAnswer >= 0) return;
+  tObj.userAnswer = idx;
   save.listen();
   renderListenArea();
 };
@@ -4779,8 +4845,8 @@ Explanation: ${task.explanation}`;
 };
 
 window.playListenAudioById = (id, rate = 1.0) => {
-  const t = listenHistory.find(x => String(x.id) === String(id));
-  if (!t) return;
+  const tObj = listenHistory.find(x => String(x.id) === String(id));
+  if (!tObj) return;
   
   if (!window.speechSynthesis) return;
   speechSynthesis.cancel();
@@ -4790,9 +4856,9 @@ window.playListenAudioById = (id, rate = 1.0) => {
   }
   
   const langMap = { en_US: 'en-US', en_GB: 'en-GB', en_AU: 'en-AU' };
-  const lang = langMap[t.accent] || 'en-US';
+  const lang = langMap[tObj.accent] || 'en-US';
   
-  const u = new SpeechSynthesisUtterance(t.transcript);
+  const u = new SpeechSynthesisUtterance(tObj.transcript);
   u.lang = lang;
   
   if (availableVoices.length > 0) {
@@ -4834,9 +4900,9 @@ window.showListenHistoryDetail = id => {
   if (h.type === 'dict') {
     ht = `
       <div class="text-xs font-bold text-muted mb-3">DICTATION (${h.date})</div>
-      <div class="flex-center gap-2 mb-4">
-        <button onclick="playListenAudioById('${h.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">Normal Speed</button>
-        <button onclick="playListenAudioById('${h.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">Slow Speed</button>
+      <div class="flex-center gap-3 mb-4 flex-wrap">
+        <button onclick="playListenAudioById('${h.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad whitespace-nowrap">Normal Speed</button>
+        <button onclick="playListenAudioById('${h.id}', 0.7)" class="btn-pill btn-outline btn-md-pad whitespace-nowrap">Slow Speed</button>
       </div>
       <div class="text-sm mb-3 pb-3 border-bottom line-height-16"><b>Your Answer:</b><br>${esc(h.userAnswer || '')}</div>
       <div class="correction-box mt-0">${h.feedback}</div>
@@ -4854,38 +4920,38 @@ window.showListenHistoryDetail = id => {
     
     ht = `
       <div class="text-xs font-bold text-muted mb-3">LISTENING (${h.date})</div>
-      <div class="flex-center gap-2 mb-4">
-        <button onclick="playListenAudioById('${h.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad">Normal Speed</button>
-        <button onclick="playListenAudioById('${h.id}', 0.7)" class="btn-pill btn-outline btn-md-pad">Slow Speed</button>
+      <div class="flex-center gap-3 mb-4 flex-wrap">
+        <button onclick="playListenAudioById('${h.id}', 1.0)" class="btn-pill bg-accent text-bg border-none btn-md-pad whitespace-nowrap">Normal Speed</button>
+        <button onclick="playListenAudioById('${h.id}', 0.7)" class="btn-pill btn-outline btn-md-pad whitespace-nowrap">Slow Speed</button>
       </div>
-      <p class="text-base font-bold mb-3">${esc(h.question)}</p>
+      <p class="text-base font-bold mb-4 line-height-15">${esc(h.question)}</p>
       <div class="listen-options">${opts}</div>
     `;
     
     if (ans) {
       ht += `
-        <div style="background:${h.userAnswer === h.answer ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)'};border-radius:var(--radius-sm);padding:16px;margin-top:16px;">
-          <p style="font-weight:700;margin-bottom:8px;color:${h.userAnswer === h.answer ? '#1a6038' : '#8b1c14'}">${h.userAnswer === h.answer ? 'Correct!' : 'Incorrect'}</p>
-          <p class="text-sm">${esc(h.explanation)}</p>
+        <div style="background:${h.userAnswer === h.answer ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};border-radius:var(--radius-sm);padding:16px;margin-top:16px;">
+          <p style="font-weight:700;margin-bottom:8px;color:${h.userAnswer === h.answer ? '#065F46' : '#991B1B'}">${h.userAnswer === h.answer ? 'Correct!' : 'Incorrect'}</p>
+          <p class="text-sm line-height-16">${esc(h.explanation)}</p>
         </div>
-        <div class="mt-3 p-16 bg-main radius-sm border">
+        <div class="mt-4 p-16 bg-main radius-sm border">
           <p class="text-xs font-bold text-muted mb-2">Transcript</p>
-          <p class="text-sm" id="listen-transcript-${h.id}">${esc(h.transcript)}</p>
+          <p class="text-sm line-height-16" id="listen-transcript-${h.id}">${esc(h.transcript)}</p>
         </div>
       `;
     }
   }
   
   ht += `
-    <div class="mt-4 pt-3 border-top">
-      <p class="text-xs font-bold mb-2">Retention (FSRS)</p>
-      <div class="flex-gap-8">
-        <button onclick="srsReviewItem('${sK}',0);showListenHistoryDetail('${h.id}')" class="btn-srs bg-danger">Forgot</button>
-        <button onclick="srsReviewItem('${sK}',1);showListenHistoryDetail('${h.id}')" class="btn-srs bg-streak">Hard</button>
-        <button onclick="srsReviewItem('${sK}',2);showListenHistoryDetail('${h.id}')" class="btn-srs bg-green">Good</button>
-        <button onclick="srsReviewItem('${sK}',3);showListenHistoryDetail('${h.id}')" class="btn-srs bg-blue">Easy</button>
+    <div class="mt-4 pt-4 border-top">
+      <p class="text-xs font-bold mb-3">Retention (FSRS)</p>
+      <div class="flex-gap-8 flex-wrap">
+        <button onclick="srsReviewItem('${sK}',0);showListenHistoryDetail('${h.id}')" class="btn-srs bg-danger flex-1 min-w-60">Forgot</button>
+        <button onclick="srsReviewItem('${sK}',1);showListenHistoryDetail('${h.id}')" class="btn-srs bg-streak flex-1 min-w-60">Hard</button>
+        <button onclick="srsReviewItem('${sK}',2);showListenHistoryDetail('${h.id}')" class="btn-srs bg-green flex-1 min-w-60">Good</button>
+        <button onclick="srsReviewItem('${sK}',3);showListenHistoryDetail('${h.id}')" class="btn-srs bg-blue flex-1 min-w-60">Easy</button>
       </div>
-      <p class="text-xs text-muted text-center mt-2">${sT}</p>
+      <p class="text-xs text-muted text-center mt-3">${sT}</p>
     </div>
     <button class="action-btn mt-4 mb-0 btn-danger" onclick="deleteListenHistory('${h.id}')">Delete this question</button>
   `;
@@ -4988,7 +5054,7 @@ const renderWordQuiz = () => {
   const q = activeQuizList[activeQuizIndex];
   let html = `
     <div class="card">
-      <p class="text-xs font-bold text-muted mb-2">Q${activeQuizIndex + 1} / ${activeQuizList.length}</p>
+      <p class="text-xs font-bold text-muted mb-3">Q${activeQuizIndex + 1} / ${activeQuizList.length}</p>
       <p class="text-lg font-bold mb-4 line-height-15">${esc(q.q)}</p>
       <div id="quiz-interactive-area">
   `;
@@ -4999,13 +5065,13 @@ const renderWordQuiz = () => {
     });
   } else if (q.type === 'fill') {
     html += `
-      <input type="text" id="quiz-fill-input" class="score-input mb-3" placeholder="Enter answer..." style="font-size:16px;">
+      <input type="text" id="quiz-fill-input" class="score-input mb-4" placeholder="Enter answer..." style="font-size:16px;">
       <button class="action-btn" onclick="submitWordQuiz('fill')">Submit</button>
     `;
   } else if (q.type === 'sort') {
     html += `
       <div class="quiz-sortable" id="quiz-sort-target" onclick="handleSortClick(event, 'target')"></div>
-      <p class="text-xs text-muted mb-2">Tap the words below to arrange them in the box above</p>
+      <p class="text-xs text-muted mb-3">Tap the words below to arrange them in the box above</p>
       <div class="quiz-sortable" id="quiz-sort-source" onclick="handleSortClick(event, 'source')">
         ${q.options.sort(() => 0.5 - Math.random()).map(w => `<div class="quiz-word-chip">${esc(w)}</div>`).join('')}
       </div>
@@ -5015,7 +5081,7 @@ const renderWordQuiz = () => {
   
   html += `
       </div>
-      <div id="quiz-feedback-area" class="hidden mt-16 p-16 radius-sm"></div>
+      <div id="quiz-feedback-area" class="hidden mt-4 p-16 radius-sm"></div>
     </div>
   `;
   area.innerHTML = html;
@@ -5063,10 +5129,10 @@ window.submitWordQuiz = (type, val) => {
   }
   
   fb.classList.remove('hidden');
-  fb.style.backgroundColor = isCorrect ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)';
+  fb.style.backgroundColor = isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
   fb.style.border = `1px solid ${isCorrect ? 'var(--green)' : 'var(--danger)'}`;
   fb.innerHTML = `
-    <p style="font-weight:700; color:${isCorrect ? '#1a6038' : '#8b1c14'}; margin-bottom:8px;">${isCorrect ? 'Correct!' : 'Incorrect'}</p>
+    <p style="font-weight:700; color:${isCorrect ? '#065F46' : '#991B1B'}; margin-bottom:8px;">${isCorrect ? 'Correct!' : 'Incorrect'}</p>
     <p class="text-sm text-sub">Answer: ${esc(correctText)}</p>
     <button class="action-btn mt-4 mb-0 bg-accent" onclick="activeQuizIndex++; renderWordQuiz();">Next Question</button>
   `;
@@ -5222,13 +5288,13 @@ window.playShadowingModel = () => {
   const text = $('shadowing-text-input').value;
   if (!text) return showToast('Please enter English text');
   speakWord(text);
-  drawFakeWaveform('shadowing-model-canvas', '#3498DB');
+  drawFakeWaveform('shadowing-model-canvas', '#3B82F6');
 };
 
 window.toggleShadowingRecord = async () => {
   const btn = $('shadowing-record-btn');
   if (btn.textContent === 'Start Recording' || btn.textContent === '録音開始') {
-    btn.textContent = currentLang === 'ja' ? '停止' : 'Stop';
+    btn.textContent = getUiLang() === 'ja' ? '停止' : 'Stop';
     btn.classList.remove('bg-danger');
     btn.classList.add('bg-accent');
     try {
@@ -5237,13 +5303,13 @@ window.toggleShadowingRecord = async () => {
       const source = shadowingAudioCtx.createMediaStreamSource(stream);
       shadowingAnalyser = shadowingAudioCtx.createAnalyser();
       source.connect(shadowingAnalyser);
-      drawRealWaveform('shadowing-user-canvas', '#E67E22');
+      drawRealWaveform('shadowing-user-canvas', '#F97316');
     } catch (e) {
       showToast('Microphone permission is required');
       window.toggleShadowingRecord();
     }
   } else {
-    btn.textContent = currentLang === 'ja' ? '録音開始' : 'Start Recording';
+    btn.textContent = getUiLang() === 'ja' ? '録音開始' : 'Start Recording';
     btn.classList.remove('bg-accent');
     btn.classList.add('bg-danger');
     if (shadowingAudioCtx) shadowingAudioCtx.close();
@@ -5297,7 +5363,7 @@ const renderSyntax = () => {
   const c = $('syntax-list');
   if (!c) return;
   if (!syntaxList.length) {
-    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '構文がありません' : 'No syntax available'}</div>`;
+    c.innerHTML = `<div class="vocab-empty">${getUiLang() === 'ja' ? '構文がありません' : 'No syntax available'}</div>`;
     return;
   }
   
@@ -5307,18 +5373,18 @@ const renderSyntax = () => {
     const sT = r ? `Next: ${srsDaysDiff(srsNextDate(r)) <= 0 ? 'Today' : srsDaysDiff(srsNextDate(r)) + ' days'}` : 'Not registered';
     
     return `
-      <div class="card mb-2 p-16">
-        <div class="flex-between align-center mb-2">
+      <div class="card mb-3 p-16">
+        <div class="flex-between align-center mb-3">
           <div class="text-base font-bold line-height-15" style="font-family:var(--font-block);">${esc(s.syntax)}</div>
           <button onclick="deleteSyntax('${s.id}')" class="btn-clear text-danger">✕</button>
         </div>
-        <div class="text-sm text-sub mb-2">${esc(s.meaning || '')}</div>
-        ${s.note ? `<div class="text-xs text-muted mt-2 pt-2 border-top border-dashed">${esc(s.note)}</div>` : ''}
-        <div class="flex align-center gap-1 mt-3">
-          <button onclick="srsReviewItem('${sK}',0);renderSyntax()" class="btn-srs bg-danger btn-pill">Forgot</button>
-          <button onclick="srsReviewItem('${sK}',1);renderSyntax()" class="btn-srs bg-streak btn-pill">Hard</button>
-          <button onclick="srsReviewItem('${sK}',2);renderSyntax()" class="btn-srs bg-green btn-pill">Good</button>
-          <button onclick="srsReviewItem('${sK}',3);renderSyntax()" class="btn-srs bg-blue btn-pill">Easy</button>
+        <div class="text-sm text-sub mb-3">${esc(s.meaning || '')}</div>
+        ${s.note ? `<div class="text-xs text-muted mt-3 pt-3 border-top border-dashed">${esc(s.note)}</div>` : ''}
+        <div class="flex align-center gap-2 mt-4 flex-wrap">
+          <button onclick="srsReviewItem('${sK}',0);renderSyntax()" class="btn-srs bg-danger btn-pill flex-1 min-w-60">Forgot</button>
+          <button onclick="srsReviewItem('${sK}',1);renderSyntax()" class="btn-srs bg-streak btn-pill flex-1 min-w-60">Hard</button>
+          <button onclick="srsReviewItem('${sK}',2);renderSyntax()" class="btn-srs bg-green btn-pill flex-1 min-w-60">Good</button>
+          <button onclick="srsReviewItem('${sK}',3);renderSyntax()" class="btn-srs bg-blue btn-pill flex-1 min-w-60">Easy</button>
           <span class="text-xs text-muted ml-2 whitespace-nowrap">${sT}</span>
         </div>
       </div>
@@ -5403,7 +5469,7 @@ const ccInitDecks = () => {
 };
 
 const ccRenderSelects = () => {
-  const o = `<option value="">-- Select --</option>` + customDecks.map(d => `<option value="${d.id}" ${d.id === ccDeckId ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
+  const o = `<option value="">${t('opt_select')}</option>` + customDecks.map(d => `<option value="${d.id}" ${d.id === ccDeckId ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
   ['cc-deck-select', 'cc-edit-deck-select'].forEach(id => {
     const e = $(id);
     if (e) e.innerHTML = o;
@@ -5417,7 +5483,7 @@ const ccRenderDecksList = () => {
       <div class="card flex-between align-center">
         <span>${esc(d.name)} (${d.cards.length} cards)</span>
         <div class="flex-gap-8">
-          <button onclick="ccDeleteDeck('${d.id}')" class="btn-clear text-danger">Delete</button>
+          <button onclick="ccDeleteDeck('${d.id}')" class="btn-clear text-danger">${t('btn_delete')}</button>
         </div>
       </div>
     `).join('') : '';
@@ -5435,7 +5501,7 @@ window.ccCreateDeck = () => {
 };
 
 window.ccDeleteDeck = id => {
-  if (!confirm('Delete?')) return;
+  if (!confirm(getUiLang() === 'ja' ? '削除しますか？' : 'Delete?')) return;
   customDecks = customDecks.filter(d => d.id !== id);
   if (ccDeckId === id) {
     ccDeckId = null;
@@ -5568,7 +5634,7 @@ window.ccRenderCards = () => {
   if (!d || !cl) return;
   
   cl.innerHTML = d.cards.map((c, i) => `
-    <div class="card flex-between p-14">
+    <div class="card flex-between p-16">
       <div>
         <b>${esc(c.front)}</b><br>
         <span class="text-muted">${esc(c.back)}</span>
@@ -5708,7 +5774,7 @@ window.ccGenerateCardsAI = async () => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = currentLang === 'ja' ? 'AIで生成' : 'Generate with AI';
+      btn.textContent = t('btn_gen_ai');
     }
   }
 };
@@ -5719,12 +5785,12 @@ window.ccGenerateCardsAI = async () => {
 window.setSubject = s => {
   curSubj = s;
   document.querySelectorAll('#subject-tabs .stab').forEach((b, i) => {
-    if (Object.keys(subjConf)[i] === s) b.classList.add('active');
+    if (Object.keys(SCORE_SUBJECTS)[i] === s) b.classList.add('active');
     else b.classList.remove('active');
   });
   
   const sl = $('subject-label');
-  if (sl) sl.textContent = (currentLang === 'ja' ? subjConf[s] : subjConf[s]) + ' Mode';
+  if (sl) sl.textContent = SCORE_SUBJECTS[s].label + ' Mode';
   
   const ocrOpt = $('math-sci-ocr-option');
   if (ocrOpt) {
@@ -5822,10 +5888,10 @@ const _sendSubj = async (c, dt) => {
 window.sendSubjectMessage = () => {
   const i = $('subject-input');
   if (!i || !i.value.trim()) return;
-  const t = i.value.trim();
+  const tStr = i.value.trim();
   i.value = '';
   autoResize(i);
-  _sendSubj(t, t);
+  _sendSubj(tStr, tStr);
 };
 
 window.sendSubjectFileMessage = () => {
@@ -5901,7 +5967,7 @@ window.saveLastSubjectQA = async (btn, subj) => {
   subjectSaved.unshift({
     id: generateId(),
     subject: subj,
-    subjectLabel: subjConf[subj],
+    subjectLabel: SCORE_SUBJECTS[subj].label,
     date: new Date().toLocaleString('en-US'),
     question: qStr,
     answer: hist[hist.length - 1].content,
@@ -5956,7 +6022,7 @@ const renderSubjectSaved = () => {
   const folderSel = $('subject-folder-select');
   if (folderSel) {
     const currentVal = folderSel.value;
-    folderSel.innerHTML = `<option value="all">${currentLang === 'ja' ? 'すべてのフォルダ' : 'All Folders'}</option><option value="uncategorized">${currentLang === 'ja' ? '未分類' : 'Uncategorized'}</option>` + subjectFolders.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
+    folderSel.innerHTML = `<option value="all">${t('folder_all')}</option><option value="uncategorized">${t('folder_uncategorized')}</option>` + subjectFolders.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
     folderSel.value = currentVal || 'all';
   }
   
@@ -5968,19 +6034,19 @@ const renderSubjectSaved = () => {
   
   if (ls.length) {
     sl.innerHTML = ls.map(x => `
-      <div class="card mb-2">
+      <div class="card mb-3">
         <div class="text-xs text-muted mb-2">${x.date}</div>
-        <div class="text-sm font-bold mb-2">${esc(x.question)}</div>
-        ${x.imageId ? `<div class="mb-3"><button class="btn-text-muted" onclick="showSavedImage('${x.imageId}')">View Image</button><div id="saved-img-${x.imageId}" class="mt-2"></div></div>` : ''}
+        <div class="text-sm font-bold mb-3">${esc(x.question)}</div>
+        ${x.imageId ? `<div class="mb-3"><button class="btn-text-muted" onclick="showSavedImage('${x.imageId}')">View Image</button><div id="saved-img-${x.imageId}" class="mt-3"></div></div>` : ''}
         <div class="text-sm text-sub">${esc(x.answer)}</div>
-        <div class="flex-gap-8 mt-3">
-          <button class="copy-btn" onclick="generateSimilarSubject('${x.id}')">Generate Similar</button>
-          <button class="copy-btn text-danger" style="border-color:#f0d4d0;" onclick="deleteSubjectSaved('${x.id}')">Delete</button>
+        <div class="flex-gap-8 mt-4 flex-wrap">
+          <button class="copy-btn flex-1 min-w-100 whitespace-nowrap" onclick="generateSimilarSubject('${x.id}')">Generate Similar</button>
+          <button class="copy-btn text-danger flex-1 min-w-100 whitespace-nowrap" style="border-color:#f0d4d0;" onclick="deleteSubjectSaved('${x.id}')">Delete</button>
         </div>
       </div>
     `).join('');
   } else {
-    sl.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '空です' : 'Empty'}</div>`;
+    sl.innerHTML = `<div class="vocab-empty">${getUiLang() === 'ja' ? '空です' : 'Empty'}</div>`;
   }
   
   sl.querySelectorAll('.text-sub').forEach(el => renderMath(el));
@@ -6084,9 +6150,9 @@ const renderSubjectQuizActive = quiz => {
       <div class="card">
         <p class="text-xs font-bold text-muted mb-3">Review Question</p>
         <div class="text-base mb-4 line-height-16">${quiz.question}</div>
-        <textarea id="subquiz-answer-input" class="writing-textarea" placeholder="Answer..."></textarea>
+        <textarea id="subquiz-answer-input" class="writing-textarea mb-3" placeholder="Answer..."></textarea>
         <button class="action-btn mb-0" id="subquiz-submit-btn" onclick="submitSubjectQuiz('${quiz.id}')">Correct</button>
-        <div id="subquiz-loading" class="hidden text-center"><span class="loading-dots"></span></div>
+        <div id="subquiz-loading" class="hidden text-center mt-10"><span class="loading-dots"></span></div>
       </div>
     `;
   } else {
@@ -6158,7 +6224,7 @@ window.showSubjectQuizHistory = id => {
 };
 
 window.deleteSubjectQuizHistory = id => {
-  if (!confirm('Delete?')) return;
+  if (!confirm(getUiLang() === 'ja' ? '削除しますか？' : 'Delete?')) return;
   subjectQuizzes = subjectQuizzes.filter(x => String(x.id) !== String(id));
   save.subQuiz();
   renderSubjectQuiz();
@@ -6228,7 +6294,7 @@ window.planCalNext = () => {
 
 const renderPlanCalendar = () => {
   const cl = $('plan-cal-month-label');
-  if (cl) cl.textContent = `${pCalYear} ${MONTHS[pCalMonth]}`;
+  if (cl) cl.textContent = `${pCalYear} ${t('month_' + (pCalMonth + 1))}`;
   
   const firstDay = new Date(pCalYear, pCalMonth, 1);
   const lastDay = new Date(pCalYear, pCalMonth + 1, 0);
@@ -6253,7 +6319,7 @@ const renderPlanCalendar = () => {
     }
     const ev = events[ds];
     if (ev && ev.length > 0) {
-      dotHtml += `<div style="width:6px;height:6px;border-radius:50%;background:#3498db;"></div>`;
+      dotHtml += `<div style="width:6px;height:6px;border-radius:50%;background:#3B82F6;"></div>`;
     }
     
     const dot = dotHtml ? `<div style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%);display:flex;gap:3px;">${dotHtml}</div>` : '';
@@ -6278,20 +6344,20 @@ const renderPlanDateList = () => {
   const lsE = events[selectedPlanDate] || [];
   if (evL) {
     evL.innerHTML = lsE.length ? lsE.map((e, i) => `
-      <div class="plan-item-row" style="margin-bottom:8px;border-left:4px solid #3498db;">
+      <div class="plan-item-row" style="margin-bottom:8px;border-left:4px solid #3B82F6;">
         <div style="flex:1">
           <div class="pi-text" style="font-size:15px;">${esc(e.text)}</div>
         </div>
         <button class="plan-del" onclick="deletePlanEvent(${i})">✕</button>
       </div>
-    `).join('') : `<div class="text-center text-xs text-muted">${currentLang === 'ja' ? '予定はありません' : 'No events'}</div>`;
+    `).join('') : `<div class="text-center text-xs text-muted">${getUiLang() === 'ja' ? '予定はありません' : 'No events'}</div>`;
   }
   
   const plL = $('plan-content');
   const lsP = plans[selectedPlanDate] || [];
   if (plL) {
     plL.innerHTML = lsP.length ? lsP.map((p, i) => `
-      <div class="plan-item-row">
+      <div class="plan-item-row mb-2">
         <input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePlanDatePlan(${i})">
         <div style="flex:1">
           <div class="pi-text ${p.done ? 'done' : ''}" style="font-size:15px;">${esc(p.text)}</div>
@@ -6299,7 +6365,7 @@ const renderPlanDateList = () => {
         </div>
         <button class="plan-del" onclick="deletePlanDatePlan(${i})">✕</button>
       </div>
-    `).join('') : `<p class="text-center text-xs text-muted p-10">${currentLang === 'ja' ? '計画はありません' : 'No plans'}</p>`;
+    `).join('') : `<p class="text-center text-xs text-muted p-10">${getUiLang() === 'ja' ? '計画はありません' : 'No plans'}</p>`;
   }
 };
 
@@ -6336,13 +6402,13 @@ window.deletePlanEvent = i => {
 
 window.addPlanDatePlan = () => {
   const i = $('new-plan-input');
-  const t = $('new-plan-time');
+  const tStr = $('new-plan-time');
   const r = $('new-plan-routine');
   
   if (!i || !i.value.trim()) return;
   
   const text = i.value.trim();
-  const time = t ? t.value.trim() : '';
+  const time = tStr ? tStr.value.trim() : '';
   const routine = r ? r.value : 'none';
   
   if (routine === 'none') {
@@ -6374,7 +6440,7 @@ window.addPlanDatePlan = () => {
   
   save.plans();
   i.value = '';
-  if (t) t.value = '';
+  if (tStr) tStr.value = '';
   renderPlanCalendar();
   renderPlanDateList();
   if ($('Dashboard').classList.contains('active')) renderDashboard();
@@ -6412,7 +6478,7 @@ window.deletePlanDatePlan = i => {
 };
 
 window.rebuildScheduleAI = async () => {
-  if (!confirm(currentLang === 'ja' ? '過去の未完了タスクを今日以降に自動再配置しますか？' : 'Automatically reschedule past incomplete plans to today or later?')) return;
+  if (!confirm(getUiLang() === 'ja' ? '過去の未完了タスクを今日以降に自動再配置しますか？' : 'Automatically reschedule past incomplete plans to today or later?')) return;
   const today = todayDateStr();
   let pendingTasks = [];
   
@@ -6440,7 +6506,7 @@ window.rebuildScheduleAI = async () => {
     if (arr && arr.length) {
       arr.forEach(d => {
         if (!plans[d.date]) plans[d.date] = [];
-        d.tasks.forEach(t => plans[d.date].push({ text: t, done: false, time: '' }));
+        d.tasks.forEach(tStr => plans[d.date].push({ text: tStr, done: false, time: '' }));
       });
       save.plans();
       renderPlanCalendar();
@@ -6460,26 +6526,26 @@ const renderTextbooks = () => {
   const c = $('textbook-chips');
   if (!c) return;
   
-  textbooks = textbooks.map(t => typeof t === 'string' ? { id: generateId(), name: t, subject: 'other' } : t);
+  textbooks = textbooks.map(tObj => typeof tObj === 'string' ? { id: generateId(), name: tObj, subject: 'other' } : tObj);
   
   if (textbooks.length) {
-    c.innerHTML = textbooks.map((t, i) => `
-      <div class="filter-chip flex-between w-full" data-id="${t.id}" style="cursor:grab; padding:10px 16px;">
+    c.innerHTML = textbooks.map((tObj, i) => `
+      <div class="filter-chip flex-between w-full" data-id="${tObj.id}" style="cursor:grab; padding:10px 16px;">
         <div class="flex align-center">
           <span class="material-symbols-rounded text-muted mr-2" style="font-size:18px;">drag_indicator</span>
-          <span class="subj-badge ${t.subject}">${SCORE_SUBJECTS[t.subject]?.label || 'Oth'}</span>
-          <span class="font-bold">${esc(t.name)}</span>
+          <span class="subj-badge ${tObj.subject}">${SCORE_SUBJECTS[tObj.subject]?.label || 'Oth'}</span>
+          <span class="font-bold">${esc(tObj.name)}</span>
         </div>
-        <button onclick="deleteTextbook('${t.id}')" class="btn-clear text-danger">✕</button>
+        <button onclick="deleteTextbook('${tObj.id}')" class="btn-clear text-danger">✕</button>
       </div>
     `).join('');
   } else {
-    c.innerHTML = `<span class="text-xs text-muted">${currentLang === 'ja' ? '空です' : 'Empty'}</span>`;
+    c.innerHTML = `<span class="text-xs text-muted">${getUiLang() === 'ja' ? '空です' : 'Empty'}</span>`;
   }
   
   const ws = $('weekly-textbook-select');
   if (ws) {
-    ws.innerHTML = `<option value="">${currentLang === 'ja' ? '参考書を選択...' : 'Select textbook...'}</option>` + textbooks.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+    ws.innerHTML = `<option value="">${getUiLang() === 'ja' ? '参考書を選択...' : 'Select textbook...'}</option>` + textbooks.map(tObj => `<option value="${tObj.id}">${esc(tObj.name)}</option>`).join('');
   }
 
   if (sortableTextbooks) sortableTextbooks.destroy();
@@ -6488,7 +6554,7 @@ const renderTextbooks = () => {
     handle: '.material-symbols-rounded',
     onEnd: () => {
       const newOrderIds = Array.from(c.children).map(el => el.getAttribute('data-id'));
-      textbooks = newOrderIds.map(id => textbooks.find(t => t.id === id)).filter(Boolean);
+      textbooks = newOrderIds.map(id => textbooks.find(tObj => tObj.id === id)).filter(Boolean);
       save.books();
       renderTextbooks();
     }
@@ -6509,7 +6575,7 @@ window.addTextbook = () => {
 };
 
 window.deleteTextbook = id => {
-  textbooks = textbooks.filter(t => t.id !== id);
+  textbooks = textbooks.filter(tObj => tObj.id !== id);
   save.books();
   renderTextbooks();
 };
@@ -6532,9 +6598,9 @@ const renderWeeklyPlan = () => {
   if (!c) return;
   
   if (lbl) {
-    if (planWeeklyOffset === 0) lbl.textContent = currentLang === 'ja' ? '今週' : 'This Week';
-    else if (planWeeklyOffset === 1) lbl.textContent = currentLang === 'ja' ? '先週' : 'Last Week';
-    else lbl.textContent = `${planWeeklyOffset} weeks ago`;
+    if (planWeeklyOffset === 0) lbl.textContent = t('label_this_week');
+    else if (planWeeklyOffset === 1) lbl.textContent = t('label_last_week');
+    else lbl.textContent = `${planWeeklyOffset} ${t('weeks_ago')}`;
   }
 
   const now = new Date();
@@ -6560,12 +6626,12 @@ const renderWeeklyPlan = () => {
         <div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:14px;">${esc(p.text)}</div></div>
         <button class="plan-del" onclick="deleteWeeklyPlan('${ds}', ${idx})">✕</button>
       </div>
-    `).join('') : `<div class="text-xs text-muted text-center py-2">${currentLang === 'ja' ? '計画はありません' : 'No plans'}</div>`;
+    `).join('') : `<div class="text-xs text-muted text-center py-2">${getUiLang() === 'ja' ? '計画はありません' : 'No plans'}</div>`;
 
     html += `
       <div class="weekly-day-card" style="${isToday ? 'border-color:var(--accent); background:var(--bg2);' : ''}">
         <div class="weekly-day-header">
-          <span class="weekly-day-title">${dayNames[i]}</span>
+          <span class="weekly-day-title">${t('day_' + dayNames[i].toLowerCase())}</span>
           <span class="weekly-day-date">${d.getMonth() + 1}/${d.getDate()}</span>
         </div>
         <div>${planHtml}</div>
@@ -6601,7 +6667,7 @@ window.addWeeklyPlanFromTextbook = () => {
   
   if (!tbId || !pages) return showToast('Please enter textbook and range');
   
-  const tb = textbooks.find(t => t.id === tbId);
+  const tb = textbooks.find(tObj => tObj.id === tbId);
   if (!tb) return;
 
   const now = new Date();
@@ -6631,7 +6697,7 @@ const getAcademicYearLabel = m => {
   const curCalMonth = now.getMonth() + 1;
   const acadStartYear = curCalMonth >= 4 ? now.getFullYear() : now.getFullYear() - 1;
   const displayYear = (m >= 1 && m <= 3) ? (acadStartYear + 1) : acadStartYear;
-  return `${MONTHS[m-1]} (${displayYear})`;
+  return `${t('month_' + m)} (${displayYear})`;
 };
 
 const renderYearlyPlan = () => {
@@ -6649,7 +6715,7 @@ const renderYearlyPlan = () => {
     const isCur = i === curMonth;
     html += `
       <div class="yearly-month-card" style="${isCur ? 'border-color:var(--accent); background:var(--bg2);' : ''}">
-        <div class="yearly-month-label">${getAcademicYearLabel(i)} ${isCur ? `<span class="text-accent">(${currentLang === 'ja' ? '今月' : 'This Month'})</span>` : ''}</div>
+        <div class="yearly-month-label">${getAcademicYearLabel(i)} ${isCur ? `<span class="text-accent">(${getUiLang() === 'ja' ? '今月' : 'This Month'})</span>` : ''}</div>
         <textarea class="yearly-month-input" rows="3" placeholder="Goals / Plans..." oninput="updateYearlyMonth(${i}, this.value)">${esc(val)}</textarea>
       </div>
     `;
@@ -6732,8 +6798,8 @@ window.generateGanttSchedule = async () => {
     planArr.forEach(dayPlan => {
       const d = dayPlan.date;
       if (!plans[d]) plans[d] = [];
-      dayPlan.tasks.forEach(t => {
-        const taskText = `[${targetName}] ${t}`;
+      dayPlan.tasks.forEach(tStr => {
+        const taskText = `[${targetName}] ${tStr}`;
         if (!plans[d].some(p => p.text === taskText)) {
           plans[d].push({ text: taskText, done: false, time: null });
           addedCount++;
@@ -6968,13 +7034,13 @@ window.addExamSubjectRow = () => {
   const c = $('exam-subjects-container');
   if (!c) return;
   const r = document.createElement('div');
-  r.className = 'score-subject-row flex gap-1';
+  r.className = 'score-subject-row flex gap-2 flex-wrap';
   const cats = Object.entries(SCORE_SUBJECTS).map(([k, v]) => `<option value="${k}" ${k === 'english' ? 'selected' : ''}>${v.label}</option>`).join('');
   r.innerHTML = `
-    <select class="score-input exam-subj-cat w-auto flex-1 min-w-60" onchange="updateSubjList(this)">${cats}</select>
-    <select class="score-input exam-subj-detail w-auto flex-1 min-w-80">${getSubjectOptions('english')}</select>
-    <input class="score-input exam-subj-score w-50" type="number" placeholder="Score">
-    <input class="score-input exam-subj-dev w-60" type="number" step="0.1" placeholder="Dev">
+    <select class="score-input exam-subj-cat w-auto flex-1 min-w-80" onchange="updateSubjList(this)">${cats}</select>
+    <select class="score-input exam-subj-detail w-auto flex-1 min-w-100">${getSubjectOptions('english')}</select>
+    <input class="score-input exam-subj-score w-60" type="number" placeholder="${t('label_score')}">
+    <input class="score-input exam-subj-dev w-70" type="number" step="0.1" placeholder="${t('label_dev')}">
     <button onclick="this.parentElement.remove()" class="btn-clear p-8">✕</button>
   `;
   c.appendChild(r);
@@ -6984,10 +7050,10 @@ window.addExamJudgeRow = () => {
   const c = $('exam-judges-container');
   if (!c) return;
   const r = document.createElement('div');
-  r.className = 'score-judge-row flex gap-1';
+  r.className = 'score-judge-row flex gap-2 flex-wrap';
   r.innerHTML = `
-    <input class="score-input exam-judge-univ flex-2" placeholder="Univ">
-    <select class="score-input exam-judge-rank flex-1">
+    <input class="score-input exam-judge-univ flex-2 min-w-100" placeholder="${t('label_univ')}">
+    <select class="score-input exam-judge-rank flex-1 min-w-60">
       <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
     </select>
     <button onclick="this.parentElement.remove()" class="btn-clear p-8">✕</button>
@@ -7054,7 +7120,7 @@ const renderScoreList = () => {
   const c = $('score-list');
   if (!c) return;
   if (!examScores.length) {
-    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '成績がありません' : 'No scores'}</div>`;
+    c.innerHTML = `<div class="vocab-empty">${getUiLang() === 'ja' ? '成績がありません' : 'No scores'}</div>`;
     return;
   }
   
@@ -7073,7 +7139,7 @@ const renderScoreList = () => {
     `).join('');
     
     return `
-      <div class="card mb-2">
+      <div class="card mb-3">
         <div class="flex-between align-center mb-3">
           <div>
             <div class="text-base font-bold">${esc(s.name)}</div>
@@ -7116,7 +7182,7 @@ const renderScoreChart = () => {
   
   const sorted = [...scored].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
   const labels = sorted.map(s => s.date || s.name);
-  const colors = ['#3498DB', '#E74C3C', '#2ECC71', '#E67E22', '#9B59B6', '#1ABC9C', '#D35400', '#34495E'];
+  const colors = ['#3B82F6', '#EF4444', '#10B981', '#F97316', '#8B5CF6', '#14B8A6', '#C2410C', '#475569'];
   
   let datasets = [];
   let allDetails = [];
@@ -7202,7 +7268,7 @@ const renderLogListModal = () => {
   const c = $('log-list-container');
   if (!c) return;
   if (!studyLogs.length) {
-    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '学習記録がありません' : 'No study logs'}</div>`;
+    c.innerHTML = `<div class="vocab-empty">${getUiLang() === 'ja' ? '学習記録がありません' : 'No study logs'}</div>`;
     return;
   }
   
@@ -7279,1275 +7345,6 @@ window.saveEditedLog = () => {
   }
 };
 
-window.openStudyLogModal = ds => {
-  currentLogDate = ds;
-  const t = $('log-modal-title');
-  if (t) t.textContent = ds;
-  renderDailyEventList();
-  renderDailyPlanList();
-  renderLogModalList();
-  openModal('log-modal');
-};
-
-const renderDailyEventList = () => {
-  const c = $('log-modal-event-list');
-  const ls = events[currentLogDate] || [];
-  if (c) {
-    c.innerHTML = ls.length ? ls.map((e, i) => `
-      <div class="plan-item-row" style="margin-bottom:8px;border-left:4px solid #3498db;">
-        <div style="flex:1"><div class="pi-text" style="font-size:15px;">${esc(e.text)}</div></div>
-        <button class="plan-del" onclick="deleteDailyEventFromModal(${i})">✕</button>
-      </div>
-    `).join('') : `<div class="text-xs text-muted text-center">${currentLang === 'ja' ? '予定はありません' : 'No events'}</div>`;
-  }
-};
-
-window.addDailyEventFromModal = () => {
-  const i = $('log-modal-event-input');
-  if (!i || !i.value.trim()) return;
-  if (!events[currentLogDate]) events[currentLogDate] = [];
-  events[currentLogDate].push({ text: i.value.trim() });
-  save.events();
-  i.value = '';
-  renderDailyEventList();
-  if ($('Dashboard').classList.contains('active')) renderDashboard();
-};
-
-window.deleteDailyEventFromModal = i => {
-  if (events[currentLogDate]) {
-    events[currentLogDate].splice(i, 1);
-    if (events[currentLogDate].length === 0) delete events[currentLogDate];
-    save.events();
-    renderDailyEventList();
-    if ($('Dashboard').classList.contains('active')) renderDashboard();
-  }
-};
-
-const renderDailyPlanList = () => {
-  const c = $('log-modal-plan-list');
-  const ls = plans[currentLogDate] || [];
-  if (c) {
-    c.innerHTML = ls.length ? ls.map((p, i) => `
-      <div class="plan-item-row" style="margin-bottom:8px;">
-        <input type="checkbox" ${p.done ? 'checked' : ''} onchange="toggleDailyPlanFromModal(${i})">
-        <div style="flex:1"><div class="pi-text ${p.done ? 'done' : ''}" style="font-size:15px;">${esc(p.text)}</div></div>
-        <button class="plan-del" onclick="deleteDailyPlanFromModal(${i})">✕</button>
-      </div>
-    `).join('') : `<div class="text-xs text-muted text-center">${currentLang === 'ja' ? '計画はありません' : 'No plans'}</div>`;
-  }
-};
-
-window.addDailyPlanFromModal = () => {
-  const i = $('log-modal-plan-input');
-  if (!i || !i.value.trim()) return;
-  if (!plans[currentLogDate]) plans[currentLogDate] = [];
-  plans[currentLogDate].push({ text: i.value.trim(), done: false });
-  save.plans();
-  i.value = '';
-  renderDailyPlanList();
-  if ($('Dashboard').classList.contains('active')) renderDashboard();
-};
-
-window.toggleDailyPlanFromModal = i => {
-  if (plans[currentLogDate] && plans[currentLogDate][i]) {
-    plans[currentLogDate][i].done = !plans[currentLogDate][i].done;
-    save.plans();
-    renderDailyPlanList();
-    if ($('Dashboard').classList.contains('active')) renderDashboard();
-  }
-};
-
-window.deleteDailyPlanFromModal = i => {
-  if (plans[currentLogDate]) {
-    plans[currentLogDate].splice(i, 1);
-    if (plans[currentLogDate].length === 0) delete plans[currentLogDate];
-    save.plans();
-    renderDailyPlanList();
-    if ($('Dashboard').classList.contains('active')) renderDashboard();
-  }
-};
-
-const renderLogModalList = () => {
-  const c = $('log-modal-list');
-  const ls = studyLogs.filter(l => l.date === currentLogDate);
-  if (c) {
-    c.innerHTML = ls.length ? ls.map(l => `
-      <div class="card flex-between mb-2 p-16">
-        <div>
-          <span class="sli-subj">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span>
-          <span class="font-bold ml-2">${Math.floor(l.seconds / 60)} min</span>
-        </div>
-        <button onclick="deleteStudyLog(${l.ts})" class="btn-clear text-danger">✕</button>
-      </div>
-    `).join('') : `<div class="vocab-empty p-20">${currentLang === 'ja' ? '記録はありません' : 'No logs'}</div>`;
-  }
-};
-
-window.addStudyLogManual = () => {
-  const si = $('log-modal-subj');
-  const mi = $('log-modal-min');
-  const st = $('log-modal-start-time')?.value;
-  const et = $('log-modal-end-time')?.value;
-  
-  if (!si) return;
-  let m = parseInt(mi?.value) || 0;
-  
-  if (st && et) {
-    const [sh, sm] = st.split(':').map(Number);
-    const [eh, em] = et.split(':').map(Number);
-    let diff = (eh * 60 + em) - (sh * 60 + sm);
-    if (diff < 0) diff += 24 * 60;
-    m = diff;
-  }
-  
-  if (m <= 0) return showToast('Please enter at least 1 minute');
-  
-  studyLogs.push({ date: currentLogDate, subj: si.value, seconds: m * 60, ts: Date.now() });
-  const cut = new Date();
-  cut.setDate(cut.getDate() - 365);
-  studyLogs = studyLogs.filter(l => new Date(l.date) >= cut);
-  
-  save.logs();
-  renderLogModalList();
-  if ($('Dashboard').classList.contains('active')) renderDashboard();
-  
-  if (mi) mi.value = '';
-  if ($('log-modal-start-time')) $('log-modal-start-time').value = '';
-  if ($('log-modal-end-time')) $('log-modal-end-time').value = '';
-};
-
-window.deleteStudyLog = ts => {
-  studyLogs = studyLogs.filter(l => l.ts !== ts);
-  save.logs();
-  renderLogModalList();
-  if ($('Dashboard').classList.contains('active')) renderDashboard();
-};
-
-// ============================================================
-// [16] MISTAKES
-// ============================================================
-let mistakeTagFilter = 'all';
-
-window.switchMistakeTab = t => {
-  mistakeTab = t;
-  ['saved', 'exam', 'calc', 'other'].forEach(x => {
-    const tb = $('mistake-tab-' + x);
-    const pn = $('mistake-area-' + x);
-    if (tb) {
-      if (x === t) tb.classList.add('active');
-      else tb.classList.remove('active');
-    }
-    if (pn) {
-      if (x === t) pn.classList.remove('hidden');
-      else pn.classList.add('hidden');
-    }
-  });
-  
-  const filterContainer = $('mistake-tag-filter-container');
-  if (filterContainer) {
-    if (t === 'saved') filterContainer.classList.add('hidden');
-    else filterContainer.classList.remove('hidden');
-  }
-  
-  if (t === 'saved') renderSubjectSaved();
-  if (t === 'exam') {
-    updateMistakeTagFilters();
-    renderExamMistakes();
-    renderMistakeRadarChart();
-  }
-  if (t === 'calc') {
-    updateMistakeTagFilters();
-    renderCalcMistakes();
-  }
-  if (t === 'other') {
-    updateMistakeTagFilters();
-    renderOtherMistakes();
-  }
-};
-
-const updateMistakeTagFilters = () => {
-  const tags = new Set();
-  examMistakes.forEach(m => m.tags.forEach(t => tags.add(t)));
-  calcMistakes.forEach(m => m.tags.forEach(t => tags.add(t)));
-  otherMistakes.forEach(m => m.tags.forEach(t => tags.add(t)));
-  
-  const c = $('mistake-tag-filters');
-  if (c) {
-    c.innerHTML = `
-      <button class="filter-chip ${mistakeTagFilter === 'all' ? 'active' : ''}" data-tag="all" onclick="setMistakeTagFilter('all')">${currentLang === 'ja' ? 'すべて' : 'All'}</button>
-    ` + Array.from(tags).map(t => `
-      <button class="filter-chip ${mistakeTagFilter === t ? 'active' : ''}" data-tag="${esc(t)}" onclick="setMistakeTagFilter('${escJS(t)}')">${esc(t)}</button>
-    `).join('');
-  }
-};
-
-window.setMistakeTagFilter = t => {
-  mistakeTagFilter = t;
-  document.querySelectorAll('#mistake-tag-filters .filter-chip').forEach(b => {
-    b.classList.toggle('active', b.dataset.tag === t);
-  });
-  if (mistakeTab === 'exam') renderExamMistakes();
-  if (mistakeTab === 'calc') renderCalcMistakes();
-  if (mistakeTab === 'other') renderOtherMistakes();
-};
-
-window.addExamMistake = () => {
-  const name = $('exam-mistake-name').value.trim();
-  const qDesc = $('exam-mistake-q-desc').value.trim();
-  const wrongAns = $('exam-mistake-wrong-ans').value.trim();
-  const reason = $('exam-mistake-reason').value.trim();
-  const action = $('exam-mistake-action').value.trim();
-  
-  const tagsInput = $('exam-mistake-tags');
-  const tags = tagsInput && tagsInput.value.trim() ? tagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
-  
-  if (!name || !qDesc) return showToast('Exam name and question description are required');
-  
-  examMistakes.unshift({
-    id: generateId(),
-    date: todayDateStr(),
-    name, qDesc, wrongAns, reason, action, tags
-  });
-  
-  save.examMistakes();
-  updateMistakeTagFilters();
-  renderExamMistakes();
-  renderMistakeRadarChart();
-  
-  $('exam-mistake-name').value = '';
-  $('exam-mistake-q-desc').value = '';
-  $('exam-mistake-wrong-ans').value = '';
-  $('exam-mistake-reason').value = '';
-  $('exam-mistake-action').value = '';
-  if (tagsInput) tagsInput.value = '';
-  showToast('Added');
-};
-
-window.renderExamMistakes = () => {
-  const c = $('mistake-exam-list');
-  if (!c) return;
-  
-  let ls = examMistakes;
-  if (mistakeTagFilter !== 'all') {
-    ls = ls.filter(m => m.tags.includes(mistakeTagFilter));
-  }
-  
-  if (!ls.length) {
-    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '履歴がありません' : 'No mistake history'}</div>`;
-    return;
-  }
-  
-  c.innerHTML = ls.map(m => `
-    <div class="card mb-2">
-      <div class="flex-between mb-3">
-        <span class="text-base font-bold">${esc(m.name)}</span>
-        <span class="text-xs text-muted">${m.date}</span>
-      </div>
-      <div class="flex gap-1 mb-3 flex-wrap">
-        ${m.tags.map(t => `<span class="filter-chip" style="font-size:11px;padding:4px 8px;">${esc(t)}</span>`).join('')}
-      </div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
-      <div class="text-sm mb-3"><b>Action:</b><br>${esc(m.action)}</div>
-      <div class="flex-gap-8 mt-4">
-        <button class="action-btn mb-0 flex-1 btn-sm bg-accent2" onclick="addMistakeToPlan('${m.id}')">Add review to plan</button>
-        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteExamMistake('${m.id}')">Delete</button>
-      </div>
-    </div>
-  `).join('');
-};
-
-window.deleteExamMistake = id => {
-  if (!confirm('Delete?')) return;
-  examMistakes = examMistakes.filter(m => m.id !== id);
-  save.examMistakes();
-  updateMistakeTagFilters();
-  renderExamMistakes();
-  renderMistakeRadarChart();
-};
-
-window.addMistakeToPlan = id => {
-  const m = examMistakes.find(x => x.id === id);
-  if (!m) return;
-  const d = new Date();
-  d.setDate(d.getDate() + 3);
-  const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  
-  if (!plans[ds]) plans[ds] = [];
-  plans[ds].push({ text: `[Review] ${m.name}: ${m.qDesc.substring(0, 15)}...`, done: false, time: '' });
-  save.plans();
-  showToast(`${ds} added to plan`);
-};
-
-window.renderMistakeRadarChart = () => {
-  renderChartSafe('mistake-radar-chart', () => {
-    const cv = $('mistake-radar-chart');
-    if (!cv) return;
-    
-    const counts = {};
-    examMistakes.forEach(m => {
-      m.tags.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
-    });
-    
-    const labels = Object.keys(counts).slice(0, 6);
-    const data = labels.map(l => counts[l]);
-    
-    if (labels.length === 0) {
-      cv.parentElement.classList.add('hidden');
-      return;
-    } else {
-      cv.parentElement.classList.remove('hidden');
-    }
-    
-    if (mistakeRadarChart) mistakeRadarChart.destroy();
-    mistakeRadarChart = new Chart(cv, {
-      type: 'radar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Mistake Count',
-          data,
-          backgroundColor: 'rgba(231, 76, 60, 0.2)',
-          borderColor: '#E74C3C',
-          pointBackgroundColor: '#E74C3C'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { r: { angleLines: { display: true }, suggestedMin: 0, ticks: { stepSize: 1 } } }
-      }
-    });
-  });
-};
-
-window.generateMistakeRootCauseReport = async () => {
-  const r = $('mistake-root-cause-report');
-  if (!r) return;
-  if (examMistakes.length === 0) return showToast('No data');
-  
-  r.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
-  const dataStr = examMistakes.map(m => `[${m.tags.join(',')}] 原因:${m.reason} 対策:${m.action}`).join('\n');
-  
-  try {
-    const sys = `以下の生徒のミス履歴から、根本的な原因と具体的な改善アクションをレポートせよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
-<h4>Root Cause Analysis</h4>
-<p>[分析。文末は「〜である。」]</p>
-<h4>Specific Improvement Actions</h4>
-<ul><li>[アクション。文末は「〜だ。」]</li></ul>`;
-    const rep = await callGemini([{ role: 'user', content: `${sys}\n${dataStr}` }], 8192);
-    r.innerHTML = `<div class="card">${clean(rep.replace(/```html?/g, '').replace(/```/g, ''))}</div>`;
-  } catch (e) {
-    r.innerHTML = '<p class="text-danger">Analysis failed</p>';
-  }
-};
-
-window.addCalcMistake = () => {
-  const name = $('calc-mistake-name').value.trim();
-  const qDesc = $('calc-mistake-q-desc').value.trim();
-  const wrongAns = $('calc-mistake-wrong-ans').value.trim();
-  const reason = $('calc-mistake-reason').value.trim();
-  const action = $('calc-mistake-action').value.trim();
-  
-  const tagsInput = $('calc-mistake-tags');
-  const tags = tagsInput && tagsInput.value.trim() ? tagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
-  
-  if (!name || !qDesc) return showToast('Question name and description are required');
-  
-  calcMistakes.unshift({
-    id: generateId(),
-    date: todayDateStr(),
-    name, qDesc, wrongAns, reason, action, tags
-  });
-  
-  save.calcMistakes();
-  updateMistakeTagFilters();
-  renderCalcMistakes();
-  
-  $('calc-mistake-name').value = '';
-  $('calc-mistake-q-desc').value = '';
-  $('calc-mistake-wrong-ans').value = '';
-  $('calc-mistake-reason').value = '';
-  $('calc-mistake-action').value = '';
-  if (tagsInput) tagsInput.value = '';
-  showToast('Added');
-};
-
-window.renderCalcMistakes = () => {
-  const c = $('mistake-calc-list');
-  if (!c) return;
-  
-  let ls = calcMistakes;
-  if (mistakeTagFilter !== 'all') {
-    ls = ls.filter(m => m.tags && m.tags.includes(mistakeTagFilter));
-  }
-  
-  if (!ls.length) {
-    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '履歴がありません' : 'No calculation mistake history'}</div>`;
-    return;
-  }
-  
-  c.innerHTML = ls.map(m => `
-    <div class="card mb-2">
-      <div class="flex-between mb-3">
-        <span class="text-base font-bold">${esc(m.name)}</span>
-        <span class="text-xs text-muted">${m.date}</span>
-      </div>
-      <div class="flex gap-1 mb-3 flex-wrap">
-        ${(m.tags || []).map(t => `<span class="filter-chip" style="font-size:11px;padding:4px 8px;">${esc(t)}</span>`).join('')}
-      </div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
-      <div class="text-sm mb-3"><b>Action:</b><br>${esc(m.action)}</div>
-      <div class="flex-gap-8 mt-4">
-        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteCalcMistake('${m.id}')">Delete</button>
-      </div>
-    </div>
-  `).join('');
-};
-
-window.deleteCalcMistake = id => {
-  if (!confirm('Delete?')) return;
-  calcMistakes = calcMistakes.filter(m => m.id !== id);
-  save.calcMistakes();
-  updateMistakeTagFilters();
-  renderCalcMistakes();
-};
-
-window.addOtherMistake = () => {
-  const name = $('other-mistake-name').value.trim();
-  const qDesc = $('other-mistake-q-desc').value.trim();
-  const wrongAns = $('other-mistake-wrong-ans').value.trim();
-  const reason = $('other-mistake-reason').value.trim();
-  const action = $('other-mistake-action').value.trim();
-  
-  const tagsInput = $('other-mistake-tags');
-  const tags = tagsInput && tagsInput.value.trim() ? tagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
-  
-  if (!name || !qDesc) return showToast('Question name and description are required');
-  
-  otherMistakes.unshift({
-    id: generateId(),
-    date: todayDateStr(),
-    name, qDesc, wrongAns, reason, action, tags
-  });
-  
-  save.otherMistakes();
-  updateMistakeTagFilters();
-  renderOtherMistakes();
-  
-  $('other-mistake-name').value = '';
-  $('other-mistake-q-desc').value = '';
-  $('other-mistake-wrong-ans').value = '';
-  $('other-mistake-reason').value = '';
-  $('other-mistake-action').value = '';
-  if (tagsInput) tagsInput.value = '';
-  showToast('Added');
-};
-
-window.renderOtherMistakes = () => {
-  const c = $('mistake-other-list');
-  if (!c) return;
-  
-  let ls = otherMistakes;
-  if (mistakeTagFilter !== 'all') {
-    ls = ls.filter(m => m.tags && m.tags.includes(mistakeTagFilter));
-  }
-  
-  if (!ls.length) {
-    c.innerHTML = `<div class="vocab-empty">${currentLang === 'ja' ? '履歴がありません' : 'No other mistake history'}</div>`;
-    return;
-  }
-  
-  c.innerHTML = ls.map(m => `
-    <div class="card mb-2">
-      <div class="flex-between mb-3">
-        <span class="text-base font-bold">${esc(m.name)}</span>
-        <span class="text-xs text-muted">${m.date}</span>
-      </div>
-      <div class="flex gap-1 mb-3 flex-wrap">
-        ${(m.tags || []).map(t => `<span class="filter-chip" style="font-size:11px;padding:4px 8px;">${esc(t)}</span>`).join('')}
-      </div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Question:</b><br>${esc(m.qDesc)}</div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Wrong Answer:</b><br>${esc(m.wrongAns)}</div>
-      <div class="text-sm mb-3 pb-3 border-bottom border-dashed"><b>Cause:</b><br>${esc(m.reason)}</div>
-      <div class="text-sm mb-3"><b>Action:</b><br>${esc(m.action)}</div>
-      <div class="flex-gap-8 mt-4">
-        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="deleteOtherMistake('${m.id}')">Delete</button>
-      </div>
-    </div>
-  `).join('');
-};
-
-window.deleteOtherMistake = id => {
-  if (!confirm('Delete?')) return;
-  otherMistakes = otherMistakes.filter(m => m.id !== id);
-  save.otherMistakes();
-  updateMistakeTagFilters();
-  renderOtherMistakes();
-};
-
-// ============================================================
-// [17] IMPORT (Vocab Tab)
-// ============================================================
-window.openImportModal = () => {
-  openModal('import-modal');
-};
-
-window.switchImportTab = t => {
-  curImpTab = t;
-  ['file', 'text', 'url', 'photo'].forEach(x => {
-    const tb = $('itab-' + x);
-    const c = $('itab-content-' + x);
-    if (tb) {
-      if (x === t) tb.classList.add('active');
-      else tb.classList.remove('active');
-    }
-    if (c) {
-      if (x === t) c.classList.remove('hidden');
-      else c.classList.add('hidden');
-    }
-  });
-};
-
-const renderPreview = (w, id) => {
-  impWords = w.filter(x => x.word);
-  const c = $(id);
-  if (c) {
-    c.classList.remove('hidden');
-    c.innerHTML = `
-      <div class="import-preview-box">
-        ${impWords.slice(0, 20).map(x => `
-          <div class="import-preview-row">
-            <b>${esc(x.word)}</b>
-            <div>
-              <span>${esc(x.meaning || '')}</span><br>
-              <span class="text-xs text-muted">${esc(x.example || '')}</span>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-  const ab = $('import-action-bar');
-  const sm = $('import-summary');
-  if (ab) ab.classList.remove('hidden');
-  if (sm) sm.textContent = `${impWords.length} words`;
-};
-
-const parseCSV = (text) => {
-  const result = [];
-  let row = [];
-  let inQuotes = false;
-  let currentVal = '';
-  
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if (inQuotes) {
-      if (char === '"') {
-        if (i + 1 < text.length && text[i + 1] === '"') {
-          currentVal += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        currentVal += char;
-      }
-    } else {
-      if (char === '"') {
-        inQuotes = true;
-      } else if (char === ',') {
-        row.push(currentVal);
-        currentVal = '';
-      } else if (char === '\n' || char === '\r') {
-        row.push(currentVal);
-        currentVal = '';
-        if (row.some(v => v.trim() !== '')) result.push(row);
-        row = [];
-        if (char === '\r' && i + 1 < text.length && text[i + 1] === '\n') i++;
-      } else {
-        currentVal += char;
-      }
-    }
-  }
-  if (currentVal || row.length > 0) {
-    row.push(currentVal);
-    if (row.some(v => v.trim() !== '')) result.push(row);
-  }
-  return result;
-};
-
-const extractTextFromPDF = async (dataUrl) => {
-  try {
-    const loadingTask = pdfjsLib.getDocument(dataUrl);
-    const pdf = await loadingTask.promise;
-    let text = '';
-    for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      text += content.items.map(item => item.str).join(' ') + '\n';
-    }
-    return text;
-  } catch (e) {
-    console.error('PDF extraction error:', e);
-    return '';
-  }
-};
-
-const ifi = $('import-file-input');
-if (ifi) {
-
-ifi.addEventListener('change', e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const ld = $('import-loading');
-    if (ld) {
-      ld.innerHTML = skeletonHtml;
-      ld.classList.remove('hidden');
-    }
-
-    const isText = f.name.match(/\.(txt|csv|tsv|json)$/i) || f.type.startsWith('text/');
-    const isPdf = f.name.match(/\.pdf$/i) || f.type === 'application/pdf';
-
-    if (isText) {
-      const r = new FileReader();
-      r.onload = ev => {
-        let w = [];
-        const txt = ev.target.result;
-        if (f.name.endsWith('.json')) {
-          try {
-            const d = JSON.parse(txt);
-            w = d.map(x => ({
-              word: (x.word || x.term || '').trim(),
-              meaning: (x.meaning || x.translation || '').trim(),
-              example: (x.example || '').trim()
-            }));
-          } catch (err) {}
-        } else if (f.name.endsWith('.csv')) {
-          const rows = parseCSV(txt);
-          w = rows.map(parts => {
-            if (parts.length < 2) return { word: parts[0].trim(), meaning: '', example: '' };
-            return { word: parts[0].trim(), meaning: parts[1].trim(), example: parts[2] ? parts[2].trim() : '' };
-          }).filter(p => p.word);
-        } else {
-          w = txt.split('\n').map(l => {
-            const sep = l.includes('\t') ? '\t' : ',';
-            const parts = l.split(sep);
-            if (parts.length < 2) return { word: l.trim(), meaning: '', example: '' };
-            return { word: parts[0].trim(), meaning: parts.slice(1).join(sep).trim(), example: '' };
-          }).filter(p => p.word);
-        }
-        renderPreview(w, 'file-preview');
-        if (ld) ld.classList.add('hidden');
-      };
-      r.readAsText(f);
-    } else if (isPdf) {
-      const r = new FileReader();
-      r.onload = async ev => {
-        try {
-          const text = await extractTextFromPDF(ev.target.result);
-          if (!text) throw new Error('No text extracted');
-          const prompt = `以下のテキスト内容から、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）","example":"元の文章での使用例(文脈)"}]\n\nテキスト:\n${text.substring(0, 5000)}`;
-          const rep = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
-          const w = extractJSON(rep);
-          if (w && Array.isArray(w)) {
-            renderPreview(w, 'file-preview');
-          } else {
-            showToast('Could not extract words');
-          }
-        } catch (err) {
-          showToast('PDF parsing error');
-        } finally {
-          if (ld) ld.classList.add('hidden');
-        }
-      };
-      r.readAsDataURL(f);
-    } else {
-      const r = new FileReader();
-      r.onload = async ev => {
-        const b64 = ev.target.result.split(',')[1];
-        const mimeType = f.type || 'application/octet-stream';
-        try {
-          const rep = await callGemini([{ role: 'user', content: [{ inlineData: { mimeType: mimeType, data: b64 } }, { type: 'text', text: 'このファイルの内容を解析し、含まれている重要な英単語を抽出し、JSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）","example":"元の文章での使用例(文脈)"}]。' }] }], 8192, '', true);
-          const w = extractJSON(rep);
-          if (w && Array.isArray(w)) {
-            renderPreview(w, 'file-preview');
-          } else {
-            showToast('Could not extract words');
-          }
-        } catch (err) {
-          showToast('File parsing error');
-        } finally {
-          if (ld) ld.classList.add('hidden');
-        }
-      };
-      r.readAsDataURL(f);
-    }
-  });
-}
-
-const ita = $('import-textarea');
-if (ita) {
-  ita.addEventListener('input', debounce((e) => {
-    const val = e.target.value;
-    const w = val.split('\n').map(l => {
-      const sep = l.includes('\t') ? '\t' : ',';
-      const idx = l.indexOf(sep);
-      if (idx === -1) return { word: l.trim(), meaning: '', example: '' };
-      return { word: l.substring(0, idx).trim(), meaning: l.substring(idx + 1).trim(), example: '' };
-    }).filter(p => p.word);
-    if (w.length) renderPreview(w, 'text-preview');
-  }, 500));
-}
-
-window.fetchAndParseUrl = async () => {
-  const i = $('import-url-input');
-  if (!i || !i.value.trim()) return;
-  const ld = $('import-loading');
-  if (ld) {
-    ld.innerHTML = skeletonHtml;
-    ld.classList.remove('hidden');
-  }
-  const extractContext = $('import-extract-context-url') && $('import-extract-context-url').checked;
-  
-  try {
-    const url = i.value.trim();
-    let textContent = '';
-    try {
-      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-      const data = await res.json();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(data.contents, 'text/html');
-      textContent = doc.body.textContent.replace(/\s+/g, ' ').substring(0, 8000);
-    } catch (e) {
-      textContent = "URLの内容を取得できませんでした。URLの文字列から推測してください。";
-    }
-    
-    let prompt = `以下のテキスト内容（Webページの抽出テキスト）から、関連する重要な英単語（またはフラッシュカードの用語と定義のペア）を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${textContent}`;
-    const raw = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
-    const w = extractJSON(raw);
-    renderPreview(w, 'url-preview');
-  } catch (e) {
-    showToast('Communication error');
-  } finally {
-    if (ld) ld.classList.add('hidden');
-  }
-};
-
-window.parseManualTranscript = async () => {
-  const i = $('import-youtube-transcript');
-  if (!i || !i.value.trim()) return;
-  const ld = $('import-loading');
-  if (ld) {
-    ld.innerHTML = skeletonHtml;
-    ld.classList.remove('hidden');
-  }
-  const extractContext = $('import-extract-context-url') && $('import-extract-context-url').checked;
-  
-  try {
-    let prompt = `以下のテキストから、関連する重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]\n\nテキスト:\n${i.value.substring(0, 5000)}`;
-    const raw = await callGemini([{ role: 'user', content: prompt }], 8192, '', true);
-    const w = extractJSON(raw);
-    renderPreview(w, 'url-preview');
-  } catch (e) {
-    showToast('Communication error');
-  } finally {
-    if (ld) ld.classList.add('hidden');
-  }
-};
-
-window.handleImportPhoto = async e => {
-  const f = e.target.files[0];
-  const pp = $('import-photo-preview');
-  const ld = $('import-loading');
-  if (!f) return;
-  
-  const resized = await resizeImage(f);
-  if (pp) pp.innerHTML = `<img src="${resized}" style="max-width:100%;border-radius:10px">`;
-  if (ld) {
-    ld.innerHTML = skeletonHtml;
-    ld.classList.remove('hidden');
-  }
-  
-  try {
-    const b = resized.split(',')[1];
-    const m = resized.match(/data:([^;]+)/)[1];
-    const unknownOnly = $('import-unknown-only') && $('import-unknown-only').checked;
-    const extractContext = $('import-extract-context-photo') && $('import-extract-context-photo').checked;
-    let prompt = `画像内のテキストを読み取り、重要な英単語を抽出してJSON配列で出力せよ。形式: [{"word":"...","meaning":"...（体言止め）"${extractContext ? ',"example":"元の文章での使用例(文脈)"' : ''}}]`;
-    
-    const raw = await callGemini([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: m, data: b } }, { type: 'text', text: prompt }] }], 8192, '', true);
-    let wd = extractJSON(raw);
-    
-    if (unknownOnly && wd && Array.isArray(wd)) {
-      const knownWords = new Set(ALL_WORDS.map(x => x.word.toLowerCase()));
-      wd = wd.filter(x => !knownWords.has(x.word.toLowerCase()));
-      if (wd.length === 0) showToast('No unknown words found');
-    }
-    
-    renderPreview(wd, 'photo-preview');
-  } catch (err) {
-    showToast('Communication error');
-  } finally {
-    if (ld) ld.classList.add('hidden');
-  }
-};
-
-window.applyImport = async m => {
-  if (!impWords.length) return;
-  
-  const bulkTagsInput = $('import-bulk-tags');
-  const bulkTags = bulkTagsInput && bulkTagsInput.value.trim() ? bulkTagsInput.value.split(',').map(t => t.trim()).filter(Boolean) : [];
-  
-  const formattedWords = impWords.map(w => ({
-    id: generateId(),
-    word: w.word,
-    meaning: w.meaning || '',
-    example: w.example || '',
-    tags: [...bulkTags]
-  }));
-  
-  const aiFill = $('import-ai-fill') && $('import-ai-fill').checked;
-  if (aiFill) {
-    showToast('AI auto-filling...');
-    const toFill = formattedWords.filter(w => !w.meaning || !w.example);
-    if (toFill.length > 0) {
-      const chunkSize = 15;
-      for (let i = 0; i < toFill.length; i += chunkSize) {
-        const chunk = toFill.slice(i, i + chunkSize);
-        try {
-          const rep = await callGemini([{ role: 'user', content: `以下の英単語の意味と例文を補完しJSON配列で出力せよ。形式:[{"word":"...","meaning":"...（体言止め）","example":"..."}]\n単語: ${chunk.map(w => w.word).join(', ')}` }], 8192, '', true);
-          const filled = extractJSON(rep);
-          if (filled && Array.isArray(filled)) {
-            filled.forEach(fw => {
-              const target = formattedWords.find(w => w.word === fw.word);
-              if (target) {
-                target.meaning = target.meaning || fw.meaning;
-                target.example = target.example || fw.example;
-              }
-            });
-          }
-        } catch (e) {
-          console.warn('AI fill chunk failed', e);
-        }
-        if (i + chunkSize < toFill.length) await sleep(4000);
-      }
-    }
-  }
-
-  if (m === 'replace') {
-    ALL_WORDS = formattedWords;
-  } else {
-    const strategy = $('import-merge-strategy') ? $('import-merge-strategy').value : 'skip';
-    
-    if (strategy === 'skip') {
-      formattedWords.forEach(w => {
-        if (!ALL_WORDS.find(x => x.word.toLowerCase() === w.word.toLowerCase())) {
-          ALL_WORDS.push(w);
-        }
-      });
-    } else if (strategy === 'overwrite') {
-      formattedWords.forEach(w => {
-        const idx = ALL_WORDS.findIndex(x => x.word.toLowerCase() === w.word.toLowerCase());
-        if (idx >= 0) {
-          w.id = ALL_WORDS[idx].id;
-          ALL_WORDS[idx] = w;
-        } else {
-          ALL_WORDS.push(w);
-        }
-      });
-    } else if (strategy === 'merge') {
-      formattedWords.forEach(w => {
-        const existing = ALL_WORDS.find(x => x.word.toLowerCase() === w.word.toLowerCase());
-        if (existing) {
-          if (w.meaning && !existing.meaning.includes(w.meaning)) {
-            existing.meaning += (existing.meaning ? ' / ' : '') + w.meaning;
-          }
-          if (w.example && !existing.example) {
-            existing.example = w.example;
-          }
-          if (w.tags) {
-            w.tags.forEach(t => {
-              if (!existing.tags.includes(t)) existing.tags.push(t);
-            });
-          }
-        } else {
-          ALL_WORDS.push(w);
-        }
-      });
-    }
-  }
-  
-  save.words();
-  updateTagFilters();
-  closeModal('import-modal');
-  showToast(`Complete`);
-  
-  const ab = $('import-action-bar');
-  if (ab) ab.classList.add('hidden');
-};
-
-// ============================================================
-// [18] SETTINGS & EXPORT
-// ============================================================
-const loadProfileFields = () => {
-  const map = { targetUniv: 'target-univ', grade: 'grade', courses: 'courses' };
-  Object.entries(map).forEach(([k, id]) => {
-    const e = $('profile-' + id);
-    if (e) e.value = userProfile[k] || '';
-  });
-};
-
-const saveProfile = () => {
-  const u = $('profile-target-univ');
-  const g = $('profile-grade');
-  const c = $('profile-courses');
-  if (u) userProfile.targetUniv = u.value.trim();
-  if (g) userProfile.grade = g.value.trim();
-  if (c) userProfile.courses = c.value.trim();
-  save.profile();
-};
-
-const saveProfileDebounced = debounce(saveProfile, 500);
-
-window.toggleProfileCard = () => {
-  const f = $('profile-fields');
-  const b = $('profile-toggle-btn');
-  if (!f || !b) return;
-  
-  const hid = f.classList.contains('hidden');
-  if (hid) {
-    f.classList.remove('hidden');
-  } else {
-    f.classList.add('hidden');
-  }
-  b.textContent = hid ? (currentLang === 'ja' ? '折りたたむ' : 'Collapse') : (currentLang === 'ja' ? '展開する' : 'Expand');
-};
-
-window.saveGoalTimes = () => {
-  ['english', 'math', 'japanese', 'science', 'social', 'other'].forEach(k => {
-    const el = $(`goal-time-${k}`);
-    if (el) goalTimes[k] = parseInt(el.value) || 0;
-  });
-  safeSet('study_goal_times', goalTimes);
-  showToast('Goal times saved');
-  if ($('Dashboard').classList.contains('active')) renderDashboard();
-};
-
-window.saveReminderSettings = async () => {
-  const t = $('reminder-time');
-  if (!t || !t.value) return;
-  
-  userProfile.reminderTime = t.value;
-  save.profile();
-  
-  try {
-    if (Notification.permission !== "granted") {
-      const perm = await Notification.requestPermission();
-      if (perm !== "granted") {
-        $('reminder-status-text').textContent = 'Notifications are blocked. Please change your browser settings.';
-        return;
-      }
-    }
-    $('reminder-status-text').textContent = `Will notify daily at ${t.value}`;
-    showToast('Reminder settings saved');
-    startReminderCheck();
-  } catch (e) {
-    $('reminder-status-text').textContent = 'Failed to set notifications. Your browser may not support them.';
-    showToast('Failed to set notifications');
-  }
-};
-
-const startReminderCheck = () => {
-  if (reminderCheckInt) clearInterval(reminderCheckInt);
-  reminderCheckInt = setInterval(() => {
-    if (!userProfile.reminderTime || Notification.permission !== "granted") return;
-    
-    const now = new Date();
-    const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const todayStr = todayDateStr();
-    
-    let targetTime = userProfile.reminderTime;
-
-    if (currentHM >= targetTime && localStorage.getItem('study_last_notified') !== todayStr) {
-      new Notification('Study App', { body: 'Let\'s finish today\'s vocab and review tasks!' });
-      localStorage.setItem('study_last_notified', todayStr);
-    }
-  }, 60000);
-};
-
-const updateFooter = () => {
-  const f = $('manage-footer');
-  if (f) f.textContent = `Study — Words: ${ALL_WORDS.length}`;
-};
-
-window.showDangerBox = id => {
-  const b = $(id);
-  if (b) b.classList.remove('hidden');
-};
-
-window.hideDangerBox = id => {
-  const b = $(id);
-  if (b) b.classList.add('hidden');
-};
-
-window.checkConfirm = (iid, bid, ex) => {
-  const i = $(iid);
-  const b = $(bid);
-  if (i && b) b.disabled = i.value !== ex;
-};
-
-window.exportData = async () => {
-  showToast('Preparing export...');
-  const data = {
-    ALL_WORDS, savedWords, plans, events, writingHistory, subjectSaved, subjectQuizzes,
-    examScores, textbooks, srsData, userProfile, customDecks, wordProgress, vocabMeta,
-    dailyChallenges, syntaxList, listenHistory, studyLogs, yearlyPlan, examMistakes,
-    calcMistakes, otherMistakes, subjectFolders
-  };
-  
-  const b = new Blob([JSON.stringify(data)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(b);
-  a.download = 'study_data.json';
-  a.click();
-  showToast('Export complete');
-};
-
-window.exportCSV = () => {
-  if (!ALL_WORDS.length) return showToast('No words');
-  const csvContent = "Word,Meaning,Example,Tags\n" + ALL_WORDS.map(w => `"${w.word.replace(/"/g, '""')}","${(w.meaning || '').replace(/"/g, '""')}","${(w.example || '').replace(/"/g, '""')}","${(w.tags || []).join(',').replace(/"/g, '""')}"`).join("\n");
-  const b = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(b);
-  a.download = 'study_vocab.csv';
-  a.click();
-};
-
-window.clearData = async () => {
-  Object.keys(localStorage).forEach(k => {
-    if (k.startsWith('study_')) localStorage.removeItem(k);
-  });
-  const keys = await localforage.keys();
-  for (const k of keys) {
-    if (k.startsWith('study_') || k.startsWith('backup_')) {
-      await localforage.removeItem(k);
-    }
-  }
-  await imageStore.clear();
-  location.reload();
-};
-
-window.openWeeklyReport = async () => {
-  openModal('weekly-report-modal');
-  const contentArea = $('weekly-report-content');
-  contentArea.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
-  
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 7);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
-  const recentLogs = studyLogs.filter(l => l.date >= cutoffStr);
-  
-  if (recentLogs.length === 0) {
-    contentArea.innerHTML = '<p>No study data for the past 7 days.</p>';
-    return;
-  }
-  
-  const subjMap = {};
-  recentLogs.forEach(l => {
-    subjMap[l.subj] = (subjMap[l.subj] || 0) + Math.floor(l.seconds / 60);
-  });
-  
-  const logStr = Object.entries(subjMap).map(([k, v]) => `${SCORE_SUBJECTS[k]?.label || k}:${v}min`).join(', ');
-  const prompt = `以下の生徒の過去7日間の学習データに基づき、週次レポートを作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
-<h4>Total Study Time & Balance</h4>
-<p>[分析。文末は「〜である。」]</p>
-<h4>Strong Points</h4>
-<ul><li>[ポイント。文末は「〜だ。」]</li></ul>
-<h4>Areas for Improvement</h4>
-<ul><li>[改善点。文末は「〜だ。」]</li></ul>
-<h4>Recommended Plan for Next Week</h4>
-<p>[プラン。文末は「〜である。」]</p>
-データ: ${logStr}`;
-  
-  try {
-    let rep = await callGemini([{ role: 'user', content: prompt }], 8192);
-    contentArea.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim());
-  } catch (e) {
-    contentArea.innerHTML = '<p class="text-danger">Analysis failed. Please check your network connection.</p><button class="action-btn mt-3" onclick="openWeeklyReport()">Retry</button>';
-  }
-};
-
-window.exportWeeklyReportPDF = () => {
-  const content = $('weekly-report-content').innerHTML;
-  const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <title>Weekly Report</title>
-      <style>
-        body{font-family:sans-serif;padding:20px;line-height:1.6;}
-        h4{border-bottom:1px solid #ccc;padding-bottom:5px;}
-      </style>
-    </head>
-    <body>
-      <h1>Weekly Study Report</h1>
-      ${content}
-    </body>
-    </html>
-  `;
-  printHtml(html);
-};
-
-window.openWeaknessAnalysis = async () => {
-  openModal('weakness-modal');
-  const contentArea = $('weakness-content');
-  contentArea.innerHTML = `<div class="p-20">${skeletonHtml}</div>`;
-  
-  const overdue = Object.entries(srsData).map(([w, r]) => ({
-    word: w,
-    ef: r.stability,
-    overdueDays: srsDaysDiff(srsNextDate(r)) * -1
-  })).filter(x => x.overdueDays >= 0 || x.ef < 2.0).sort((a, b) => (b.overdueDays - a.overdueDays) || (a.ef - b.ef)).slice(0, 10);
-  
-  if (!overdue.length) {
-    contentArea.innerHTML = '<p>No critical weakness data currently. Great pace!</p>';
-    return;
-  }
-  
-  weaknessWords = overdue.map(x => x.word);
-  const prompt = `以下の生徒が特に苦手としている英単語TOP10のリストに基づき、レポートを作成せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
-<h4>Top 10 Words to Review</h4>
-<ul><li><b>[単語]</b>: [覚え方のコツや語源的アプローチ。文末は「〜だ。」]</li></ul>
-<h4>Recommended Study Method</h4>
-<p>[アドバイス。文末は「〜である。」]</p>
-苦手単語: ${weaknessWords.join(', ')}`;
-  
-  try {
-    let rep = await callGemini([{ role: 'user', content: prompt }], 8192);
-    contentArea.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, '').trim());
-  } catch (e) {
-    contentArea.innerHTML = '<p class="text-danger">Analysis failed. Please check your network connection.</p><button class="action-btn mt-3" onclick="openWeaknessAnalysis()">Retry</button>';
-  }
-};
-
-window.openAutoListenModal = () => {
-  openModal('auto-listen-modal');
-};
-
-window.toggleAutoListen = () => {
-  const btn = $('auto-listen-start-btn');
-  if (autoListenInt) {
-    clearTimeout(autoListenInt);
-    autoListenInt = null;
-    btn.textContent = currentLang === 'ja' ? '再生開始' : 'Start Playback';
-    btn.classList.remove('bg-danger');
-    btn.classList.add('bg-purple');
-    speechSynthesis.cancel();
-  } else {
-    btn.textContent = currentLang === 'ja' ? '停止' : 'Stop';
-    btn.classList.remove('bg-purple');
-    btn.classList.add('bg-danger');
-    const onlyReview = $('auto-listen-only-review').checked;
-    autoListenWords = onlyReview ? srsGetDueWords() : ALL_WORDS.slice();
-    if (!autoListenWords.length) {
-      showToast('No target words');
-      window.toggleAutoListen();
-      return;
-    }
-    autoListenIdx = 0;
-    autoListenState = 0;
-    playNextAutoListen();
-  }
-};
-
-const playNextAutoListen = () => {
-  if (!autoListenInt && ($('auto-listen-start-btn').textContent === 'Start Playback' || $('auto-listen-start-btn').textContent === '再生開始')) return;
-  if (autoListenIdx >= autoListenWords.length) autoListenIdx = 0;
-  
-  const w = autoListenWords[autoListenIdx];
-  $('auto-listen-word').textContent = w.word;
-  $('auto-listen-meaning').textContent = w.meaning || '---';
-  $('auto-listen-example').textContent = w.example || '---';
-  
-  let textToSpeak = '';
-  let lang = 'en-US';
-  
-  if (autoListenState === 0) {
-    textToSpeak = w.word;
-  } else if (autoListenState === 1) {
-    textToSpeak = w.meaning;
-    lang = 'ja-JP';
-  } else if (autoListenState === 2) {
-    textToSpeak = w.example || w.word;
-  }
-  
-  const u = new SpeechSynthesisUtterance(textToSpeak);
-  u.lang = lang;
-  u.onend = () => {
-    autoListenState++;
-    if (autoListenState > 2) {
-      autoListenState = 0;
-      autoListenIdx++;
-    }
-    autoListenInt = setTimeout(playNextAutoListen, 800);
-  };
-  speechSynthesis.speak(u);
-};
-
-window.openStoryGenModal = () => {
-  openModal('story-gen-modal');
-};
-
-window.generateStory = async () => {
-  const area = $('story-result-area');
-  const ld = $('story-loading');
-  if (ld) {
-    ld.innerHTML = skeletonHtml;
-    ld.classList.remove('hidden');
-  }
-  area.innerHTML = '';
-  
-  const words = srsGetDueWords().slice(0, 10).map(w => w.word);
-  if (!words.length) words.push(...ALL_WORDS.slice(0, 10).map(w => w.word));
-  
-  try {
-    const sys = `以下の単語を全て使って、面白い英語のショートストーリーを作成し、和訳と解説を出力せよ。以下のHTMLテンプレートの構造を【一言一句違わず】守って出力せよ。
-<h4>Contextual Story</h4>
-<p>[英語のストーリー]</p>
-<h4>Translation</h4>
-<p>[和訳。文末は「〜である。」]</p>
-<h4>Word Explanations</h4>
-<ul><li><b>[単語]</b>: [解説。文末は「〜だ。」]</li></ul>
-単語: ${words.join(', ')}`;
-    const rep = await callGemini([{ role: 'user', content: sys }], 8192);
-    area.innerHTML = clean(rep.replace(/```html?/g, '').replace(/```/g, ''));
-  } catch (e) {
-    area.innerHTML = '<p class="text-danger">Generation failed</p>';
-  } finally {
-    if (ld) ld.classList.add('hidden');
-  }
-};
-
-window.openShuffleSettingsModal = () => {
-  document.querySelectorAll('input[name="shuffle-mode"]').forEach(r => {
-    if (r.value === shuffleSettings.mode) r.checked = true;
-  });
-  openModal('shuffle-settings-modal');
-};
-
-window.saveShuffleSettings = () => {
-  const mode = document.querySelector('input[name="shuffle-mode"]:checked').value;
-  shuffleSettings.mode = mode;
-  safeSet('study_shuffle_settings', shuffleSettings);
-  closeModal('shuffle-settings-modal');
-  showToast('Settings saved');
-};
-
 // ============================================================
 // [19] ROUTER & INIT
 // ============================================================
@@ -8559,8 +7356,8 @@ window.setTabByIndex = (idx) => {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   
-  const t = $(targetId);
-  if (t) t.classList.add('active');
+  const tEl = $(targetId);
+  if (tEl) tEl.classList.add('active');
   
   const navItem = document.querySelector(`.nav-item[data-tab="${targetId}"]`);
   if (navItem) navItem.classList.add('active');
