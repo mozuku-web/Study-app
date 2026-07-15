@@ -105,23 +105,29 @@
   color: var(--danger);
 }
 
-/* ダークモード時の文字色消失バグ修正 */
+/* ダークモード時の文字色消失バグ修正（入力フォーム等も含む） */
 [data-theme="dark"] button,
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .score-input,
 [data-theme="dark"] .action-btn,
 [data-theme="dark"] .btn-pill,
 [data-theme="dark"] .btn-outline,
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .action-btn.btn-secondary,
 [data-theme="dark"] .manage-btn,
 [data-theme="dark"] .ptab,
 [data-theme="dark"] .stab,
 [data-theme="dark"] .itab,
 [data-theme="dark"] .filter-chip,
 [data-theme="dark"] .writing-tab {
-  color: var(--text);
+  color: var(--text) !important;
 }
 
 [data-theme="dark"] .action-btn.bg-accent,
 [data-theme="dark"] .btn-accent-solid {
-  color: var(--bg);
+  color: var(--bg) !important;
 }
 
 [data-theme="dark"] input[type="range"] {
@@ -282,7 +288,12 @@ a, button, input, select, textarea {
 .letter-spacing-1 { letter-spacing: 1px; }
 .line-height-15 { line-height: 1.5; }
 .line-height-16 { line-height: 1.6; }
-.whitespace-nowrap { white-space: nowrap; }
+
+/* ボタンのテキストはみ出し修正 */
+.whitespace-nowrap { 
+  white-space: normal !important; 
+  word-break: keep-all !important; 
+}
 
 .w-full { width: 100%; }
 .w-50 { width: 50px; }
@@ -488,6 +499,14 @@ header {
 
 .card:hover {
   box-shadow: var(--shadow-sm);
+}
+
+/* ボタンのテキスト折り返し対応 */
+.action-btn, .btn-pill, .manage-btn, .ptab, .stab, .itab, .writing-tab, .filter-chip {
+  white-space: normal !important;
+  word-break: keep-all !important;
+  line-height: 1.3 !important;
+  height: auto !important;
 }
 
 .action-btn {
@@ -2433,13 +2452,14 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: calc(13px * var(--text-scale));
 }
 
+/* タイマー入力欄のレイアウト崩れ修正 */
 .timer-input-large {
   font-size: calc(24px * var(--text-scale));
   font-weight: 700;
   text-align: center;
   font-family: var(--font-block);
-  width: 100%;
-  min-width: 0;
+  width: 80px !important;
+  flex: none !important;
   padding: 12px 8px;
 }
 
