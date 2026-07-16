@@ -96,40 +96,6 @@ const extractJSON = t => {
   }
 };
 
-// --- Inject Custom CSS for UI Fixes ---
-const customStyles = document.createElement('style');
-customStyles.textContent = `
-  .action-btn, .btn-pill, .manage-btn, .ptab, .stab, .itab, .writing-tab, .filter-chip {
-    white-space: normal !important;
-    word-break: keep-all !important;
-    line-height: 1.3 !important;
-    height: auto !important;
-  }
-  [data-theme="dark"] input, 
-  [data-theme="dark"] select, 
-  [data-theme="dark"] textarea,
-  [data-theme="dark"] .score-input,
-  [data-theme="dark"] .btn-outline,
-  [data-theme="dark"] .btn-secondary,
-  [data-theme="dark"] .action-btn.btn-secondary,
-  [data-theme="dark"] .filter-chip,
-  [data-theme="dark"] .ptab,
-  [data-theme="dark"] .stab,
-  [data-theme="dark"] .itab,
-  [data-theme="dark"] .writing-tab {
-    color: var(--text) !important;
-  }
-  .timer-input-large {
-    width: 80px !important;
-    flex: none !important;
-  }
-  .flex-gap-8.align-center.mb-3.flex-wrap input[type="time"] {
-    flex: 1;
-    min-width: 100px;
-  }
-`;
-document.head.appendChild(customStyles);
-
 // --- i18n (Internationalization) ---
 const i18nDict = {
   en: {
@@ -675,15 +641,15 @@ const renderMath = (el) => {
 const handleApiError = (e, containerId) => {
   const c = $(containerId);
   if (!c) return;
-  let msg = '通信エラーが発生しました。';
+  let msg = getUiLang() === 'ja' ? '通信エラーが発生しました。' : 'Communication error occurred.';
   if (!navigator.onLine) {
-    msg = 'オフラインです。ネットワーク接続を確認してください。';
+    msg = getUiLang() === 'ja' ? 'オフラインです。ネットワーク接続を確認してください。' : 'Offline. Please check your network connection.';
   } else if (e.message.includes('API Key') || e.message.includes('401')) {
-    msg = 'API Keyが未設定か無効です。Settingsタブで設定してください。';
+    msg = getUiLang() === 'ja' ? 'API Keyが未設定か無効です。Settingsタブで設定してください。' : 'API Key is not set or invalid. Please set it in the Settings tab.';
   } else if (e.message.includes('429')) {
-    msg = 'APIの利用制限に達しました。しばらく待ってから再試行してください。';
+    msg = getUiLang() === 'ja' ? 'APIの利用制限に達しました。しばらく待ってから再試行してください。' : 'API rate limit reached. Please try again later.';
   } else if (e.message.includes('400')) {
-    msg = 'リクエストが不正です。画像サイズが大きすぎるか、テキストが長すぎる可能性があります。';
+    msg = getUiLang() === 'ja' ? 'リクエストが不正です。画像サイズが大きすぎるか、テキストが長すぎる可能性があります。' : 'Bad request. The image size might be too large or the text too long.';
   }
   c.innerHTML = `<div class="card text-danger font-bold">${esc(msg)}</div>`;
 };
@@ -958,19 +924,17 @@ const createAutoBackup = async () => {
 
 window.createManualBackup = async () => {
   await createAutoBackup();
-  showToast('Backup created');
+  showToast(getUiLang() === 'ja' ? 'バックアップを作成しました' : 'Backup created');
   renderBackupList();
 };
 
 window.renderBackupList = async () => {
   const sel = $('backup-restore-select');
-  if (!sel) return ;
+  if (!sel) return;
   const keys = await localforage.keys();
   const backupKeys = keys.filter(k => k.startsWith('backup_')).sort((a, b) => b.localeCompare(a));
   sel.innerHTML = `<option value="">${getUiLang() === 'ja' ? '復元ポイントを選択...' : 'Select restore point...'}</option>` + backupKeys.map(k => `<option value="${k}">${k.replace('backup_', '')}</option>`).join('');
-};
-
-window.restoreBackup = async () => {
+}; window.restoreBackup = async () => {
   const sel = $('backup-restore-select');
   if (!sel || !sel.value) return showToast(getUiLang() === 'ja' ? '復元ポイントを選択してください' : 'Please select a restore point');
   if (!confirm(getUiLang() === 'ja' ? '現在のデータは上書きされます。復元しますか？' : 'Current data will be overwritten. Restore?')) return;
@@ -5562,7 +5526,8 @@ window.ccDeleteDeck = id => {
     ccRenderCard();
   }
   save.decks();
-  ccInitDecks(); };
+  ccInitDecks();
+};
 
 window.setCCMode = m => {
   ccMode = m;
@@ -6027,8 +5992,7 @@ window.saveLastSubjectQA = async (btn, subj) => {
   });
   
   save.subSaved();
-  showToast(getUiLang() === 'ja' ? '保存しました' : 'Saved');
-  if (btn) {
+  showToast(getUiLang() === 'ja' ? '保存しました' : 'Saved'); if (btn) {
     btn.textContent = getUiLang() === 'ja' ? '保存済' : 'Saved';
     btn.disabled = true;
   }
@@ -6887,7 +6851,7 @@ window.generateAutoSchedule = () => {
   if (dueWords.length > 0) {
     const vw = dueWords.filter(w => ALL_WORDS.find(x => x.word.toLowerCase() === w));
     for (let i = 0; i < vw.length; i += 15) {
-      plans[ts].push({ text: `Vocab Review (${vw.slice(i, i + 15).join(', ')})`, done: false, time: null });
+      plans[ts].push({ text: `${getUiLang() === 'ja' ? '単語復習' : 'Vocab Review'} (${vw.slice(i, i + 15).join(', ')})`, done: false, time: null });
       added++;
     }
   }
@@ -6895,7 +6859,7 @@ window.generateAutoSchedule = () => {
   if (dueSyntax.length > 0) {
     const vs = dueSyntax.map(id => syntaxList.find(s => String(s.id) === id)).filter(Boolean);
     for (let i = 0; i < vs.length; i += 5) {
-      plans[ts].push({ text: `Syntax Review (${vs.slice(i, i + 5).map(s => s.syntax).join(', ')})`, done: false, time: null });
+      plans[ts].push({ text: `${getUiLang() === 'ja' ? '構文復習' : 'Syntax Review'} (${vs.slice(i, i + 5).map(s => s.syntax).join(', ')})`, done: false, time: null });
       added++;
     }
   }
@@ -6903,7 +6867,7 @@ window.generateAutoSchedule = () => {
   if (dueDaily.length > 0) {
     const vd = dueDaily.map(id => dailyChallenges.find(d => String(d.id) === id) || listenHistory.find(d => String(d.id) === id)).filter(Boolean);
     vd.forEach(d => {
-      plans[ts].push({ text: `Past Question (${d.date})`, done: false, time: null });
+      plans[ts].push({ text: `${getUiLang() === 'ja' ? '過去問' : 'Past Question'} (${d.date})`, done: false, time: null });
       added++;
     });
   }
@@ -6916,13 +6880,13 @@ window.generateAutoSchedule = () => {
         const cv = parseFloat(c.dev) || parseFloat(c.score) || 1000;
         return (cv < pv) ? c : p;
       });
-      plans[ts].push({ text: `Weakness Focus: ${SCORE_SUBJECTS[weak.cat]?.label || weak.cat}(${weak.detail})`, done: false, time: null });
+      plans[ts].push({ text: `${getUiLang() === 'ja' ? '弱点克服' : 'Weakness Focus'}: ${SCORE_SUBJECTS[weak.cat]?.label || weak.cat}(${weak.detail})`, done: false, time: null });
       added++;
     }
   }
   
   if (added === 0) {
-    showToast('Perfect!');
+    showToast(getUiLang() === 'ja' ? '完璧です！' : 'Perfect!');
   } else {
     save.plans();
     renderDashboard();
@@ -7179,7 +7143,7 @@ const renderScoreList = () => {
     const subjHtml = (s.subjects || []).map(x => `
       <div class="flex-between border-bottom border-dashed py-4 text-xs">
         <span>${(SCORE_SUBJECTS[x.cat]?.label || x.cat)} (${esc(x.detail)})</span>
-        <span>${x.score ? esc(x.score) + ' pts' : '-'} ${x.dev ? '(Dev:' + esc(x.dev) + ')' : ''}</span>
+        <span>${x.score ? esc(x.score) + (getUiLang() === 'ja' ? ' 点' : ' pts') : '-'} ${x.dev ? '(' + (getUiLang() === 'ja' ? '偏差値:' : 'Dev:') + esc(x.dev) + ')' : ''}</span>
       </div>
     `).join('');
     
@@ -7329,7 +7293,7 @@ const renderLogListModal = () => {
     <div class="card flex-between align-center p-16 mb-0">
       <div>
         <div class="text-xs text-muted mb-2">${l.date}</div>
-        <div class="text-sm font-bold"><span class="sli-subj mr-2">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span> ${Math.floor(l.seconds / 60)} min</div>
+        <div class="text-sm font-bold"><span class="sli-subj mr-2">${esc(SCORE_SUBJECTS[l.subj]?.label || l.subj)}</span> ${Math.floor(l.seconds / 60)} ${getUiLang() === 'ja' ? '分' : 'min'}</div>
       </div>
       <div class="flex-gap-8">
         <button onclick="openLogEditModal(${l.ts})" class="btn-clear text-accent">${getUiLang() === 'ja' ? '編集' : 'Edit'}</button>
