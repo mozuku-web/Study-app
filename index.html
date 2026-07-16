@@ -81,8 +81,8 @@
       <div class="flex-between align-center mb-4 flex-wrap gap-2">
         <p class="page-title mb-0" data-i18n="title_dashboard">Overview</p>
         <div class="flex-gap-8 flex-wrap">
-          <button class="btn-pill btn-outline" onclick="setTabByIndex(8); setTimeout(()=>document.getElementById('widget-settings-panel').classList.remove('hidden'), 100);" role="button" tabindex="0" data-i18n="btn_display_settings">Display Settings</button>
-          <button class="btn-pill btn-outline" id="toggle-widget-sort-btn" onclick="toggleWidgetSortMode()" role="button" tabindex="0" data-i18n="btn_sort">Sort</button>
+          <button class="btn-pill btn-outline whitespace-nowrap" onclick="setTabByIndex(8); setTimeout(()=>document.getElementById('widget-settings-panel').classList.remove('hidden'), 100);" role="button" tabindex="0" data-i18n="btn_display_settings">Display Settings</button>
+          <button class="btn-pill btn-outline whitespace-nowrap" id="toggle-widget-sort-btn" onclick="toggleWidgetSortMode()" role="button" tabindex="0" data-i18n="btn_sort">Sort</button>
         </div>
       </div>
       
@@ -91,21 +91,21 @@
           <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="widget_wotd">Word of the Day</p>
           <div class="flex-between align-center mb-2">
             <div id="wotd-word" class="wotd-word-text"></div>
-            <button class="speak-btn-large audio-btn btn-sm" id="wotd-speak" role="button" tabindex="0" data-i18n="btn_pronounce">Pronounce</button>
+            <button class="speak-btn-large audio-btn btn-sm whitespace-nowrap" id="wotd-speak" role="button" tabindex="0" data-i18n="btn_pronounce">Pronounce</button>
           </div>
           <div id="wotd-meaning" class="text-sub font-bold text-base mb-2"></div>
           <div id="wotd-example" class="text-sub text-sm mb-4 example-box"></div>
           <input type="text" id="wotd-tag-input" class="score-input mb-3" placeholder="Tags (comma separated)" data-i18n-placeholder="ph_tags">
           <div class="flex-gap-8 flex-wrap">
-            <button class="action-btn mb-0 flex-1" id="wotd-save-btn" role="button" tabindex="0" data-i18n="btn_add_vocab">Add to Vocab</button>
-            <button class="action-btn btn-secondary mb-0 flex-1" id="wotd-next-btn" onclick="nextWordOfTheDay()" role="button" tabindex="0" data-i18n="btn_next_word">Next Word</button>
+            <button class="action-btn mb-0 flex-1 min-w-100 whitespace-nowrap" id="wotd-save-btn" role="button" tabindex="0" data-i18n="btn_add_vocab">Add to Vocab</button>
+            <button class="action-btn btn-secondary mb-0 flex-1 min-w-100 whitespace-nowrap" id="wotd-next-btn" onclick="nextWordOfTheDay()" role="button" tabindex="0" data-i18n="btn_next_word">Next Word</button>
           </div>
         </div>
 
         <div class="card mb-14 widget-item" id="dash-countdown-card" data-widget-id="countdown">
           <div class="flex-between align-center mb-3">
             <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-0" data-i18n="widget_countdown">Countdown</p>
-            <button class="btn-pill btn-outline" onclick="openCountdownSettings()" role="button" tabindex="0" data-i18n="btn_edit">Edit</button>
+            <button class="btn-pill btn-outline whitespace-nowrap" onclick="openCountdownSettings()" role="button" tabindex="0" data-i18n="btn_edit">Edit</button>
           </div>
           <div id="dash-countdown-display" class="text-center py-3">
             <p class="text-sm text-muted" data-i18n="msg_target_not_set">Target date not set</p>
@@ -123,8 +123,8 @@
         </div>
 
         <div class="flex-gap-8 mb-4 flex-wrap widget-item" data-widget-id="actions">
-          <button class="action-btn mb-0 flex-1 bg-streak" onclick="openWeeklyReport()" role="button" tabindex="0" data-i18n="btn_weekly_report">Weekly Report</button>
-          <button class="action-btn btn-danger mb-0 flex-1" onclick="openWeaknessAnalysis()" role="button" tabindex="0" data-i18n="btn_weakness_analysis">Weakness Analysis</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 bg-streak whitespace-nowrap" onclick="openWeeklyReport()" role="button" tabindex="0" data-i18n="btn_weekly_report">Weekly Report</button>
+          <button class="action-btn btn-danger mb-0 flex-1 min-w-100 whitespace-nowrap" onclick="openWeaknessAnalysis()" role="button" tabindex="0" data-i18n="btn_weakness_analysis">Weakness Analysis</button>
         </div>
 
         <div class="widget-item mb-4" data-widget-id="streak">
@@ -146,7 +146,7 @@
             <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-0" data-i18n="widget_weekly_chart">Weekly Study Time</p>
             <div class="flex align-center">
               <button class="btn-pill btn-outline" onclick="dashWeeklyPrev()" role="button" tabindex="0">‹</button>
-              <span id="dash-weekly-label" class="text-xs font-bold ml-2 mr-2" data-i18n="label_this_week">This Week</span>
+              <span id="dash-weekly-label" class="text-xs font-bold ml-2 mr-2 whitespace-nowrap" data-i18n="label_this_week">This Week</span>
               <button class="btn-pill btn-outline" onclick="dashWeeklyNext()" role="button" tabindex="0">›</button>
             </div>
           </div>
@@ -226,8 +226,8 @@
           <div class="flex-between align-center mb-3 flex-wrap gap-2">
             <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-0" data-i18n="widget_today_plan">Today's Plan & Events</p>
             <div class="flex-gap-8 flex-wrap">
-              <button onclick="generateAutoSchedule()" class="btn-pill bg-streak border-none" role="button" tabindex="0" data-i18n="btn_auto_generate">Auto Generate</button>
-              <button onclick="openStudyLogModal(todayDateStr())" class="btn-pill btn-outline" role="button" tabindex="0" data-i18n="btn_edit">Edit</button>
+              <button onclick="generateAutoSchedule()" class="btn-pill bg-streak border-none whitespace-nowrap" role="button" tabindex="0" data-i18n="btn_auto_generate">Auto Generate</button>
+              <button onclick="openStudyLogModal(todayDateStr())" class="btn-pill btn-outline whitespace-nowrap" role="button" tabindex="0" data-i18n="btn_edit">Edit</button>
             </div>
           </div>
           <div id="dash-today-event-list" class="mb-2"></div>
@@ -237,7 +237,7 @@
         <div class="dash-today-log widget-item" data-widget-id="today-log">
           <div class="flex-between align-center mb-3 flex-wrap gap-2">
             <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-0" data-i18n="widget_today_log">Today's Study Log</p>
-            <button onclick="openStudyLogModal(todayDateStr())" class="btn-pill bg-accent border-none" role="button" tabindex="0" data-i18n="btn_add">+ Add</button>
+            <button onclick="openStudyLogModal(todayDateStr())" class="btn-pill bg-accent border-none whitespace-nowrap" role="button" tabindex="0" data-i18n="btn_add">+ Add</button>
           </div>
           <div id="dash-today-list"></div>
         </div>
@@ -251,8 +251,8 @@
         <div id="timer-display" class="timer-display-text">25:00</div>
         <div id="timer-status" class="text-xs font-bold text-muted timer-status-text" data-i18n="status_stopped">Stopped</div>
         <div class="flex-center gap-3 mb-4 flex-wrap">
-          <button id="timer-start-btn" class="action-btn mb-0 flex-1 btn-lg-pad" onclick="timerStartStop()" role="button" tabindex="0" data-i18n="btn_start">Start</button>
-          <button class="action-btn btn-secondary mb-0 flex-1 btn-lg-pad" onclick="timerReset()" role="button" tabindex="0" data-i18n="btn_reset">Reset</button>
+          <button id="timer-start-btn" class="action-btn mb-0 flex-1 min-w-100 btn-lg-pad" onclick="timerStartStop()" role="button" tabindex="0" data-i18n="btn_start">Start</button>
+          <button class="action-btn btn-secondary mb-0 flex-1 min-w-100 btn-lg-pad" onclick="timerReset()" role="button" tabindex="0" data-i18n="btn_reset">Reset</button>
         </div>
         
         <div class="flex-col align-center gap-2">
@@ -284,11 +284,11 @@
       <div class="card mb-4">
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="label_set_timer">Set Timer</p>
         <div class="flex-between gap-3 mb-2 flex-wrap">
-          <div class="flex align-center gap-2 flex-1 justify-center">
+          <div class="flex align-center gap-2 flex-1 min-w-100">
             <input type="number" id="timer-input-min" min="0" max="999" value="25" class="score-input timer-input-large">
             <span class="text-xs text-muted font-bold" data-i18n="label_min">min</span>
           </div>
-          <div class="flex align-center gap-2 flex-1 justify-center">
+          <div class="flex align-center gap-2 flex-1 min-w-100">
             <input type="number" id="timer-input-sec" min="0" max="59" value="0" class="score-input timer-input-large">
             <span class="text-xs text-muted font-bold" data-i18n="label_sec">sec</span>
           </div>
@@ -298,7 +298,7 @@
       <div class="card">
         <div class="flex-between align-center mb-3">
           <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-0" data-i18n="label_presets">Presets</p>
-          <button onclick="timerSavePreset()" class="btn-pill btn-outline" role="button" tabindex="0" data-i18n="btn_save">Save</button>
+          <button onclick="timerSavePreset()" class="btn-pill btn-outline whitespace-nowrap" role="button" tabindex="0" data-i18n="btn_save">Save</button>
         </div>
         <div id="timer-presets" class="flex flex-gap-wrap"></div>
       </div>
@@ -328,15 +328,15 @@
       <div class="vocab-stats-bar mb-4" id="vocab-stats-bar"></div>
       
       <div class="flex-gap-8 mb-4 flex-wrap">
-        <button class="action-btn mb-0 flex-1 bg-purple" onclick="openAutoListenModal()" role="button" tabindex="0" data-i18n="btn_auto_listen">Auto-Listen</button>
-        <button class="action-btn mb-0 flex-1 bg-blue" onclick="openStoryGenModal()" role="button" tabindex="0" data-i18n="btn_contextual_story">Story Generator</button>
-        <button class="action-btn mb-0 flex-1 btn-secondary" onclick="openSimulationModal()" role="button" tabindex="0" data-i18n="btn_retention_forecast">Retention Forecast</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 bg-purple whitespace-nowrap" onclick="openAutoListenModal()" role="button" tabindex="0" data-i18n="btn_auto_listen">Auto-Listen</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 bg-blue whitespace-nowrap" onclick="openStoryGenModal()" role="button" tabindex="0" data-i18n="btn_contextual_story">Story Generator</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 btn-secondary whitespace-nowrap" onclick="openSimulationModal()" role="button" tabindex="0" data-i18n="btn_retention_forecast">Retention Forecast</button>
       </div>
 
       <div class="flex-gap-8 mb-4 flex-wrap">
-        <button class="action-btn mb-0 flex-1 bg-accent" onclick="openAddWordModal()" role="button" tabindex="0" data-i18n="btn_add_word">+ Add Word</button>
-        <button class="action-btn mb-0 flex-1 bg-accent2" onclick="printWordTest()" role="button" tabindex="0" data-i18n="btn_print_test">Print Test</button>
-        <button class="action-btn mb-0 flex-1 bg-green" onclick="exportVocabPDF()" role="button" tabindex="0" data-i18n="btn_export_pdf">Export PDF</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 bg-accent whitespace-nowrap" onclick="openAddWordModal()" role="button" tabindex="0" data-i18n="btn_add_word">+ Add Word</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 bg-accent2 whitespace-nowrap" onclick="printWordTest()" role="button" tabindex="0" data-i18n="btn_print_test">Print Test</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 bg-green whitespace-nowrap" onclick="exportVocabPDF()" role="button" tabindex="0" data-i18n="btn_export_pdf">Export PDF</button>
       </div>
       
       <div class="vocab-search-wrap mb-4">
@@ -369,7 +369,7 @@
           <div id="tag-filters" class="flex gap-2 flex-wrap flex-1">
             <button class="filter-chip active" data-tag="all" onclick="setTagFilter('all')" role="button" tabindex="0" data-i18n="tag_all">All</button>
           </div>
-          <button class="btn-pill btn-outline" onclick="openTagManagerModal()" role="button" tabindex="0" data-i18n="btn_manage_tags">Manage Tags</button>
+          <button class="btn-pill btn-outline whitespace-nowrap" onclick="openTagManagerModal()" role="button" tabindex="0" data-i18n="btn_manage_tags">Manage Tags</button>
         </div>
         <div class="flex align-center gap-3 flex-wrap mb-2">
           <span class="text-xs font-bold text-muted text-uppercase letter-spacing-1" data-i18n="filter_root">Root</span>
@@ -391,15 +391,15 @@
         </div>
 
         <div class="flex-between align-center mt-2">
-          <button onclick="analyzeVocabMeta()" id="analyze-meta-btn" class="btn-pill btn-outline" role="button" tabindex="0" data-i18n="btn_analyze_meta">Analyze POS & Etymology</button>
+          <button onclick="analyzeVocabMeta()" id="analyze-meta-btn" class="btn-pill btn-outline whitespace-nowrap" role="button" tabindex="0" data-i18n="btn_analyze_meta">Analyze POS & Etymology</button>
           <span id="meta-status" class="text-xs text-muted"></span>
         </div>
       </div>
       
       <div id="vocab-bulk-actions" class="flex-gap-8 mb-4 flex-wrap hidden">
-        <button class="action-btn mb-0 flex-1 btn-sm" onclick="bulkTagWords()" role="button" tabindex="0" data-i18n="btn_bulk_tag">Bulk Tag</button>
-        <button class="action-btn mb-0 flex-1 btn-sm btn-secondary" onclick="bulkResetProgress()" role="button" tabindex="0" data-i18n="btn_reset_progress">Reset Progress</button>
-        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="bulkDeleteWords()" role="button" tabindex="0" data-i18n="btn_bulk_delete">Bulk Delete</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 btn-sm whitespace-nowrap" onclick="bulkTagWords()" role="button" tabindex="0" data-i18n="btn_bulk_tag">Bulk Tag</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 btn-sm btn-secondary whitespace-nowrap" onclick="bulkResetProgress()" role="button" tabindex="0" data-i18n="btn_reset_progress">Reset Progress</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 btn-sm btn-danger whitespace-nowrap" onclick="bulkDeleteWords()" role="button" tabindex="0" data-i18n="btn_bulk_delete">Bulk Delete</button>
       </div>
 
       <div id="vocab-count" class="vocab-count mb-3"></div>
@@ -451,10 +451,10 @@
         </div>
 
         <div class="flex-gap-8 mb-4 flex-wrap">
-          <button class="action-btn mb-0 flex-1" id="writing-submit-btn" onclick="submitWriting('correct')" role="button" tabindex="0" data-i18n="btn_correct">Correct</button>
-          <button class="action-btn mb-0 flex-1 bg-green" id="writing-analyze-btn" onclick="submitWriting('analyze')" role="button" tabindex="0" data-i18n="btn_parse_syntax">Parse Syntax</button>
-          <button class="action-btn mb-0 flex-1 bg-streak" id="writing-paraphrase-btn" onclick="submitWriting('paraphrase')" role="button" tabindex="0" data-i18n="btn_paraphrase">Paraphrase</button>
-          <button class="action-btn mb-0 flex-1 bg-purple" id="writing-essay-btn" onclick="submitWriting('essay')" role="button" tabindex="0" data-i18n="btn_essay_analysis">Essay Analysis</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 whitespace-nowrap" id="writing-submit-btn" onclick="submitWriting('correct')" role="button" tabindex="0" data-i18n="btn_correct">Correct</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 bg-green whitespace-nowrap" id="writing-analyze-btn" onclick="submitWriting('analyze')" role="button" tabindex="0" data-i18n="btn_parse_syntax">Parse Syntax</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 bg-streak whitespace-nowrap" id="writing-paraphrase-btn" onclick="submitWriting('paraphrase')" role="button" tabindex="0" data-i18n="btn_paraphrase">Paraphrase</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 bg-purple whitespace-nowrap" id="writing-essay-btn" onclick="submitWriting('essay')" role="button" tabindex="0" data-i18n="btn_essay_analysis">Essay Analysis</button>
         </div>
         
         <div id="writing-loading" class="hidden p-20">
@@ -497,11 +497,11 @@
         <div id="daily-area-drill" class="daily-sub-area hidden">
           <div class="card text-center p-36 mb-4">
             <p class="text-sm mb-4 line-height-16" data-i18n="msg_drill_desc">Automatically generates personalized grammar and vocabulary drills based on past corrections and mistakes.</p>
-            <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2" id="generate-weakness-drill-btn" onclick="generateWeaknessDrill()" role="button" tabindex="0" data-i18n="btn_gen_weakness_drill">Generate Weakness Drill</button>
+            <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-accent2 whitespace-nowrap" id="generate-weakness-drill-btn" onclick="generateWeaknessDrill()" role="button" tabindex="0" data-i18n="btn_gen_weakness_drill">Generate Weakness Drill</button>
           </div>
           <div class="card text-center p-36 mb-4">
             <p class="text-sm mb-4 line-height-16" data-i18n="msg_trick_desc">Generates "trick questions" that are easy to make mistakes based on past mistake trends.</p>
-            <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-danger" id="generate-trick-drill-btn" onclick="generateTrickDrill()" role="button" tabindex="0" data-i18n="btn_gen_trick_drill">Advanced Drill</button>
+            <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-danger whitespace-nowrap" id="generate-trick-drill-btn" onclick="generateTrickDrill()" role="button" tabindex="0" data-i18n="btn_gen_trick_drill">Advanced Drill</button>
           </div>
           <div id="drill-loading" class="hidden p-20">
             <div class="skeleton-box mb-2" style="height: 28px; width: 50%; margin: 0 auto;"></div>
@@ -564,13 +564,13 @@
       <div class="writing-pane" id="wpane-shadowing">
         <div class="card text-center p-36 mb-4">
           <p class="text-sm mb-4 line-height-16" data-i18n="msg_shadowing_desc">Visually compare the AI model's audio waveform with your own pronunciation waveform to improve rhythm and intonation.</p>
-          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-blue" onclick="openShadowingModal()" role="button" tabindex="0" data-i18n="btn_shadowing_studio">Shadowing</button>
+          <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-blue whitespace-nowrap" onclick="openShadowingModal()" role="button" tabindex="0" data-i18n="btn_shadowing_studio">Shadowing</button>
         </div>
       </div>
 
       <div class="writing-pane" id="wpane-syntax">
         <div class="flex-gap-8 mb-4 flex-wrap">
-          <button class="action-btn mb-0 flex-1 bg-green" onclick="exportSyntaxPDF()" role="button" tabindex="0" data-i18n="btn_export_syntax_pdf">Export Syntax PDF</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 bg-green whitespace-nowrap" onclick="exportSyntaxPDF()" role="button" tabindex="0" data-i18n="btn_export_syntax_pdf">Export Syntax PDF</button>
         </div>
         <div class="card mb-4">
           <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="label_add_syntax">Add Syntax Manually</p>
@@ -750,7 +750,7 @@
             <option value="all" data-i18n="folder_all">All Folders</option>
             <option value="uncategorized" data-i18n="folder_uncategorized">Uncategorized</option>
           </select>
-          <button class="btn-pill btn-outline" onclick="createNewFolder()" role="button" tabindex="0" data-i18n="btn_create_folder">+ Create Folder</button>
+          <button class="btn-pill btn-outline whitespace-nowrap" onclick="createNewFolder()" role="button" tabindex="0" data-i18n="btn_create_folder">+ Create Folder</button>
         </div>
         <div id="subject-saved-list"></div>
       </div>
@@ -807,7 +807,7 @@
         <div class="card mb-4">
           <div class="flex-between align-center mb-3 flex-wrap gap-2">
             <p class="text-sm font-bold mb-0" data-i18n="label_plan">Plan</p>
-            <button class="btn-pill bg-accent2 border-none" onclick="rebuildScheduleAI()" role="button" tabindex="0" data-i18n="btn_ai_rebuild">AI Rebuild</button>
+            <button class="btn-pill bg-accent2 border-none whitespace-nowrap" onclick="rebuildScheduleAI()" role="button" tabindex="0" data-i18n="btn_ai_rebuild">AI Rebuild</button>
           </div>
           <div id="plan-content" class="mb-3"></div>
           <div class="plan-add-row mt-0 flex-wrap">
@@ -855,7 +855,7 @@
             <p class="text-sm font-bold mb-0" data-i18n="label_weekly_plan">Weekly Plan</p>
             <div class="flex align-center">
               <button class="btn-pill btn-outline" onclick="planWeeklyPrev()" role="button" tabindex="0">‹</button>
-              <span id="plan-weekly-label" class="text-xs font-bold ml-2 mr-2" data-i18n="label_this_week">This Week</span>
+              <span id="plan-weekly-label" class="text-xs font-bold ml-2 mr-2 whitespace-nowrap" data-i18n="label_this_week">This Week</span>
               <button class="btn-pill btn-outline" onclick="planWeeklyNext()" role="button" tabindex="0">›</button>
             </div>
           </div>
@@ -889,7 +889,7 @@
         <div class="card mb-4">
           <div class="flex-between align-center mb-3 flex-wrap gap-2">
             <p class="text-sm font-bold mb-0" data-i18n="label_yearly_main_goal">Yearly Main Goal</p>
-            <button class="btn-pill btn-outline" onclick="generateMilestonesAI()" role="button" tabindex="0" data-i18n="btn_milestone_gen">Milestone Generator</button>
+            <button class="btn-pill btn-outline whitespace-nowrap" onclick="generateMilestonesAI()" role="button" tabindex="0" data-i18n="btn_milestone_gen">Milestone Generator</button>
           </div>
           <input type="text" id="yearly-main-goal" class="score-input" placeholder="e.g. Pass first choice univ, TOEIC 800" data-i18n-placeholder="ph_yearly_goal" oninput="saveYearlyPlanDebounced()">
         </div>
@@ -900,7 +900,7 @@
         <div class="card mb-4">
           <div class="flex-between align-center mb-3 flex-wrap gap-2">
             <p class="text-sm font-bold mb-0" data-i18n="label_backcasting">Backcasting Planner</p>
-            <button class="btn-pill btn-outline" onclick="slideGanttSchedule()" role="button" tabindex="0" data-i18n="btn_delay_slide">Reschedule</button>
+            <button class="btn-pill btn-outline whitespace-nowrap" onclick="slideGanttSchedule()" role="button" tabindex="0" data-i18n="btn_delay_slide">Reschedule</button>
           </div>
           <p class="text-xs text-muted mb-4 line-height-15" data-i18n="msg_backcasting_desc">Enter the target date and the reference books/tasks to be used, and the AI will calculate backwards the number of days until the exam date and automatically register a daily schedule on the calendar.</p>
           
@@ -931,7 +931,7 @@
         <div class="card mb-4" id="plan-profile-card">
           <div class="flex-between align-center mb-3 flex-wrap gap-2">
             <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-0" data-i18n="label_profile">Profile</p>
-            <button onclick="toggleProfileCard()" id="profile-toggle-btn" class="btn-pill btn-outline" role="button" tabindex="0" data-i18n="btn_collapse">Collapse</button>
+            <button onclick="toggleProfileCard()" id="profile-toggle-btn" class="btn-pill btn-outline whitespace-nowrap" role="button" tabindex="0" data-i18n="btn_collapse">Collapse</button>
           </div>
           <div id="profile-fields">
             <div class="mb-3">
@@ -949,8 +949,8 @@
           </div>
         </div>
         <div class="flex-gap-8 mb-4 flex-wrap">
-          <button class="action-btn mb-0 flex-1 min-w-100 bg-accent2" onclick="generateRoadmapReport()" role="button" tabindex="0" data-i18n="btn_simulator">Simulator</button>
-          <button class="action-btn mb-0 flex-1 min-w-100 bg-purple" onclick="generatePersonalizedExam()" role="button" tabindex="0" data-i18n="btn_custom_exam">Custom Exam</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 bg-accent2 whitespace-nowrap" onclick="generateRoadmapReport()" role="button" tabindex="0" data-i18n="btn_simulator">Simulator</button>
+          <button class="action-btn mb-0 flex-1 min-w-100 bg-purple whitespace-nowrap" onclick="generatePersonalizedExam()" role="button" tabindex="0" data-i18n="btn_custom_exam">Custom Exam</button>
         </div>
         <div id="ai-weakness-report"></div>
         <div class="flex mb-3 justify-end">
@@ -1087,8 +1087,9 @@
       <div class="card mb-4">
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="label_language">Language Settings</p>
         <select id="language-select" class="score-input mb-2" onchange="changeLanguage()">
-          <option value="ja" selected data-i18n="opt_lang_ja">Japanese</option>
+          <option value="mixed" selected data-i18n="opt_lang_mixed">Mixed (UI: English / AI: Japanese)</option>
           <option value="en" data-i18n="opt_lang_en">English</option>
+          <option value="ja" data-i18n="opt_lang_ja">Japanese</option>
         </select>
       </div>
 
@@ -1246,7 +1247,7 @@
             <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
             <option value="custom" data-i18n="opt_custom_model">Custom (Enter manually)</option>
           </select>
-          <button class="action-btn mb-0 flex-shrink-0 btn-auto-width" onclick="fetchAvailableModels()" title="Fetch latest models from API" role="button" tabindex="0" data-i18n="btn_fetch_api">Fetch API</button>
+          <button class="action-btn mb-0 flex-shrink-0 btn-auto-width whitespace-nowrap" onclick="fetchAvailableModels()" title="Fetch latest models from API" role="button" tabindex="0" data-i18n="btn_fetch_api">Fetch API</button>
         </div>
         <div id="custom-model-input-container" class="hidden mb-4">
           <input type="text" id="custom-gemini-model" class="score-input w-full" placeholder="Enter model name (e.g. gemini-4.0-pro)" data-i18n-placeholder="ph_custom_model" onchange="saveCustomGeminiModel()">
@@ -1255,26 +1256,26 @@
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="label_reminder">Reminder Settings (Push Notifications)</p>
         <div class="flex-gap-8 align-center mb-3 flex-wrap">
           <input type="time" id="reminder-time" class="score-input flex-1 min-w-100" value="20:00">
-          <button class="action-btn mb-0 flex-shrink-0 btn-auto-width" onclick="saveReminderSettings()" role="button" tabindex="0" data-i18n="btn_set_allow">Set / Allow</button>
+          <button class="action-btn mb-0 flex-shrink-0 btn-auto-width whitespace-nowrap" onclick="saveReminderSettings()" role="button" tabindex="0" data-i18n="btn_set_allow">Set / Allow</button>
         </div>
         <div class="text-sm text-sub mb-4" id="reminder-status-text" data-i18n="status_not_set">Not Set</div>
 
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="label_cloud_sync">Cloud Sync (Firebase Auth)</p>
         <div class="flex-between align-center mb-4 flex-wrap gap-2">
           <span id="firebase-login-status" class="text-sub font-bold text-xs" data-i18n="status_checking">Checking...</span>
-          <button id="firebase-auth-btn" class="action-btn mb-0 btn-auto-width btn-sm-pad" role="button" tabindex="0"></button>
+          <button id="firebase-auth-btn" class="action-btn mb-0 btn-auto-width btn-sm-pad whitespace-nowrap" role="button" tabindex="0"></button>
         </div>
         <div class="flex-gap-8 mb-4 flex-wrap">
-          <button class="manage-btn mb-0 flex-1 min-w-100" onclick="cloudSync('push')" role="button" tabindex="0" data-i18n="btn_push">Push (Save)</button>
-          <button class="manage-btn mb-0 flex-1 min-w-100" onclick="cloudSync('pull')" role="button" tabindex="0" data-i18n="btn_pull">Pull (Load)</button>
+          <button class="manage-btn mb-0 flex-1 min-w-100 whitespace-nowrap" onclick="cloudSync('push')" role="button" tabindex="0" data-i18n="btn_push">Push (Save)</button>
+          <button class="manage-btn mb-0 flex-1 min-w-100 whitespace-nowrap" onclick="cloudSync('pull')" role="button" tabindex="0" data-i18n="btn_pull">Pull (Load)</button>
         </div>
 
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="title_settings">Settings</p>
         <button class="manage-btn" id="auto-sync-btn" onclick="toggleAutoSync()" role="button" tabindex="0" data-i18n="btn_auto_sync">Auto Sync (Real-time): OFF</button>
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3 mt-3" data-i18n="label_export">Export</p>
         <div class="flex-gap-8 mb-4 flex-wrap">
-          <button class="manage-btn mb-0 flex-1 min-w-100" onclick="exportData()" role="button" tabindex="0" data-i18n="btn_export_json">JSON</button>
-          <button class="manage-btn mb-0 flex-1 min-w-100" onclick="exportCSV()" role="button" tabindex="0" data-i18n="btn_export_csv">CSV (Vocab)</button>
+          <button class="manage-btn mb-0 flex-1 min-w-100 whitespace-nowrap" onclick="exportData()" role="button" tabindex="0" data-i18n="btn_export_json">JSON</button>
+          <button class="manage-btn mb-0 flex-1 min-w-100 whitespace-nowrap" onclick="exportCSV()" role="button" tabindex="0" data-i18n="btn_export_csv">CSV (Vocab)</button>
         </div>
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="label_data_reset">Data Reset</p>
         <button class="manage-btn danger" onclick="showDangerBox('box-all')" role="button" tabindex="0" data-i18n="btn_reset_all">Reset All</button>
@@ -1467,7 +1468,7 @@
         </label>
         <div class="flex-gap-8 mb-3 flex-wrap">
           <input id="import-url-input" type="url" class="score-input flex-1 min-w-100" placeholder="URL or YouTube Link" data-i18n-placeholder="ph_url">
-          <button onclick="fetchAndParseUrl()" class="btn-accent-solid flex-shrink-0" role="button" tabindex="0" data-i18n="btn_ai_extract">AI Extract</button>
+          <button onclick="fetchAndParseUrl()" class="btn-accent-solid whitespace-nowrap flex-shrink-0" role="button" tabindex="0" data-i18n="btn_ai_extract">AI Extract</button>
         </div>
         <p class="text-xs text-muted mb-3 mt-4 line-height-15" data-i18n="msg_import_url_fallback">※ If subtitles cannot be retrieved, please paste the text manually.</p>
         <textarea id="import-youtube-transcript" class="writing-textarea mb-3" placeholder="Paste transcript text here..." data-i18n-placeholder="ph_paste_transcript"></textarea>
@@ -1600,7 +1601,7 @@
         <div id="auto-listen-example" class="text-sm text-muted italic line-height-15">—</div>
       </div>
       <div class="flex-center gap-3 mb-4">
-        <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-purple" id="auto-listen-start-btn" onclick="toggleAutoListen()" role="button" tabindex="0" data-i18n="btn_start_playback">Start Playback</button>
+        <button class="action-btn mb-0 btn-auto-width btn-lg-pad bg-purple whitespace-nowrap" id="auto-listen-start-btn" onclick="toggleAutoListen()" role="button" tabindex="0" data-i18n="btn_start_playback">Start Playback</button>
       </div>
       <label class="flex align-center gap-2 text-sm font-bold cursor-pointer">
         <input type="checkbox" id="auto-listen-only-review" style="width:16px;height:16px;accent-color:var(--accent);" checked>
@@ -1663,8 +1664,8 @@
       <button class="modal-close" onclick="closeModal('pdf-reader-modal')" role="button" tabindex="0">✕</button>
       <p class="font-bold mb-4 text-lg" data-i18n="label_pdf_reader">PDF / EPUB Reader</p>
       <div class="flex-gap-8 mb-3 flex-wrap">
-        <button class="btn-pill btn-outline" onclick="togglePdfHighlightMode()" role="button" tabindex="0" data-i18n="btn_highlight_off">Highlight: OFF</button>
-        <button class="btn-pill btn-outline" onclick="addPdfNote()" role="button" tabindex="0" data-i18n="btn_add_note">Add Note</button>
+        <button class="btn-pill btn-outline whitespace-nowrap" onclick="togglePdfHighlightMode()" role="button" tabindex="0" data-i18n="btn_highlight_off">Highlight: OFF</button>
+        <button class="btn-pill btn-outline whitespace-nowrap" onclick="addPdfNote()" role="button" tabindex="0" data-i18n="btn_add_note">Add Note</button>
       </div>
       <label class="writing-upload-btn mb-4" for="pdf-reader-input">
         <span class="mb-1 font-bold" data-i18n="btn_select_pdf">[ Select PDF File ]</span>
@@ -1674,8 +1675,8 @@
         <p class="text-center text-muted mt-4" data-i18n="msg_no_file">No file selected</p>
       </div>
       <div id="pdf-popup-menu" class="hidden" style="position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); z-index: 1000; padding: 6px; display: flex; gap: 6px;">
-        <button class="btn-pill bg-accent border-none" onclick="addPdfWord()" role="button" tabindex="0" data-i18n="btn_add_word">Add Word</button>
-        <button class="btn-pill bg-green border-none" onclick="analyzePdfSyntax()" role="button" tabindex="0" data-i18n="btn_parse_syntax">Parse Syntax</button>
+        <button class="btn-pill bg-accent border-none whitespace-nowrap" onclick="addPdfWord()" role="button" tabindex="0" data-i18n="btn_add_word">Add Word</button>
+        <button class="btn-pill bg-green border-none whitespace-nowrap" onclick="analyzePdfSyntax()" role="button" tabindex="0" data-i18n="btn_parse_syntax">Parse Syntax</button>
       </div>
     </div>
   </div>
@@ -1687,8 +1688,8 @@
       <p class="font-bold mb-4 text-lg" data-i18n="btn_shadowing_studio">Shadowing</p>
       <textarea id="shadowing-text-input" class="score-input mb-4 h-72" placeholder="Enter English text to practice..." data-i18n-placeholder="ph_enter_english"></textarea>
       <div class="flex-gap-8 mb-4 flex-wrap">
-        <button class="action-btn mb-0 flex-1 min-w-100 bg-accent" onclick="playShadowingModel()" role="button" tabindex="0" data-i18n="btn_play_model">Play Model</button>
-        <button class="action-btn mb-0 flex-1 min-w-100 bg-danger" id="shadowing-record-btn" onclick="toggleShadowingRecord()" role="button" tabindex="0" data-i18n="btn_start_recording">Start Recording</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 bg-accent whitespace-nowrap" onclick="playShadowingModel()" role="button" tabindex="0" data-i18n="btn_play_model">Play Model</button>
+        <button class="action-btn mb-0 flex-1 min-w-100 bg-danger whitespace-nowrap" id="shadowing-record-btn" onclick="toggleShadowingRecord()" role="button" tabindex="0" data-i18n="btn_start_recording">Start Recording</button>
       </div>
       <div class="card mb-3">
         <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-2" data-i18n="label_model_waveform">Model Waveform</p>
