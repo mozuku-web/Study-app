@@ -106,13 +106,14 @@
 }
 
 /* ダークモード時の文字色消失バグ修正（入力フォーム等も含む） */
-[data-theme="dark"] button,
 [data-theme="dark"] input,
 [data-theme="dark"] select,
 [data-theme="dark"] textarea,
-[data-theme="dark"] .score-input,
-[data-theme="dark"] .action-btn,
-[data-theme="dark"] .btn-pill,
+[data-theme="dark"] .score-input {
+  color: var(--text);
+}
+
+[data-theme="dark"] button,
 [data-theme="dark"] .btn-outline,
 [data-theme="dark"] .btn-secondary,
 [data-theme="dark"] .action-btn.btn-secondary,
@@ -122,12 +123,20 @@
 [data-theme="dark"] .itab,
 [data-theme="dark"] .filter-chip,
 [data-theme="dark"] .writing-tab {
-  color: var(--text) !important;
+  color: var(--text);
 }
 
-[data-theme="dark"] .action-btn.bg-accent,
-[data-theme="dark"] .btn-accent-solid {
-  color: var(--bg) !important;
+/* 背景色が濃いボタンは文字色を白に固定 */
+[data-theme="dark"] .action-btn:not(.btn-secondary):not(.btn-outline),
+[data-theme="dark"] .btn-accent-solid,
+[data-theme="dark"] .bg-accent,
+[data-theme="dark"] .bg-accent2,
+[data-theme="dark"] .bg-danger,
+[data-theme="dark"] .bg-green,
+[data-theme="dark"] .bg-blue,
+[data-theme="dark"] .bg-purple,
+[data-theme="dark"] .bg-streak {
+  color: #ffffff !important;
 }
 
 [data-theme="dark"] input[type="range"] {
