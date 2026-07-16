@@ -97,8 +97,8 @@
           <div id="wotd-example" class="text-sub text-sm mb-4 example-box"></div>
           <input type="text" id="wotd-tag-input" class="score-input mb-3" placeholder="Tags (comma separated)" data-i18n-placeholder="ph_tags">
           <div class="flex-gap-8 flex-wrap">
-            <button class="action-btn mb-0 flex-1 min-w-100" id="wotd-save-btn" role="button" tabindex="0" data-i18n="btn_add_vocab">Add to Vocab</button>
-            <button class="action-btn btn-secondary mb-0 flex-1 min-w-100" id="wotd-next-btn" onclick="nextWordOfTheDay()" role="button" tabindex="0" data-i18n="btn_next_word">Next Word</button>
+            <button class="action-btn mb-0 flex-1" id="wotd-save-btn" role="button" tabindex="0" data-i18n="btn_add_vocab">Add to Vocab</button>
+            <button class="action-btn btn-secondary mb-0 flex-1" id="wotd-next-btn" onclick="nextWordOfTheDay()" role="button" tabindex="0" data-i18n="btn_next_word">Next Word</button>
           </div>
         </div>
 
@@ -123,8 +123,8 @@
         </div>
 
         <div class="flex-gap-8 mb-4 flex-wrap widget-item" data-widget-id="actions">
-          <button class="action-btn mb-0 flex-1 min-w-100 bg-streak" onclick="openWeeklyReport()" role="button" tabindex="0" data-i18n="btn_weekly_report">Weekly Report</button>
-          <button class="action-btn btn-danger mb-0 flex-1 min-w-100" onclick="openWeaknessAnalysis()" role="button" tabindex="0" data-i18n="btn_weakness_analysis">Weakness Analysis</button>
+          <button class="action-btn mb-0 flex-1 bg-streak" onclick="openWeeklyReport()" role="button" tabindex="0" data-i18n="btn_weekly_report">Weekly Report</button>
+          <button class="action-btn btn-danger mb-0 flex-1" onclick="openWeaknessAnalysis()" role="button" tabindex="0" data-i18n="btn_weakness_analysis">Weakness Analysis</button>
         </div>
 
         <div class="widget-item mb-4" data-widget-id="streak">
@@ -251,8 +251,8 @@
         <div id="timer-display" class="timer-display-text">25:00</div>
         <div id="timer-status" class="text-xs font-bold text-muted timer-status-text" data-i18n="status_stopped">Stopped</div>
         <div class="flex-center gap-3 mb-4 flex-wrap">
-          <button id="timer-start-btn" class="action-btn mb-0 flex-1 min-w-100 btn-lg-pad" onclick="timerStartStop()" role="button" tabindex="0" data-i18n="btn_start">Start</button>
-          <button class="action-btn btn-secondary mb-0 flex-1 min-w-100 btn-lg-pad" onclick="timerReset()" role="button" tabindex="0" data-i18n="btn_reset">Reset</button>
+          <button id="timer-start-btn" class="action-btn mb-0 flex-1 btn-lg-pad" onclick="timerStartStop()" role="button" tabindex="0" data-i18n="btn_start">Start</button>
+          <button class="action-btn btn-secondary mb-0 flex-1 btn-lg-pad" onclick="timerReset()" role="button" tabindex="0" data-i18n="btn_reset">Reset</button>
         </div>
         
         <div class="flex-col align-center gap-2">
@@ -328,15 +328,15 @@
       <div class="vocab-stats-bar mb-4" id="vocab-stats-bar"></div>
       
       <div class="flex-gap-8 mb-4 flex-wrap">
-        <button class="action-btn mb-0 flex-1 min-w-100 bg-purple" onclick="openAutoListenModal()" role="button" tabindex="0" data-i18n="btn_auto_listen">Auto-Listen</button>
-        <button class="action-btn mb-0 flex-1 min-w-100 bg-blue" onclick="openStoryGenModal()" role="button" tabindex="0" data-i18n="btn_contextual_story">Story Generator</button>
-        <button class="action-btn mb-0 flex-1 min-w-100 btn-secondary" onclick="openSimulationModal()" role="button" tabindex="0" data-i18n="btn_retention_forecast">Retention Forecast</button>
+        <button class="action-btn mb-0 flex-1 bg-purple" onclick="openAutoListenModal()" role="button" tabindex="0" data-i18n="btn_auto_listen">Auto-Listen</button>
+        <button class="action-btn mb-0 flex-1 bg-blue" onclick="openStoryGenModal()" role="button" tabindex="0" data-i18n="btn_contextual_story">Story Generator</button>
+        <button class="action-btn mb-0 flex-1 btn-secondary" onclick="openSimulationModal()" role="button" tabindex="0" data-i18n="btn_retention_forecast">Retention Forecast</button>
       </div>
 
       <div class="flex-gap-8 mb-4 flex-wrap">
-        <button class="action-btn mb-0 flex-1 min-w-100 bg-accent" onclick="openAddWordModal()" role="button" tabindex="0" data-i18n="btn_add_word">+ Add Word</button>
-        <button class="action-btn mb-0 flex-1 min-w-100 bg-accent2" onclick="printWordTest()" role="button" tabindex="0" data-i18n="btn_print_test">Print Test</button>
-        <button class="action-btn mb-0 flex-1 min-w-100 bg-green" onclick="exportVocabPDF()" role="button" tabindex="0" data-i18n="btn_export_pdf">Export PDF</button>
+        <button class="action-btn mb-0 flex-1 bg-accent" onclick="openAddWordModal()" role="button" tabindex="0" data-i18n="btn_add_word">+ Add Word</button>
+        <button class="action-btn mb-0 flex-1 bg-accent2" onclick="printWordTest()" role="button" tabindex="0" data-i18n="btn_print_test">Print Test</button>
+        <button class="action-btn mb-0 flex-1 bg-green" onclick="exportVocabPDF()" role="button" tabindex="0" data-i18n="btn_export_pdf">Export PDF</button>
       </div>
       
       <div class="vocab-search-wrap mb-4">
@@ -397,9 +397,9 @@
       </div>
       
       <div id="vocab-bulk-actions" class="flex-gap-8 mb-4 flex-wrap hidden">
-        <button class="action-btn mb-0 flex-1 min-w-100 btn-sm" onclick="bulkTagWords()" role="button" tabindex="0" data-i18n="btn_bulk_tag">Bulk Tag</button>
-        <button class="action-btn mb-0 flex-1 min-w-100 btn-sm btn-secondary" onclick="bulkResetProgress()" role="button" tabindex="0" data-i18n="btn_reset_progress">Reset Progress</button>
-        <button class="action-btn mb-0 flex-1 min-w-100 btn-sm btn-danger" onclick="bulkDeleteWords()" role="button" tabindex="0" data-i18n="btn_bulk_delete">Bulk Delete</button>
+        <button class="action-btn mb-0 flex-1 btn-sm" onclick="bulkTagWords()" role="button" tabindex="0" data-i18n="btn_bulk_tag">Bulk Tag</button>
+        <button class="action-btn mb-0 flex-1 btn-sm btn-secondary" onclick="bulkResetProgress()" role="button" tabindex="0" data-i18n="btn_reset_progress">Reset Progress</button>
+        <button class="action-btn mb-0 flex-1 btn-sm btn-danger" onclick="bulkDeleteWords()" role="button" tabindex="0" data-i18n="btn_bulk_delete">Bulk Delete</button>
       </div>
 
       <div id="vocab-count" class="vocab-count mb-3"></div>
@@ -451,10 +451,10 @@
         </div>
 
         <div class="flex-gap-8 mb-4 flex-wrap">
-          <button class="action-btn mb-0 flex-1 min-w-100" id="writing-submit-btn" onclick="submitWriting('correct')" role="button" tabindex="0" data-i18n="btn_correct">Correct</button>
-          <button class="action-btn mb-0 flex-1 min-w-100 bg-green" id="writing-analyze-btn" onclick="submitWriting('analyze')" role="button" tabindex="0" data-i18n="btn_parse_syntax">Parse Syntax</button>
-          <button class="action-btn mb-0 flex-1 min-w-100 bg-streak" id="writing-paraphrase-btn" onclick="submitWriting('paraphrase')" role="button" tabindex="0" data-i18n="btn_paraphrase">Paraphrase</button>
-          <button class="action-btn mb-0 flex-1 min-w-100 bg-purple" id="writing-essay-btn" onclick="submitWriting('essay')" role="button" tabindex="0" data-i18n="btn_essay_analysis">Essay Analysis</button>
+          <button class="action-btn mb-0 flex-1" id="writing-submit-btn" onclick="submitWriting('correct')" role="button" tabindex="0" data-i18n="btn_correct">Correct</button>
+          <button class="action-btn mb-0 flex-1 bg-green" id="writing-analyze-btn" onclick="submitWriting('analyze')" role="button" tabindex="0" data-i18n="btn_parse_syntax">Parse Syntax</button>
+          <button class="action-btn mb-0 flex-1 bg-streak" id="writing-paraphrase-btn" onclick="submitWriting('paraphrase')" role="button" tabindex="0" data-i18n="btn_paraphrase">Paraphrase</button>
+          <button class="action-btn mb-0 flex-1 bg-purple" id="writing-essay-btn" onclick="submitWriting('essay')" role="button" tabindex="0" data-i18n="btn_essay_analysis">Essay Analysis</button>
         </div>
         
         <div id="writing-loading" class="hidden p-20">
@@ -570,7 +570,7 @@
 
       <div class="writing-pane" id="wpane-syntax">
         <div class="flex-gap-8 mb-4 flex-wrap">
-          <button class="action-btn mb-0 flex-1 min-w-100 bg-green" onclick="exportSyntaxPDF()" role="button" tabindex="0" data-i18n="btn_export_syntax_pdf">Export Syntax PDF</button>
+          <button class="action-btn mb-0 flex-1 bg-green" onclick="exportSyntaxPDF()" role="button" tabindex="0" data-i18n="btn_export_syntax_pdf">Export Syntax PDF</button>
         </div>
         <div class="card mb-4">
           <p class="text-xs font-bold text-muted text-uppercase letter-spacing-1 mb-3" data-i18n="label_add_syntax">Add Syntax Manually</p>
