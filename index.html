@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Vocab Pro">
+  <title>Vocab Pro - Ultimate Edition</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+
+  <style>
+    :root { --text-main: #0F172A; --text-sub: #64748B; --accent: #0F172A; }
+    body { background-color: #F8FAFC; color: var(--text-main); font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; margin: 0; }
+    
+    /* 幻想的な背景オーブ */
+    .bg-orbs { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; overflow: hidden; background: #F8FAFC; }
+    .bg-orbs::before, .bg-orbs::after { content: ''; position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.4; animation: float 20s infinite alternate ease-in-out; }
+    .bg-orbs::before { width: 60vw; height: 60vw; background: #3B82F6; top: -10vw; left: -10vw; }
+    .bg-orbs::after { width: 70vw; height: 70vw; background: #8B5CF6; bottom: -10vw; right: -10vw; animation-delay: -10s; }
+    @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(10vw, 10vh) scale(1.2); } }
+
+    /* 洗練されたグラスモーフィズム */
+    .glass-card { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.6); border-radius: 24px; }
+    .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.6); }
+    .glass-header { background: rgba(248, 250, 252, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
+    
+    .pro-input { background: rgba(255,255,255,0.7); border: 1px solid rgba(229,231,235,0.8); border-radius: 16px; transition: all 0.3s ease; backdrop-filter: blur(10px); }
+    .pro-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1); background: rgba(255,255,255,0.95); outline: none; }
+    
+    /* リップルエフェクト */
+    .ripple-btn { position: relative; overflow: hidden; }
+    .ripple-btn::after { content: ""; position: absolute; top: 50%; left: 50%; width: 150%; padding-top: 150%; background: rgba(255, 255, 255, 0.3); border-radius: 50%; transform: translate(-50%, -50%) scale(0); opacity: 0; transition: transform 0.4s ease-out, opacity 0.4s ease-out; }
+    .ripple-btn:active::after { transform: translate(-50%, -50%) scale(1); opacity: 1; transition: 0s; }
+    .ripple-btn-dark::after { background: rgba(0, 0, 0, 0.1); }
+
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .modal-enter { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .toast-enter { animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    .progress-bar { height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+    
+    .toggle-checkbox:checked { right: 0; border-color: var(--accent); }
+    .toggle-checkbox:checked + .toggle-label { background-color: var(--accent); }
+    .tree-line { position: absolute; left: -1rem; top: 1.2rem; width: 0.75rem; border-top: 2px solid rgba(0,0,0,0.1); }
+    
+    .markdown-body p { margin-bottom: 0.5rem; line-height: 1.6; }
+    .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.5rem; }
+    .markdown-body strong { color: var(--text-main); font-weight: 800; }
+    
+    .inline-flip-container { perspective: 1000px; width: 100%; min-height: 140px; cursor: pointer; }
+    .inline-flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
+    .inline-flip-container.flipped .inline-flip-inner { transform: rotateX(180deg); }
+    .inline-flip-front, .inline-flip-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+    .inline-flip-back { transform: rotateX(180deg); background: rgba(248,250,252,0.95); }
+
+    .quiz-correct { animation: pulseGreen 0.4s; background-color: #D1FAE5 !important; border-color: #10B981 !important; color: #065F46 !important; }
+    .quiz-wrong { animation: shakeRed 0.4s; background-color: #FEE2E2 !important; border-color: #EF4444 !important; color: #991B1B !important; }
+    @keyframes pulseGreen { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+    @keyframes shakeRed { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+    @media print {
+      body * { visibility: hidden; } #print-area, #print-area * { visibility: visible; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+      .red-sheet { color: #F97316 !important; } .no-print { display: none !important; }
+      body.print-flashcard #print-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      body.print-flashcard .glass-card { border: 1px dashed #ccc; page-break-inside: avoid; height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: white; }
+    }
+  </style>
+</head>
+<body class="pb-24">
+  <div class="bg-orbs"></div>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+    const STORAGE_KEY = 'vocab_pro_data_v21';
+    const API_KEY_STORAGE = 'gemini_api_key';
+    const MODEL_STORAGE = 'gemini_model';
+    const SETTINGS_STORAGE = 'vocab_settings_v8';
+
+    const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+    const useDebounce = (value, delay) => {
+      const [debouncedValue, setDebouncedValue] = useState(value);
+      useEffect(() => { const handler = setTimeout(() => setDebouncedValue(value), delay); return () => clearTimeout(handler); }, [value, delay]);
+      return debouncedValue;
+    };
+
+    const speakText = (text) => {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US'; utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    const calculateSM2 = (quality, repetitions = 0, efactor = 2.5, interval = 0, strictMode = false, difficulty = 3) => {
+      const penalty = strictMode ? 0.15 : 0.08;
+      const diffAdjust = (difficulty - 3) * 0.05; 
+      let newEfactor = efactor + (0.1 - (3 - quality) * (penalty + (3 - quality) * 0.02)) - diffAdjust;
+      if (newEfactor < 1.3) newEfactor = 1.3;
+      let newRepetitions = repetitions; let newInterval = interval;
+      if (quality === 0) { newRepetitions = 0; newInterval = 1; } 
+      else {
+        newRepetitions += 1;
+        if (newRepetitions === 1) newInterval = 1;
+        else if (newRepetitions === 2) newInterval = 6;
+        else newInterval = Math.round(interval * newEfactor);
+      }
+      const nextReviewDate = new Date(); nextReviewDate.setDate(nextReviewDate.getDate() + newInterval); nextReviewDate.setHours(0, 0, 0, 0);
+      return { repetitions: newRepetitions, efactor: newEfactor, interval: newInterval, nextReviewDate: nextReviewDate.getTime(), history: { date: Date.now(), quality } };
+    };
+
+    const getReviewText = (nextReviewDate) => {
+      if (!nextReviewDate) return 'New';
+      const now = new Date(); now.setHours(0, 0, 0, 0);
+      const reviewDate = new Date(nextReviewDate); reviewDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((reviewDate - now) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 0) return 'Today'; if (diffDays === 1) return 'Tomorrow'; return `${diffDays} days`;
+    };
+
+    const getMasteryColor = (interval) => {
+      if (!interval || interval === 0) return 'bg-rose-500';
+      if (interval < 21) return 'bg-amber-400';
+      return 'bg-emerald-500';
+    };
+
+    const useLongPress = (onLongPress, onClick, { delay = 500 } = {}) => {
+      const [longPressTriggered, setLongPressTriggered] = useState(false);
+      const timeout = useRef(); const isScrolling = useRef(false);
+      const start = useCallback(e => {
+        isScrolling.current = false;
+        timeout.current = setTimeout(() => { if (!isScrolling.current) { onLongPress(e); setLongPressTriggered(true); } }, delay);
+      }, [onLongPress, delay]);
+      const clear = useCallback((e, shouldTriggerClick = true) => {
+        timeout.current && clearTimeout(timeout.current);
+        shouldTriggerClick && !longPressTriggered && !isScrolling.current && onClick && onClick(e);
+        setLongPressTriggered(false);
+      }, [onClick, longPressTriggered]);
+      return { onTouchStart: start, onTouchMove: () => { isScrolling.current = true; clearTimeout(timeout.current); }, onTouchEnd: clear, onMouseDown: start, onMouseUp: clear, onMouseLeave: e => clear(e, false) };
+    };
+
+    const HighlightRoot = ({ word, root }) => {
+      if (!word || !root) return <span>{word}</span>;
+      const regex = new RegExp(`(${root})`, 'i'); const parts = word.split(regex);
+      return <span>{parts.map((part, i) => regex.test(part) ? <span key={i} className="text-rose-600 font-black">{part}</span> : part)}</span>;
+    };
+
+    const Highlight = ({ text, query }) => {
+      if (!query || !text) return <span>{text}</span>;
+      const parts = text.toString().split(new RegExp(`(${query})`, 'gi'));
+      return <span>{parts.map((part, i) => part.toLowerCase() === query.toLowerCase() ? <mark key={i} className="bg-amber-200 text-slate-900 rounded-md px-1 font-bold">{part}</mark> : part)}</span>;
+    };
+
+    const fetchGeminiModels = async (apiKey) => {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      const data = await res.json(); if (data.error) throw new Error(data.error.message);
+      return data.models.filter(m => m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.replace('models/', ''));
+    };
+
+    // ★AI出力の完全固定化 (JSON Schema)
+    const generateVocabData = async (apiKey, model, inputType, content, targetType, mimeType) => {
+      const isWord = targetType === 'word';
+      const systemPrompt = `あなたはプロの英語講師。提供データから大学受験必須の英${isWord ? '単語' : '熟語'}を抽出しJSON配列で出力せよ。
+【厳格なルール】
+1. 基礎単語は除外し、難単語・重要語のみ抽出。
+2. 語尾は「だ・である調」。
+3. 語源(etymology)を必ず解説し、コアイメージ(core_image)を一言化せよ。
+4. 難易度(1-10)、CEFRレベル(A1-C2)、出現頻度ランク(1-10000)、音節数(syllable_count)を判定せよ。
+5. フォーマル度(1-10)を判定せよ。
+6. 類義語の使い分け(synonym_distinction)を解説せよ。
+7. コロケーション(collocations)を抽出し品詞と共にリストアップせよ。
+8. 語源パーツには必ず「意味」を含めること。
+9. 単語の性質を表すタグ(auto_tags)を3つ自動生成せよ。
+10. JSON以外のテキスト（Markdownのバッククォート等）は一切出力しないこと。`;
+
+      const responseSchema = {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            word: { type: "STRING" }, idiom: { type: "STRING" },
+            meaning: { type: "ARRAY", items: { type: "STRING" } },
+            core_image: { type: "STRING" }, etymology: { type: "STRING" },
+            is_exception: { type: "BOOLEAN" }, difficulty: { type: "NUMBER" }, cefr_level: { type: "STRING" }, pie_root: { type: "STRING" }, frequency_rank: { type: "NUMBER" }, formality_level: { type: "NUMBER" }, syllable_count: { type: "NUMBER" }, base_verb: { type: "STRING" }, particle: { type: "STRING" }, is_figurative: { type: "BOOLEAN" }, auto_tags: { type: "ARRAY", items: { type: "STRING" } }, synonym_distinction: { type: "STRING" },
+            etymology_parts: { type: "OBJECT", properties: { prefix: { type: "STRING" }, prefix_meaning: { type: "STRING" }, root: { type: "STRING" }, root_meaning: { type: "STRING" }, suffix: { type: "STRING" }, suffix_meaning: { type: "STRING" } } },
+            derivatives: { type: "ARRAY", items: { type: "OBJECT", properties: { word: { type: "STRING" }, meaning: { type: "STRING" }, part_of_speech: { type: "STRING" }, etymology: { type: "STRING" } } } },
+            synonyms: { type: "ARRAY", items: { type: "OBJECT", properties: { word: { type: "STRING" }, phrase: { type: "STRING" }, meaning: { type: "STRING" }, nuance: { type: "STRING" }, etymology: { type: "STRING" } } } },
+            antonyms: { type: "ARRAY", items: { type: "OBJECT", properties: { word: { type: "STRING" }, phrase: { type: "STRING" }, meaning: { type: "STRING" }, etymology: { type: "STRING" } } } },
+            phrases: { type: "ARRAY", items: { type: "OBJECT", properties: { phrase: { type: "STRING" }, meaning: { type: "STRING" }, usage: { type: "STRING" }, etymology: { type: "STRING" } } } },
+            collocations: { type: "ARRAY", items: { type: "OBJECT", properties: { word: { type: "STRING" }, type: { type: "STRING" } } } }
+          }
+        }
+      };
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      let parts = [{ text: systemPrompt }, { text: `Target: ${inputType === 'text' ? content : 'Image'}` }];
+      if (inputType === 'image' && mimeType) parts.push({ inline_data: { mime_type: mimeType, data: content } });
+
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: "application/json", responseSchema: responseSchema, temperature: 0.0 } }) });
+      const data = await res.json(); if (data.error) throw new Error(data.error.message);
+      return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim());
+    };
+
+    // --- UI Components ---
+    const FAB = ({ onClick }) => (
+      <button onClick={onClick} className="ripple-btn fixed bottom-28 right-6 w-16 h-16 bg-slate-900 text-white rounded-full shadow-2xl shadow-slate-900/40 flex items-center justify-center text-2xl z-30 active:scale-90 transition-transform border border-slate-700"><i className="fa-solid fa-plus"></i></button>
+    );
+
+    const TagList = ({ tags }) => (
+      <div className="flex flex-wrap gap-2 mb-5">
+        {tags?.map((tag, i) => <span key={i} className="bg-white/60 backdrop-blur-sm border border-white text-slate-600 text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider shadow-sm"><i className="fa-solid fa-tag mr-1.5 opacity-40"></i>{tag}</span>)}
+      </div>
+    );
+
+    const Section = ({ title, children }) => (
+      <div className="mb-10"><h3 className="text-slate-400 font-extrabold text-xs mb-5 uppercase tracking-widest border-b border-slate-200/50 pb-2 flex items-center"><i className="fa-solid fa-layer-group mr-2 opacity-50"></i>{title}</h3><div className="text-sm text-slate-800 leading-relaxed">{children}</div></div>
+    );
+
+    const Toast = ({ message, icon, onClose, action }) => {
+      useEffect(() => { const timer = setTimeout(onClose, 4000); return () => clearTimeout(timer); }, []);
+      return (
+        <div className="fixed top-safe pt-4 left-4 right-4 z-50 toast-enter">
+          <div className="bg-slate-900/95 backdrop-blur-xl text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-slate-700">
+            <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0"><i className={`fa-solid ${icon}`}></i></div>
+            <p className="font-bold text-sm flex-1 leading-snug">{message}</p>
+            {action && <button onClick={action.onClick} className="ripple-btn text-blue-400 font-bold text-xs uppercase tracking-wider px-3 py-2 bg-blue-400/10 rounded-xl active:scale-95 transition-transform">{action.label}</button>}
+            <button onClick={onClose} className="text-white/40 p-2 active:scale-90 transition-transform"><i className="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+      );
+    };
+
+    const RingChart = ({ percentage }) => (
+      <svg viewBox="0 0 36 36" className="w-6 h-6 inline-block mr-2 drop-shadow-sm">
+        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="4" />
+        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10B981" strokeWidth="4" strokeDasharray={`${percentage}, 100`} strokeLinecap="round" />
+      </svg>
+    );
+
+    const AffixDictModal = ({ isOpen, onClose, data, onSelect }) => {
+      const affixes = useMemo(() => {
+        const prefs = {}; const suffs = {};
+        data.forEach(d => {
+          if (d.etymology_parts?.prefix) prefs[d.etymology_parts.prefix] = d.etymology_parts.prefix_meaning;
+          if (d.etymology_parts?.suffix) suffs[d.etymology_parts.suffix] = d.etymology_parts.suffix_meaning;
+        });
+        return { prefixes: Object.entries(prefs), suffixes: Object.entries(suffs) };
+      }, [data]);
+
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-[#F8FAFC] modal-enter">
+          <div className="flex justify-between items-center p-6 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
+            <h2 className="font-black text-xl tracking-tight text-slate-900">Affix Dictionary</h2>
+            <button onClick={onClose} className="w-10 h-10 bg-slate-100 rounded-full text-slate-500 active:scale-90 transition-transform"><i className="fa-solid fa-xmark"></i></button>
+          </div>
+          <div className="p-6 overflow-y-auto flex-1">
+            {affixes.prefixes.length === 0 && affixes.suffixes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full opacity-50">
+                <i className="fa-solid fa-book-open text-6xl text-slate-300 mb-4"></i>
+                <p className="text-slate-500 font-bold text-sm text-center leading-relaxed">単語を追加すると、ここによく使われる<br/>接頭辞・接尾辞が自動でリストアップされます。</p>
+              </div>
+            ) : (
+              <>
+                {affixes.prefixes.length > 0 && (
+                  <>
+                    <h3 className="font-extrabold text-blue-600 mb-4 flex items-center text-sm uppercase tracking-widest"><i className="fa-solid fa-arrow-right-to-bracket mr-2 opacity-50"></i>Prefixes</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-10">
+                      {affixes.prefixes.map(([p, m]) => (
+                        <div key={p} onClick={() => { onSelect(`prefix:${p}`); onClose(); }} className="glass-card p-5 cursor-pointer active:scale-95 transition-transform">
+                          <div className="font-black text-base text-slate-900 mb-1">{p}</div><div className="text-xs text-slate-500 font-medium">{m}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {affixes.suffixes.length > 0 && (
+                  <>
+                    <h3 className="font-extrabold text-emerald-600 mb-4 flex items-center text-sm uppercase tracking-widest"><i className="fa-solid fa-arrow-right-from-bracket mr-2 opacity-50"></i>Suffixes</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {affixes.suffixes.map(([s, m]) => (
+                        <div key={s} onClick={() => { onSelect(`suffix:${s}`); onClose(); }} className="glass-card p-5 cursor-pointer active:scale-95 transition-transform">
+                          <div className="font-black text-base text-slate-900 mb-1">{s}</div><div className="text-xs text-slate-500 font-medium">{m}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const MergeModal = ({ conflicts, onResolve }) => {
+      const [currentIndex, setCurrentIndex] = useState(0);
+      if (!conflicts || conflicts.length === 0) return null;
+      const current = conflicts[currentIndex];
+      const handleChoice = (choice) => {
+        let resolvedItem;
+        if (choice === 'keep') resolvedItem = current.existing;
+        if (choice === 'overwrite') resolvedItem = { ...current.incoming, id: current.existing.id };
+        if (choice === 'merge') resolvedItem = { ...current.existing, tags: Array.from(new Set([...(current.existing.tags||[]), ...(current.incoming.tags||[])])), meaning: Array.from(new Set([...(current.existing.meaning||[]), ...(current.incoming.meaning||[])])), etymology: current.incoming.etymology || current.existing.etymology };
+        onResolve(resolvedItem, current.existing.id, currentIndex === conflicts.length - 1);
+        if (currentIndex < conflicts.length - 1) setCurrentIndex(currentIndex + 1);
+      };
+      return (
+        <div className="fixed inset-0 z-[80] flex flex-col bg-slate-900/40 backdrop-blur-md items-center justify-center p-6 modal-enter">
+          <div className="glass-card w-full max-w-md p-8">
+            <div className="flex items-center gap-4 mb-6"><div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-xl"><i className="fa-solid fa-code-merge"></i></div><h2 className="font-black text-xl text-slate-900">Conflict ({currentIndex+1}/{conflicts.length})</h2></div>
+            <p className="text-sm mb-8 text-slate-600 leading-relaxed">「<span className="font-black text-slate-900 text-base">{current.existing.word || current.existing.idiom}</span>」は既に登録されています。どう処理しますか？</p>
+            <div className="flex flex-col gap-4">
+              <button onClick={() => handleChoice('keep')} className="ripple-btn-dark bg-white/80 border border-slate-200 p-5 rounded-2xl text-sm font-bold text-left shadow-sm active:scale-95 transition-transform text-slate-700"><i className="fa-solid fa-shield-halved mr-3 opacity-50"></i>Keep Existing</button>
+              <button onClick={() => handleChoice('merge')} className="ripple-btn bg-blue-50/80 border border-blue-200 text-blue-700 p-5 rounded-2xl text-sm font-bold text-left shadow-sm active:scale-95 transition-transform"><i className="fa-solid fa-object-group mr-3 opacity-50"></i>Merge Tags & Meaning</button>
+              <button onClick={() => handleChoice('overwrite')} className="ripple-btn bg-rose-50/80 border border-rose-200 text-rose-700 p-5 rounded-2xl text-sm font-bold text-left shadow-sm active:scale-95 transition-transform"><i className="fa-solid fa-file-import mr-3 opacity-50"></i>Overwrite</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const CollocationNetwork = ({ word, collocations }) => {
+      const [nodes, setNodes] = useState([]);
+      const svgRef = useRef(null);
+
+      useEffect(() => {
+        if (!collocations || collocations.length === 0) return;
+        const newNodes = [{ id: 'center', label: word, x: 150, y: 100, color: '#0F172A', isCenter: true }];
+        let angle = 0;
+        collocations.forEach((c) => {
+          angle += (Math.PI * 2) / collocations.length;
+          let color = '#6B7280';
+          if (c.type?.includes('prep')) color = '#8B5CF6';
+          else if (c.type?.includes('noun')) color = '#10B981';
+          else if (c.type?.includes('verb')) color = '#F43F5E';
+          newNodes.push({ id: c.word, label: c.word, type: c.type, x: 150 + Math.cos(angle) * 70, y: 100 + Math.sin(angle) * 50, color, isCenter: false });
+        });
+        setNodes(newNodes);
+      }, [word, collocations]);
+
+      if (!collocations || collocations.length === 0) return null;
+
+      return (
+        <div className="w-full h-48 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden relative">
+          <p className="absolute top-3 left-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collocations</p>
+          <svg ref={svgRef} className="w-full h-full">
+            {nodes.filter(n => !n.isCenter).map(n => <line key={`line-${n.id}`} x1={nodes[0].x} y1={nodes[0].y} x2={n.x} y2={n.y} stroke="#E2E8F0" strokeWidth="2" strokeDasharray="4" />)}
+            {nodes.map(n => (
+              <g key={n.id} transform={`translate(${n.x},${n.y})`}>
+                <rect x={n.isCenter ? -30 : -25} y={n.isCenter ? -12 : -10} width={n.isCenter ? 60 : 50} height={n.isCenter ? 24 : 20} rx="10" fill={n.color} opacity="0.9" />
+                <text textAnchor="middle" dy=".3em" fill="white" fontSize={n.isCenter ? "11" : "9"} fontWeight="bold">{n.label}</text>
+                {!n.isCenter && n.type && <text textAnchor="middle" dy="1.8em" fill={n.color} fontSize="7" fontWeight="bold">{n.type}</text>}
+              </g>
+            ))}
+          </svg>
+        </div>
+      );
+    };
+
+    const DerivativesMatrix = ({ derivatives }) => {
+      if (!derivatives || derivatives.length === 0) return null;
+      const categorized = { Noun: [], Verb: [], Adjective: [], Adverb: [], Other: [] };
+      derivatives.forEach(d => {
+        const pos = d.part_of_speech?.toLowerCase() || '';
+        if (pos.includes('noun') || pos.includes('名詞')) categorized.Noun.push(d);
+        else if (pos.includes('verb') || pos.includes('動詞')) categorized.Verb.push(d);
+        else if (pos.includes('adj') || pos.includes('形容詞')) categorized.Adjective.push(d);
+        else if (pos.includes('adv') || pos.includes('副詞')) categorized.Adverb.push(d);
+        else categorized.Other.push(d);
+      });
+
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          {Object.entries(categorized).map(([pos, items]) => {
+            if (items.length === 0) return null;
+            return (
+              <div key={pos} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{pos}</h4>
+                {items.map((item, i) => (
+                  <div key={i} className="mb-3 last:mb-0">
+                    <div className="font-bold text-sm text-slate-900">{item.word}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{item.meaning}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      );
+    };
+
+    const FormalityGauge = ({ level }) => {
+      if (!level) return null;
+      const percentage = (level / 10) * 100;
+      let label = "Neutral";
+      if (level <= 3) label = "Slang / Casual";
+      else if (level >= 8) label = "Academic / Formal";
+
+      return (
+        <div className="mb-8">
+          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+            <span>Casual</span><span>{label} ({level}/10)</span><span>Formal</span>
+          </div>
+          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+            <div className="h-full bg-gradient-to-r from-emerald-400 via-blue-500 to-purple-600 rounded-full" style={{ width: `${percentage}%` }}></div>
+          </div>
+        </div>
+      );
+    };
+
+    const AIGenerateModal = ({ isOpen, onClose, targetType, onAdd, apiKey, selectedModel }) => {
+      const [inputText, setInputText] = useState(''); const [inputTags, setInputTags] = useState(''); const [loading, setLoading] = useState(false);
+      const fileInputRef = useRef(null); const imageInputRef = useRef(null);
+      if (!isOpen) return null;
+
+      const handleGenerate = async (inputType, content, mimeType) => {
+        if (!apiKey || !selectedModel) return alert('SettingsでAPIを設定してください');
+        setLoading(true);
+        try {
+          const generatedArray = await generateVocabData(apiKey, selectedModel, inputType, content, targetType, mimeType);
+          const newItems = generatedArray.map(item => ({
+            ...item, id: generateId(), type: targetType,
+            tags: Array.from(new Set([...inputTags.split(',').map(t => t.trim()).filter(t => t !== ''), ...(item.auto_tags || [])])), 
+            createdAt: Date.now(), repetitions: 0, efactor: 2.5, interval: 0, nextReviewDate: null
+          }));
+          onAdd(newItems); setInputText(''); setInputTags(''); onClose();
+        } catch (e) { alert('Error: ' + e.message); }
+        setLoading(false);
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#F8FAFC] modal-enter">
+          <div className="flex justify-between items-center p-6 bg-white/80 backdrop-blur-xl border-b border-slate-200/50"><h2 className="font-black text-xl tracking-tight text-slate-900">Add {targetType === 'word' ? 'Words' : 'Idioms'}</h2><button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 active:scale-90 transition-transform"><i className="fa-solid fa-xmark"></i></button></div>
+          <div className="p-6 overflow-y-auto relative flex-1">
+            {loading && <div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center backdrop-blur-md"><div className="glass-card p-10 flex flex-col items-center"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-slate-900 mb-6"></i><p className="font-extrabold text-sm tracking-widest text-slate-500 uppercase">Extracting...</p></div></div>}
+            <input type="text" placeholder="Tags (comma separated)" value={inputTags} onChange={e => setInputTags(e.target.value)} className="w-full pro-input p-5 mb-5 text-sm outline-none font-medium" />
+            <textarea placeholder="Paste text here..." value={inputText} onChange={e => setInputText(e.target.value)} className="w-full pro-input p-5 mb-5 text-sm h-48 outline-none resize-none font-medium leading-relaxed"></textarea>
+            <button onClick={() => handleGenerate('text', inputText)} className="ripple-btn w-full bg-slate-900 text-white font-bold py-5 rounded-2xl mb-5 shadow-xl shadow-slate-900/20 active:scale-95 transition-transform text-sm">Generate from Text</button>
+            <div className="flex gap-4">
+              <input type="file" accept="image/*" ref={imageInputRef} onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload = (ev) => handleGenerate('image', ev.target.result.split(',')[1], f.type); r.readAsDataURL(f); } }} className="hidden" />
+              <button onClick={() => imageInputRef.current.click()} className="ripple-btn-dark flex-1 bg-white border border-slate-200 text-slate-800 font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-sm active:scale-95 transition-transform text-sm"><i className="fa-solid fa-camera text-slate-400 text-lg"></i> Photo</button>
+              <input type="file" accept=".txt" ref={fileInputRef} onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload = (ev) => handleGenerate('text', ev.target.result); r.readAsText(f); } }} className="hidden" />
+              <button onClick={() => fileInputRef.current.click()} className="ripple-btn-dark flex-1 bg-white border border-slate-200 text-slate-800 font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-sm active:scale-95 transition-transform text-sm"><i className="fa-solid fa-file-lines text-slate-400 text-lg"></i> File</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ★クイズ設定モーダル
+    const QuizSetupModal = ({ isOpen, onClose, maxItems, onStart }) => {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 z-[70] flex flex-col bg-slate-900/40 backdrop-blur-md items-center justify-center p-6 modal-enter">
+          <div className="glass-card w-full max-w-sm p-8">
+            <div className="flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-full mx-auto mb-4"><i className="fa-solid fa-gamepad text-2xl"></i></div>
+            <h2 className="font-black text-2xl text-slate-900 mb-2 text-center tracking-tight">Quiz Setup</h2>
+            <p className="text-sm text-slate-500 mb-8 text-center font-medium">出題数を選択してください (最大 {maxItems}問)</p>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {[10, 20, 50, maxItems].map(num => (
+                <button key={num} onClick={() => onStart(num)} disabled={num > maxItems && num !== maxItems} className="ripple-btn-dark bg-white border border-slate-200 p-4 rounded-2xl text-sm font-bold shadow-sm active:scale-95 transition-transform disabled:opacity-40 disabled:active:scale-100 text-slate-700">
+                  {num === maxItems ? 'All Items' : `${num} Questions`}
+                </button>
+              ))}
+            </div>
+            <button onClick={onClose} className="w-full bg-slate-100 text-slate-500 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-transform">Cancel</button>
+          </div>
+        </div>
+      );
+    };
+
+    // --- Screens ---
+    const VocabScreen = ({ type, data, saveData, handleAdd, apiKey, selectedModel, showToast, appSettings, setAppSettings }) => {
+      const [isAddOpen, setIsAddOpen] = useState(false);
+      const [selectedItem, setSelectedItem] = useState(null);
+      const [tagState, setTagState] = useState({}); 
+      const [sortMode, setSortMode] = useState('review'); 
+      const [searchQuery, setSearchQuery] = useState('');
+      const debouncedSearchQuery = useDebounce(searchQuery, 150);
+      const [isAddingRelated, setIsAddingRelated] = useState(false);
+      const [editMemo, setEditMemo] = useState(null);
+      const [undoData, setUndoData] = useState(null);
+      const [simulatedWord, setSimulatedWord] = useState(null);
+      const [isDictOpen, setIsDictOpen] = useState(false);
+
+      // クイズ用ステート
+      const [quizSetupOpen, setQuizSetupOpen] = useState(false);
+      const [quizMode, setQuizMode] = useState(false);
+      const [quizItems, setQuizItems] = useState([]);
+      const [quizIndex, setQuizIndex] = useState(0);
+      const [quizOptions, setQuizOptions] = useState([]);
+      const [quizAnswered, setQuizAnswered] = useState(false);
+      const [quizSelected, setQuizSelected] = useState(null);
+
+      useEffect(() => { if (selectedItem && appSettings.autoPlayAudio) speakText(type === 'word' ? selectedItem.word : selectedItem.idiom); }, [selectedItem]);
+
+      const allTags = useMemo(() => {
+        const tags = new Set(); data.filter(item => item.type === type).forEach(item => item.tags?.forEach(t => tags.add(t)));
+        return Array.from(tags).sort();
+      }, [data, type]);
+
+      const toggleTag = (tag) => {
+        setTagState(prev => {
+          const current = prev[tag];
+          if (!current) return { ...prev, [tag]: 1 };
+          if (current === 1) return { ...prev, [tag]: -1 };
+          const next = { ...prev }; delete next[tag]; return next;
+        });
+      };
+
+      const togglePin = (e, tag) => {
+        e.preventDefault(); e.stopPropagation();
+        const pinned = appSettings.pinnedTags || [];
+        const newPinned = pinned.includes(tag) ? pinned.filter(t => t !== tag) : [...pinned, tag];
+        setAppSettings({...appSettings, pinnedTags: newPinned});
+      };
+
+      const saveSmartFolder = () => {
+        const name = prompt('スマートフォルダ名を入力:');
+        if (name) {
+          const newFolder = { id: generateId(), name, query: debouncedSearchQuery, tags: tagState, sort: sortMode };
+          setAppSettings({...appSettings, smartFolders: [...(appSettings.smartFolders||[]), newFolder]});
+          showToast('スマートフォルダを保存しました', 'fa-folder-plus');
+        }
+      };
+
+      const filteredData = useMemo(() => {
+        let filtered = data.filter(item => item.type === type);
+        
+        if (debouncedSearchQuery) {
+          const q = debouncedSearchQuery.toLowerCase();
+          if (q.startsWith('prefix:')) { const p = q.split(':')[1]; filtered = filtered.filter(item => item.etymology_parts?.prefix?.toLowerCase().includes(p)); }
+          else if (q.startsWith('suffix:')) { const s = q.split(':')[1]; filtered = filtered.filter(item => item.etymology_parts?.suffix?.toLowerCase().includes(s)); }
+          else {
+            filtered = filtered.filter(item => 
+              (item.word || item.idiom)?.toLowerCase().includes(q) || item.meaning?.some(m => m.includes(q)) || 
+              item.etymology?.toLowerCase().includes(q) || item.etymology_parts?.root?.toLowerCase().includes(q) || item.tags?.some(t => t.toLowerCase().includes(q))
+            );
+          }
+        }
+        
+        const includes = Object.keys(tagState).filter(k => tagState[k] === 1);
+        const excludes = Object.keys(tagState).filter(k => tagState[k] === -1);
+        if (includes.length > 0) filtered = filtered.filter(item => includes.every(t => item.tags?.includes(t)));
+        if (excludes.length > 0) filtered = filtered.filter(item => !excludes.some(t => item.tags?.includes(t)));
+        
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+
+        if (sortMode === 'today') filtered = filtered.filter(item => item.nextReviewDate && item.nextReviewDate <= now.getTime());
+        else if (sortMode === 'tomorrow') filtered = filtered.filter(item => item.nextReviewDate && item.nextReviewDate > now.getTime() && item.nextReviewDate <= tomorrow.getTime());
+        else if (sortMode === 'later') filtered = filtered.filter(item => item.nextReviewDate && item.nextReviewDate > tomorrow.getTime());
+        else if (sortMode === 'new') filtered = filtered.filter(item => !item.nextReviewDate);
+        else if (sortMode === 'starred') filtered = filtered.filter(item => item.starred);
+        else if (sortMode === 'exceptions') filtered = filtered.filter(item => item.is_exception);
+        
+        return filtered.sort((a, b) => {
+          if (sortMode === 'root' && type === 'word') {
+            const rootA = a.etymology_parts?.root ? `${a.etymology_parts.root} (${a.etymology_parts.root_meaning || ''})` : 'zzzz';
+            const rootB = b.etymology_parts?.root ? `${b.etymology_parts.root} (${b.etymology_parts.root_meaning || ''})` : 'zzzz';
+            if (rootA < rootB) return -1; if (rootA > rootB) return 1; return (a.word || a.idiom).localeCompare(b.word || b.idiom);
+          }
+          if (sortMode === 'verb' && type === 'idiom') {
+            const verbA = a.base_verb || 'zzzz'; const verbB = b.base_verb || 'zzzz';
+            if (verbA < verbB) return -1; if (verbA > verbB) return 1; return a.idiom.localeCompare(b.idiom);
+          }
+          if (sortMode === 'prep' && type === 'idiom') {
+            const prepA = a.particle || 'zzzz'; const prepB = b.particle || 'zzzz';
+            if (prepA < prepB) return -1; if (prepA > prepB) return 1; return a.idiom.localeCompare(b.idiom);
+          }
+          if (sortMode === 'cefr') { const cefrA = a.cefr_level || 'Z'; const cefrB = b.cefr_level || 'Z'; if (cefrA < cefrB) return -1; if (cefrA > cefrB) return 1; }
+          if (sortMode === 'diff') { const diffA = a.difficulty || 0; const diffB = b.difficulty || 0; if (diffA > diffB) return -1; if (diffA < diffB) return 1; }
+          if (sortMode === 'freq') { const freqA = a.frequency_rank || 99999; const freqB = b.frequency_rank || 99999; if (freqA < freqB) return -1; if (freqA > freqB) return 1; }
+          if (sortMode === 'syllables') { const sylA = a.syllable_count || 0; const sylB = b.syllable_count || 0; if (sylA < sylB) return -1; if (sylA > sylB) return 1; }
+          
+          if (a.nextReviewDate && b.nextReviewDate) return a.nextReviewDate - b.nextReviewDate;
+          if (a.nextReviewDate) return -1; if (b.nextReviewDate) return 1; return b.createdAt - a.createdAt;
+        });
+      }, [data, type, tagState, sortMode, debouncedSearchQuery]);
+
+      const deleteItem = (id) => { setUndoData(data); saveData(data.filter(item => item.id !== id)); setSelectedItem(null); showToast('削除しました', 'fa-trash', { label: 'Undo', onClick: () => { saveData(undoData); setUndoData(null); } }); };
+      const toggleStar = (id) => { const newData = data.map(item => item.id === id ? { ...item, starred: !item.starred } : item); saveData(newData); if (selectedItem && selectedItem.id === id) setSelectedItem({ ...selectedItem, starred: !selectedItem.starred }); };
+
+      const handleAnswer = (quality, item = selectedItem) => {
+        setUndoData(data);
+        const sm2Result = calculateSM2(quality, item.repetitions || 0, item.efactor || 2.5, item.interval || 0, appSettings.strictMode, item.difficulty || 3);
+        const history = [...(item.history || []), sm2Result.history];
+        const updatedItem = { ...item, ...sm2Result, history };
+        saveData(data.map(d => d.id === item.id ? updatedItem : d));
+        if (item.id === selectedItem?.id) setSelectedItem(updatedItem);
+        showToast('復習記録を保存しました', 'fa-check', { label: 'Undo', onClick: () => { saveData(undoData); if(selectedItem) setSelectedItem(undoData.find(d => d.id === selectedItem.id)); setUndoData(null); } });
+      };
+
+      const saveMemo = () => { const updatedItem = { ...selectedItem, memo: editMemo }; saveData(data.map(item => item.id === selectedItem.id ? updatedItem : item)); setSelectedItem(updatedItem); setEditMemo(null); };
+
+      const longPressEvent = useLongPress((e) => {
+        const id = e.currentTarget.getAttribute('data-id'); const item = data.find(d => d.id === id);
+        if (item) { setSelectedItem(item); setEditMemo(item.memo || ''); }
+      }, (e) => {
+        const id = e.currentTarget.getAttribute('data-id'); const item = data.find(d => d.id === id);
+        if (item) setSelectedItem(item);
+      });
+
+      const handleAddRelated = async (wordToAdd, targetType) => {
+        if (!apiKey || !selectedModel) return alert('SettingsでAPIを設定してください');
+        setIsAddingRelated(true);
+        try {
+          const generatedArray = await generateVocabData(apiKey, selectedModel, 'text', wordToAdd, targetType);
+          const newItems = generatedArray.map(item => ({ ...item, id: generateId(), type: targetType, tags: selectedItem?.tags || [], createdAt: Date.now(), repetitions: 0, efactor: 2.5, interval: 0, nextReviewDate: null }));
+          handleAdd(newItems); showToast(`「${wordToAdd}」を追加しました！`, 'fa-check');
+        } catch (e) { alert('Error: ' + e.message); }
+        setIsAddingRelated(false);
+      };
+
+      const simulateWord = async () => {
+        if (!searchQuery || !apiKey) return;
+        setIsAddingRelated(true);
+        try {
+          const generatedArray = await generateVocabData(apiKey, selectedModel, 'text', searchQuery, 'word');
+          setSimulatedWord(generatedArray[0]);
+        } catch (e) { alert('Error'); }
+        setIsAddingRelated(false);
+      };
+
+      // ★エビングハウスの錯覚対策シャッフル
+      const smartShuffle = (items, count) => {
+        let shuffled = [...items].sort(() => 0.5 - Math.random());
+        for (let i = 0; i < shuffled.length - 1; i++) {
+          if (shuffled[i].etymology_parts?.root && shuffled[i].etymology_parts?.root === shuffled[i+1].etymology_parts?.root) {
+            const swapIdx = (i + 2) % shuffled.length;
+            [shuffled[i+1], shuffled[swapIdx]] = [shuffled[swapIdx], shuffled[i+1]];
+          }
+        }
+        return shuffled.slice(0, count);
+      };
+
+      const startQuiz = (count) => {
+        setQuizSetupOpen(false);
+        const selectedItems = smartShuffle(filteredData, count);
+        setQuizItems(selectedItems); setQuizIndex(0); generateQuizOptions(selectedItems[0]);
+        setQuizMode(true); setQuizAnswered(false);
+      };
+
+      const generateQuizOptions = (correctItem) => {
+        const others = data.filter(d => d.type === type && d.id !== correctItem.id);
+        const shuffledOthers = [...others].sort(() => 0.5 - Math.random()).slice(0, 3);
+        const options = [correctItem, ...shuffledOthers].map(item => item.meaning[0] || '意味不明');
+        while(options.length < 4) options.push('ダミー選択肢' + options.length);
+        setQuizOptions(options.sort(() => 0.5 - Math.random()));
+      };
+
+      const handleQuizAnswer = (selected) => {
+        if (quizAnswered) return;
+        setQuizSelected(selected); setQuizAnswered(true);
+        const currentItem = quizItems[quizIndex];
+        const isCorrect = selected === (currentItem.meaning[0] || '意味不明');
+        handleAnswer(isCorrect ? 2 : 0, currentItem);
+      };
+
+      const nextQuizQuestion = () => {
+        if (quizIndex >= quizItems.length - 1) {
+          setQuizMode(false); showToast('クイズ完了！お疲れ様でした。', 'fa-trophy');
+        } else {
+          const nextIndex = quizIndex + 1;
+          setQuizIndex(nextIndex); generateQuizOptions(quizItems[nextIndex]);
+          setQuizAnswered(false); setQuizSelected(null);
+        }
+      };
+
+      const Breadcrumbs = () => {
+        const activeTags = Object.keys(tagState).filter(k => tagState[k] === 1);
+        const hierarchicalTag = activeTags.find(t => t.includes('/'));
+        if (!hierarchicalTag) return null;
+        const parts = hierarchicalTag.split('/');
+        return (
+          <div className="flex items-center text-[10px] text-slate-400 mb-3 font-bold uppercase tracking-widest">
+            {parts.map((p, i) => <span key={i}>{i > 0 && <i className="fa-solid fa-chevron-right mx-2 text-[8px] opacity-50"></i>}{p}</span>)}
+          </div>
+        );
+      };
+
+      if (quizMode) {
+        const currentItem = quizItems[quizIndex];
+        const correctMeaning = currentItem.meaning[0] || '意味不明';
+        const progress = ((quizIndex) / quizItems.length) * 100;
+
+        return (
+          <div className="h-full flex flex-col relative">
+            <div className="px-6 pt-6 pb-4 glass-header z-10 border-b border-slate-100 flex justify-between items-center">
+              <button onClick={() => setQuizMode(false)} className="text-slate-500 font-bold text-sm active:scale-90 transition-transform"><i className="fa-solid fa-chevron-left mr-2"></i>Exit</button>
+              <span className="text-xs font-bold text-slate-400 tracking-widest">{quizIndex + 1} / {quizItems.length}</span>
+            </div>
+            <div className="progress-bar rounded-none h-1.5"><div className="progress-fill" style={{ width: `${progress}%` }}></div></div>
+            
+            <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+              <div className="flex-1 flex flex-col items-center justify-center mb-8">
+                <h2 className="text-5xl font-black text-slate-900 tracking-tighter mb-6 text-center drop-shadow-sm">
+                  {type === 'word' ? <HighlightRoot word={currentItem.word} root={currentItem.etymology_parts?.root} /> : currentItem.idiom}
+                </h2>
+                <button onClick={() => speakText(type === 'word' ? currentItem.word : currentItem.idiom)} className="ripple-btn w-14 h-14 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm active:scale-90 transition-transform"><i className="fa-solid fa-volume-high text-xl"></i></button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 mb-8">
+                {quizOptions.map((opt, i) => {
+                  let btnClass = "bg-white/80 border border-slate-200 text-slate-700 hover:bg-white";
+                  if (quizAnswered) {
+                    if (opt === correctMeaning) btnClass = "quiz-correct";
+                    else if (opt === quizSelected) btnClass = "quiz-wrong";
+                    else btnClass = "bg-slate-50/50 border border-slate-100 text-slate-400 opacity-50";
+                  }
+                  return (
+                    <button key={i} onClick={() => handleQuizAnswer(opt)} disabled={quizAnswered} className={`ripple-btn-dark p-6 rounded-2xl font-bold text-sm shadow-sm transition-all ${btnClass}`}>
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {quizAnswered && (
+                <div className="animate-[slideUp_0.3s_ease-out_forwards]">
+                  <div className="glass-card p-6 mb-6">
+                    <p className="text-base font-bold text-slate-900 mb-3">{currentItem.meaning.join(', ')}</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">{currentItem.etymology}</p>
+                  </div>
+                  <button onClick={nextQuizQuestion} className="ripple-btn w-full bg-slate-900 text-white font-bold py-5 rounded-2xl shadow-xl shadow-slate-900/20 active:scale-95 transition-transform text-sm">Next Question <i className="fa-solid fa-arrow-right ml-2"></i></button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="h-full flex flex-col relative">
+          <QuizSetupModal isOpen={quizSetupOpen} onClose={() => setQuizSetupOpen(false)} maxItems={filteredData.length} onStart={startQuiz} />
+          
+          <div className="px-6 pt-5 pb-3 glass-header z-10 no-print">
+            <div className="flex gap-3 mb-4">
+              <div className="relative flex-1">
+                <i className="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-400"></i>
+                <input type="text" placeholder="Search (e.g. root:spect cefr:B2)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/80 border border-slate-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm outline-none focus:border-slate-900 shadow-sm transition-all font-medium" />
+              </div>
+              <button onClick={() => setIsDictOpen(true)} className="bg-white border border-slate-200 text-slate-600 px-4 rounded-2xl text-sm font-bold shadow-sm active:scale-95 transition-transform"><i className="fa-solid fa-book-open"></i></button>
+              <button onClick={saveSmartFolder} className="ripple-btn-dark bg-white border border-slate-200 text-slate-600 px-4 rounded-2xl text-sm font-bold shadow-sm active:scale-95 transition-transform"><i className="fa-solid fa-folder-plus"></i></button>
+              {searchQuery && filteredData.length === 0 && <button onClick={simulateWord} className="ripple-btn bg-slate-900 text-white px-5 rounded-2xl text-xs font-bold whitespace-nowrap shadow-md active:scale-95 transition-transform">AI分解</button>}
+            </div>
+
+            <Breadcrumbs />
+
+            <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-4 pb-1">
+              {appSettings.pinnedTags?.map(tag => {
+                const state = tagState[tag];
+                const colorClass = state === 1 ? 'bg-blue-600 text-white border-blue-600' : state === -1 ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-slate-600 border-slate-200';
+                return <button key={`pin-${tag}`} onClick={() => toggleTag(tag)} onContextMenu={(e) => togglePin(e, tag)} className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold border flex items-center gap-2 shadow-sm transition-colors ${colorClass}`}><i className="fa-solid fa-thumbtack text-[10px] opacity-70"></i>{tag.includes('/') ? tag.split('/').pop() : tag}</button>
+              })}
+              {allTags.filter(t => !appSettings.pinnedTags?.includes(t)).map(tag => {
+                const state = tagState[tag];
+                const colorClass = state === 1 ? 'bg-blue-600 text-white border-blue-600' : state === -1 ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-slate-600 border-slate-200';
+                return <button key={tag} onClick={() => toggleTag(tag)} onContextMenu={(e) => togglePin(e, tag)} className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold border shadow-sm transition-colors ${colorClass}`}>{tag.includes('/') ? tag.split('/').pop() : tag}</button>
+              })}
+            </div>
+            
+            <div className="flex items-center gap-3 pb-1">
+              <div className="flex bg-slate-200/50 p-1.5 rounded-xl">
+                {type === 'word' ? (
+                  [{ id: 'review', icon: 'fa-clock-rotate-left' }, { id: 'root', icon: 'fa-seedling' }, { id: 'cefr', icon: 'fa-layer-group' }, { id: 'diff', icon: 'fa-fire' }, { id: 'freq', icon: 'fa-arrow-trend-up' }, { id: 'syllables', icon: 'fa-music' }].map(s => (
+                    <button key={s.id} onClick={() => setSortMode(s.id)} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${sortMode === s.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`} title={`Sort by ${s.id}`}><i className={`fa-solid ${s.icon} text-sm`}></i></button>
+                  ))
+                ) : (
+                  [{ id: 'review', icon: 'fa-clock-rotate-left' }, { id: 'verb', icon: 'fa-person-running' }, { id: 'prep', icon: 'fa-arrows-up-down-left-right' }, { id: 'cefr', icon: 'fa-layer-group' }, { id: 'diff', icon: 'fa-fire' }, { id: 'freq', icon: 'fa-arrow-trend-up' }].map(s => (
+                    <button key={s.id} onClick={() => setSortMode(s.id)} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${sortMode === s.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`} title={`Sort by ${s.id}`}><i className={`fa-solid ${s.icon} text-sm`}></i></button>
+                  ))
+                )}
+              </div>
+              <div className="w-px h-8 bg-slate-200 mx-1"></div>
+              <div className="flex overflow-x-auto hide-scrollbar gap-2">
+                {[{ id: 'all', label: 'All' }, { id: 'today', label: 'Today' }, { id: 'tomorrow', label: 'Tmrw' }, { id: 'later', label: 'Later' }, { id: 'new', label: 'New' }, { id: 'starred', label: '★' }, { id: 'exceptions', label: '⚠️' }].map(filter => (
+                  <button key={filter.id} onClick={() => setSortMode(filter.id)} className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors ${sortMode === filter.id ? 'bg-blue-100 text-blue-700' : 'bg-white border border-slate-200 text-slate-500'}`}>{filter.label}</button>
+                ))}
+              </div>
+            </div>
+            
+            {appSettings.smartFolders?.length > 0 && (
+              <div className="flex overflow-x-auto hide-scrollbar gap-2 pt-3 mt-2 border-t border-slate-200/50">
+                {appSettings.smartFolders.map(sf => (
+                  <button key={sf.id} onClick={() => { setSearchQuery(sf.query); setTagState(sf.tags); setSortMode(sf.sort); }} className="whitespace-nowrap px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border border-indigo-100"><i className="fa-solid fa-folder-open opacity-70"></i>{sf.name}</button>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4">
+              <button onClick={() => { if(filteredData.length < 4) return alert('クイズには最低4つの単語が必要です。'); setQuizSetupOpen(true); }} className="ripple-btn w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-md flex justify-center items-center gap-2 active:scale-95 transition-transform text-sm">
+                <i className="fa-solid fa-gamepad text-lg"></i> Start Quiz ({filteredData.length} items)
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 flex-1 overflow-y-auto" id="print-area">
+            {isAddingRelated && <div className="text-center text-slate-400 my-6"><i className="fa-solid fa-circle-notch fa-spin mr-2"></i>AI is thinking...</div>}
+            
+            {simulatedWord && (
+              <div className="glass-card p-8 mb-8 border-blue-200 bg-blue-50/40 relative">
+                <button onClick={() => setSimulatedWord(null)} className="absolute top-4 right-4 w-8 h-8 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm active:scale-90 transition-transform"><i className="fa-solid fa-xmark"></i></button>
+                <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center"><i className="fa-solid fa-wand-magic-sparkles mr-2"></i>AI Simulation</h3>
+                <h2 className="text-4xl font-black text-slate-900 mb-3 tracking-tight">{simulatedWord.word}</h2>
+                <p className="text-base font-bold text-slate-700 mb-5">{simulatedWord.meaning?.join(', ')}</p>
+                {simulatedWord.etymology_parts && (
+                  <div className="flex gap-2 mb-5 text-xs font-bold">
+                    {simulatedWord.etymology_parts.prefix && <span className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg">{simulatedWord.etymology_parts.prefix}</span>}
+                    {simulatedWord.etymology_parts.root && <span className="bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg">{simulatedWord.etymology_parts.root}</span>}
+                    {simulatedWord.etymology_parts.suffix && <span className="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg">{simulatedWord.etymology_parts.suffix}</span>}
+                  </div>
+                )}
+                <p className="text-sm text-slate-600 leading-relaxed">{simulatedWord.etymology}</p>
+                <button onClick={() => { handleAdd([{...simulatedWord, id: generateId(), type: 'word', createdAt: Date.now()}]); setSimulatedWord(null); showToast('追加しました', 'fa-check'); }} className="ripple-btn mt-6 w-full bg-slate-900 text-white font-bold py-4 rounded-xl text-sm shadow-lg shadow-slate-900/20 active:scale-95 transition-transform">Add to List</button>
+              </div>
+            )}
+
+            {filteredData.map((item, index) => {
+              const reviewText = getReviewText(item.nextReviewDate);
+              const isToday = reviewText === 'Today';
+              const masteryColor = getMasteryColor(item.interval);
+              
+              let showHeader = false; let headerText = '';
+              if (sortMode === 'root' && type === 'word') {
+                const currentRootKey = item.etymology_parts?.root ? `${item.etymology_parts.root} (${item.etymology_parts.root_meaning || ''})` : 'Unknown';
+                const prevRootKey = index > 0 ? (filteredData[index - 1].etymology_parts?.root ? `${filteredData[index - 1].etymology_parts.root} (${filteredData[index - 1].etymology_parts.root_meaning || ''})` : 'Unknown') : null;
+                if (index === 0 || currentRootKey !== prevRootKey) { showHeader = true; headerText = `Root: ${currentRootKey}`; }
+              } else if (sortMode === 'verb' && type === 'idiom') {
+                const currentVerb = item.base_verb || 'Unknown'; const prevVerb = index > 0 ? (filteredData[index - 1].base_verb || 'Unknown') : null;
+                if (index === 0 || currentVerb !== prevVerb) { showHeader = true; headerText = `Verb: ${currentVerb}`; }
+              } else if (sortMode === 'prep' && type === 'idiom') {
+                const currentPrep = item.particle || 'Unknown'; const prevPrep = index > 0 ? (filteredData[index - 1].particle || 'Unknown') : null;
+                if (index === 0 || currentPrep !== prevPrep) { showHeader = true; headerText = `Particle: ${currentPrep}`; }
+              } else if (sortMode === 'cefr') {
+                const currentCefr = item.cefr_level || 'Unknown'; const prevCefr = index > 0 ? (filteredData[index - 1].cefr_level || 'Unknown') : null;
+                if (index === 0 || currentCefr !== prevCefr) { showHeader = true; headerText = `CEFR: ${currentCefr}`; }
+              } else if (sortMode === 'diff') {
+                const currentDiff = item.difficulty || 'Unknown'; const prevDiff = index > 0 ? (filteredData[index - 1].difficulty || 'Unknown') : null;
+                if (index === 0 || currentDiff !== prevDiff) { showHeader = true; headerText = `Difficulty: ${currentDiff}/10`; }
+              } else if (sortMode === 'syllables') {
+                const currentSyl = item.syllable_count || 'Unknown'; const prevSyl = index > 0 ? (filteredData[index - 1].syllable_count || 'Unknown') : null;
+                if (index === 0 || currentSyl !== prevSyl) { showHeader = true; headerText = `Syllables: ${currentSyl}`; }
+              }
+              
+              return (
+                <React.Fragment key={item.id}>
+                  {showHeader && (
+                    <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-xl mt-8 mb-4 px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-200 flex items-center gap-3 shadow-sm rounded-2xl no-print">
+                      <i className="fa-solid fa-layer-group opacity-50"></i> {headerText}
+                    </div>
+                  )}
+                  <div data-id={item.id} {...longPressEvent} className="glass-card p-6 mb-5 active:scale-[0.98] transition-transform relative overflow-hidden cursor-pointer group">
+                    <div className={`absolute top-0 right-0 w-2 h-full ${masteryColor} opacity-90 no-print`}></div>
+                    <div className="flex justify-between items-start mb-3 pr-5">
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                        {type === 'word' ? <HighlightRoot word={item.word} root={item.etymology_parts?.root} /> : item.idiom}
+                        {item.is_exception && <i className="fa-solid fa-triangle-exclamation text-amber-500 ml-3 text-base" title="例外注意"></i>}
+                      </h3>
+                      <div className="flex items-center gap-3 no-print">
+                        {item.starred && <i className="fa-solid fa-star text-amber-400 text-sm drop-shadow-sm"></i>}
+                        <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm ${isToday ? 'bg-rose-100 text-rose-600 border border-rose-200' : 'bg-white border border-slate-200 text-slate-500'}`}>{reviewText}</span>
+                      </div>
+                    </div>
+                    <p className="text-base font-medium text-slate-600 truncate pr-5 red-sheet"><Highlight text={item.meaning?.join(', ')} query={debouncedSearchQuery} /></p>
+                    <div className="hidden print:block mt-3 text-xs text-slate-400">{item.etymology}</div>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+            {filteredData.length === 0 && !simulatedWord && <div className="flex flex-col items-center justify-center mt-20 opacity-50 no-print"><i className="fa-solid fa-ghost text-6xl text-slate-300 mb-4"></i><p className="text-slate-500 font-bold tracking-widest uppercase text-sm">No items found</p></div>}
+          </div>
+          
+          <div className="no-print"><FAB onClick={() => setIsAddOpen(true)} /></div>
+          <AIGenerateModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} targetType={type} onAdd={handleAdd} apiKey={apiKey} selectedModel={selectedModel} />
+          <AffixDictModal isOpen={isDictOpen} onClose={() => setIsDictOpen(false)} data={data} onSelect={(q) => setSearchQuery(q)} />
+
+          {selectedItem && (
+            <div className="fixed inset-0 z-50 flex flex-col bg-[#F8FAFC] modal-enter no-print">
+              <div className="flex justify-between items-center p-6 border-b border-slate-200/50 bg-white/80 backdrop-blur-xl">
+                <button onClick={() => setSelectedItem(null)} className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 active:scale-90 transition-transform"><i className="fa-solid fa-chevron-left"></i></button>
+                <div className="flex gap-3">
+                  <button onClick={() => toggleStar(selectedItem.id)} className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors active:scale-90 ${selectedItem.starred ? 'bg-amber-100 text-amber-500' : 'bg-slate-100 text-slate-400'}`}><i className="fa-solid fa-star"></i></button>
+                  <button onClick={() => deleteItem(selectedItem.id)} className="w-12 h-12 flex items-center justify-center rounded-full bg-rose-100 text-rose-500 active:scale-90 transition-transform"><i className="fa-solid fa-trash-can"></i></button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 relative">
+                {isAddingRelated && (
+                  <div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center backdrop-blur-md">
+                    <i className="fa-solid fa-circle-notch fa-spin text-4xl text-slate-900 mb-4"></i>
+                    <p className="font-bold text-sm tracking-widest text-slate-500 uppercase">Adding...</p>
+                  </div>
+                )}
+                
+                <div className="mb-10 text-center">
+                  <div className="flex items-center justify-center gap-5 mb-4">
+                    <h2 className="text-5xl font-black text-slate-900 tracking-tighter drop-shadow-sm">
+                      {type === 'word' ? <HighlightRoot word={selectedItem.word} root={selectedItem.etymology_parts?.root} /> : selectedItem.idiom}
+                    </h2>
+                    <button onClick={() => speakText(type === 'word' ? selectedItem.word : selectedItem.idiom)} className="ripple-btn w-14 h-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shadow-md active:scale-90 transition-transform"><i className="fa-solid fa-volume-high text-xl"></i></button>
+                  </div>
+                  <p className="text-xl font-bold text-slate-600 mb-6">{selectedItem.meaning?.join(', ')}</p>
+                  
+                  {selectedItem.etymology_parts && (
+                    <div className="flex justify-center gap-3 mb-6 text-sm font-bold flex-wrap">
+                      {selectedItem.etymology_parts.prefix && <span className="bg-blue-50 border border-blue-100 text-blue-700 px-4 py-2 rounded-xl flex flex-col items-center shadow-sm"><span>{selectedItem.etymology_parts.prefix}</span><span className="text-[10px] font-medium opacity-70 mt-1">{selectedItem.etymology_parts.prefix_meaning}</span></span>}
+                      {selectedItem.etymology_parts.root && <span className="bg-rose-50 border border-rose-100 text-rose-700 px-4 py-2 rounded-xl flex flex-col items-center shadow-sm"><span>{selectedItem.etymology_parts.root}</span><span className="text-[10px] font-medium opacity-70 mt-1">{selectedItem.etymology_parts.root_meaning}</span></span>}
+                      {selectedItem.etymology_parts.suffix && <span className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-4 py-2 rounded-xl flex flex-col items-center shadow-sm"><span>{selectedItem.etymology_parts.suffix}</span><span className="text-[10px] font-medium opacity-70 mt-1">{selectedItem.etymology_parts.suffix_meaning}</span></span>}
+                    </div>
+                  )}
+                  {selectedItem.core_image && <p className="text-sm font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 inline-block px-5 py-2.5 rounded-full mb-6 shadow-sm"><i className="fa-solid fa-lightbulb mr-2 opacity-70"></i>{selectedItem.core_image}</p>}
+                  
+                  <div className="flex justify-center gap-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2 flex-wrap">
+                    {selectedItem.cefr_level && <span className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">CEFR: {selectedItem.cefr_level}</span>}
+                    {selectedItem.difficulty && <span className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">Diff: {selectedItem.difficulty}/10</span>}
+                    {selectedItem.pie_root && <span className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">PIE: {selectedItem.pie_root}</span>}
+                    {selectedItem.syllable_count && <span className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">Syl: {selectedItem.syllable_count}</span>}
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-start mb-8">
+                  <div className="flex-1 flex flex-wrap gap-2">
+                    {selectedItem.tags?.map((tag, i) => (
+                      <span key={i} className="bg-white border border-slate-200 text-slate-600 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider shadow-sm flex items-center">
+                        {tag} <button onClick={() => { const newTags = selectedItem.tags.filter(t => t !== tag); const updatedItem = { ...selectedItem, tags: newTags }; saveData(data.map(item => item.id === selectedItem.id ? updatedItem : item)); setSelectedItem(updatedItem); }} className="ml-2 text-slate-400 hover:text-rose-500"><i className="fa-solid fa-xmark"></i></button>
+                      </span>
+                    ))}
+                    <button onClick={() => { const t = prompt('追加するタグを入力:'); if(t) { const newTags = Array.from(new Set([...(selectedItem.tags || []), t.trim()])); const updatedItem = { ...selectedItem, tags: newTags }; saveData(data.map(item => item.id === selectedItem.id ? updatedItem : item)); setSelectedItem(updatedItem); } }} className="bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider shadow-sm"><i className="fa-solid fa-plus"></i></button>
+                  </div>
+                  <a href={`https://www.etymonline.com/word/${type === 'word' ? selectedItem.word : selectedItem.idiom}`} target="_blank" className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm active:scale-95 transition-transform ml-4 shrink-0"><i className="fa-solid fa-arrow-up-right-from-square mr-2"></i>Etymonline</a>
+                </div>
+                
+                {selectedItem.etymology && <Section title="Etymology"><p className="glass-card p-6 text-slate-700 leading-relaxed text-base">{selectedItem.etymology}</p></Section>}
+                
+                <Section title="My Notes">
+                  {editMemo !== null ? (
+                    <div>
+                      <textarea value={editMemo} onChange={e => setEditMemo(e.target.value)} placeholder="Markdownでエピソードや例外ルールをメモ..." className="w-full pro-input p-5 text-sm h-40 outline-none resize-none mb-4 font-mono leading-relaxed"></textarea>
+                      <div className="flex gap-3">
+                        <button onClick={() => { saveMemo(); setSelectedItem({...selectedItem, memo: editMemo}); setEditMemo(null); }} className="ripple-btn flex-1 bg-slate-900 text-white font-bold py-4 rounded-xl text-sm shadow-md active:scale-95 transition-transform">Save</button>
+                        <button onClick={() => setEditMemo(null)} className="ripple-btn-dark flex-1 bg-slate-200 text-slate-700 font-bold py-4 rounded-xl text-sm active:scale-95 transition-transform">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div onClick={() => setEditMemo(selectedItem.memo || '')} className="bg-amber-50/80 border border-amber-200/50 p-6 rounded-2xl min-h-[100px] cursor-pointer transition-colors hover:bg-amber-100/80 shadow-sm">
+                      {selectedItem.memo ? <div className="markdown-body text-sm text-slate-800" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(selectedItem.memo)) }}></div> : <p className="text-slate-400 text-sm text-center mt-5 font-medium"><i className="fa-solid fa-pen mr-2"></i>Tap to add notes (Markdown supported)</p>}
+                    </div>
+                  )}
+                </Section>
+
+                <FormalityGauge level={selectedItem.formality_level} />
+
+                {(selectedItem.synonyms?.length > 0 || selectedItem.derivatives?.length > 0) && (
+                  <Section title="Network Map"><NetworkGraph item={selectedItem} /></Section>
+                )}
+                
+                {selectedItem.derivatives?.length > 0 && (
+                  <Section title="Derivatives (Tree)">
+                    <details className="group bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                      <summary className="p-5 text-sm font-bold text-blue-600 cursor-pointer outline-none flex items-center justify-between select-none">
+                        <span className="flex items-center"><i className="fa-solid fa-network-wired mr-3 text-blue-500"></i>Derivatives Tree</span>
+                        <i className="fa-solid fa-chevron-down transition-transform group-open:rotate-180 text-slate-400"></i>
+                      </summary>
+                      <div className="p-5 pt-0 border-t border-slate-100 mt-2">
+                        <div className="ml-2 border-l-2 border-slate-200 pl-6 relative mt-4">
+                          {selectedItem.derivatives.map((d, i) => (
+                            <div key={i} className="relative mb-8 last:mb-0">
+                              <div className="tree-line"></div>
+                              <div className="flex justify-between items-start pr-12">
+                                <div><span className="font-bold text-slate-900 text-base">{d.word}</span><span className="text-xs text-slate-400 ml-2 font-medium">({d.part_of_speech})</span><p className="text-sm text-slate-700 mt-1.5">{d.meaning}</p></div>
+                                <button onClick={() => handleAddRelated(d.word, 'word')} className="absolute top-0 right-0 w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"><i className="fa-solid fa-plus text-sm"></i></button>
+                              </div>
+                              {d.etymology && <p className="text-xs text-slate-500 mt-3 leading-relaxed"><i className="fa-solid fa-book-open mr-2 opacity-50"></i>{d.etymology}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </details>
+                  </Section>
+                )}
+                
+                {selectedItem.synonyms?.length > 0 && (
+                  <Section title="Synonyms (Comparison)">
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-50"><tr><th className="p-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Word</th><th className="p-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Nuance</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {selectedItem.synonyms.map((s, i) => (
+                            <tr key={i}>
+                              <td className="p-5 align-top w-1/3">
+                                <div className="font-bold text-slate-900 text-base">{s.word || s.phrase}</div><div className="text-xs text-slate-500 mt-1.5 font-medium">{s.meaning}</div>
+                                <button onClick={() => handleAddRelated(s.word || s.phrase, s.word ? 'word' : 'idiom')} className="mt-4 text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg active:scale-95 transition-transform"><i className="fa-solid fa-plus mr-1.5"></i>Add</button>
+                              </td>
+                              <td className="p-5 align-top text-sm text-slate-700 leading-relaxed">
+                                {s.nuance}
+                                {s.etymology && <div className="text-xs text-slate-400 mt-4 pt-4 border-t border-slate-50"><i className="fa-solid fa-book-open mr-2 opacity-50"></i>{s.etymology}</div>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {selectedItem.synonym_distinction && (
+                      <div className="mt-4 bg-blue-50/50 border border-blue-100 p-5 rounded-2xl">
+                        <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2"><i className="fa-solid fa-lightbulb mr-1.5"></i>Distinction</h4>
+                        <p className="text-sm text-slate-700 leading-relaxed">{selectedItem.synonym_distinction}</p>
+                      </div>
+                    )}
+                  </Section>
+                )}
+                
+                {selectedItem.antonyms?.length > 0 && (
+                  <Section title="Antonyms">
+                    {selectedItem.antonyms.map((a, i) => (
+                      <div key={i} className="mb-4 glass-card p-5 relative">
+                        <span className="font-bold text-slate-900 text-base">{a.word || a.phrase}</span> <span className="text-slate-300 mx-2">-</span> <span className="text-sm text-slate-700 font-medium">{a.meaning}</span>
+                        <button onClick={() => handleAddRelated(a.word || a.phrase, a.word ? 'word' : 'idiom')} className="absolute top-4 right-4 w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"><i className="fa-solid fa-plus text-xs"></i></button>
+                        {a.etymology && <p className="text-xs text-slate-500 mt-3 leading-relaxed"><i className="fa-solid fa-book-open mr-2 opacity-50"></i>{a.etymology}</p>}
+                      </div>
+                    ))}
+                  </Section>
+                )}
+                
+                {selectedItem.phrases?.length > 0 && (
+                  <Section title="Phrases">
+                    {selectedItem.phrases.map((p, i) => (
+                      <div key={i} className="mb-4 glass-card p-5 relative">
+                        <span className="font-bold text-slate-900 text-base">{p.phrase}</span> <span className="text-slate-300 mx-2">-</span> <span className="text-sm text-slate-700 font-medium">{p.meaning}</span>
+                        <button onClick={() => handleAddRelated(p.phrase, 'idiom')} className="absolute top-4 right-4 w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"><i className="fa-solid fa-plus text-xs"></i></button>
+                        {p.usage && <p className="text-xs text-blue-600 mt-3 bg-blue-50/80 p-2.5 rounded-lg inline-block font-medium border border-blue-100">{p.usage}</p>}
+                      </div>
+                    ))}
+                  </Section>
+                )}
+
+                <Section title="Collocations">
+                  <CollocationNetwork word={type === 'word' ? selectedItem.word : selectedItem.idiom} collocations={selectedItem.collocations} />
+                </Section>
+                
+                <div className="mt-14 pt-8 border-t border-slate-200/50 pb-24">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 text-center">How well did you know this?</h3>
+                  <div className="flex justify-center gap-3">
+                    <button onClick={() => handleAnswer(0)} className="ripple-btn flex-1 bg-rose-50 text-rose-600 font-bold py-5 rounded-2xl text-sm shadow-sm active:scale-95 transition-transform border border-rose-100">Again</button>
+                    <button onClick={() => handleAnswer(1)} className="ripple-btn flex-1 bg-amber-50 text-amber-600 font-bold py-5 rounded-2xl text-sm shadow-sm active:scale-95 transition-transform border border-amber-100">Hard</button>
+                    <button onClick={() => handleAnswer(2)} className="ripple-btn flex-1 bg-blue-50 text-blue-600 font-bold py-5 rounded-2xl text-sm shadow-sm active:scale-95 transition-transform border border-blue-100">Good</button>
+                    <button onClick={() => handleAnswer(3)} className="ripple-btn flex-1 bg-emerald-50 text-emerald-600 font-bold py-5 rounded-2xl text-sm shadow-sm active:scale-95 transition-transform border border-emerald-100">Easy</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const TutorScreen = ({ apiKey, selectedModel }) => {
+      const [messages, setMessages] = useState([{ role: 'assistant', content: 'Hello! 私はあなたの専属英語コーチです。単語のニュアンス、文法、学習計画など、何でも聞いてください。' }]);
+      const [input, setInput] = useState(''); const [loading, setLoading] = useState(false); const [isListening, setIsListening] = useState(false);
+      const messagesEndRef = useRef(null);
+
+      useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+      const sendMessage = async (text = input) => {
+        if (!text.trim() || !apiKey) return alert('SettingsでAPIキーを設定してください。');
+        const newMsgs = [...messages, { role: 'user', content: text }];
+        setMessages(newMsgs); setInput(''); setLoading(true);
+        try {
+          const systemPrompt = "あなたは優秀でフレンドリーな英語学習コーチです。ユーザーの質問に日本語で、分かりやすく、励ましながら答えてください。Markdownを使って見やすく装飾してください。";
+          const contents = newMsgs.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+          contents.unshift({ role: 'user', parts: [{ text: systemPrompt }] });
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents }) });
+          const data = await res.json();
+          setMessages([...newMsgs, { role: 'assistant', content: data.candidates[0].content.parts[0].text }]);
+        } catch (e) { setMessages([...newMsgs, { role: 'assistant', content: 'エラーが発生しました。APIキーやネットワークを確認してください。' }]); }
+        setLoading(false);
+      };
+
+      const startListening = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return alert('お使いのブラウザは音声入力に対応していません。');
+        const recognition = new SpeechRecognition(); recognition.lang = 'ja-JP';
+        recognition.onstart = () => setIsListening(true); recognition.onresult = (e) => setInput(e.results[0][0].transcript); recognition.onend = () => setIsListening(false);
+        recognition.start();
+      };
+
+      const suggests = ["今日の学習計画を立てて", "see, look, watchの違いは？", "モチベーションが上がる名言を教えて", "TOEIC800点向けの勉強法は？"];
+
+      return (
+        <div className="h-full flex flex-col relative">
+          <div className="px-6 pt-6 pb-4 glass-header z-10 border-b border-slate-100">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tighter">AI Tutor</h2>
+            <p className="text-xs text-slate-500 mt-1 font-medium">Your personal English coach</p>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {msg.role === 'assistant' && <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 shrink-0 mt-1 shadow-sm"><i className="fa-solid fa-robot text-sm"></i></div>}
+                <div className={`max-w-[80%] p-5 rounded-2xl text-sm leading-relaxed markdown-body shadow-sm ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-sm' : 'bg-white border border-slate-100 text-slate-800 rounded-tl-sm'}`} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(msg.content)) }}></div>
+              </div>
+            ))}
+            {loading && <div className="flex justify-start"><div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 shrink-0 mt-1 shadow-sm"><i className="fa-solid fa-robot text-sm"></i></div><div className="bg-white border border-slate-100 p-5 rounded-2xl rounded-tl-sm shadow-sm"><i className="fa-solid fa-ellipsis fa-fade text-slate-400 text-lg"></i></div></div>}
+            <div ref={messagesEndRef} />
+          </div>
+          
+          <div className="glass-header border-t border-slate-200/50 pb-safe">
+            <div className="flex overflow-x-auto hide-scrollbar gap-2 p-3 border-b border-slate-200/50">
+              {suggests.map((s, i) => <button key={i} onClick={() => sendMessage(s)} className="whitespace-nowrap px-4 py-2 bg-white text-slate-600 rounded-xl text-[10px] font-bold border border-slate-200 shadow-sm active:scale-95 transition-transform">{s}</button>)}
+            </div>
+            <div className="p-4 flex gap-3 items-center">
+              <button onClick={startListening} className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors shadow-sm ${isListening ? 'bg-rose-100 text-rose-600 animate-pulse' : 'bg-white border border-slate-200 text-slate-500'}`}><i className="fa-solid fa-microphone"></i></button>
+              <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Ask anything..." className="flex-1 pro-input px-5 py-3.5 text-sm outline-none font-medium" />
+              <button onClick={() => sendMessage()} className="ripple-btn w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-md active:scale-90 transition-transform"><i className="fa-solid fa-paper-plane"></i></button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const FlashcardScreen = ({ data, saveData }) => {
+      const [isAddOpen, setIsAddOpen] = useState(false);
+      const flashcards = data.filter(item => item.type === 'flashcard').sort((a, b) => b.createdAt - a.createdAt);
+
+      const handleAdd = (newItems) => { saveData([...newItems, ...data]); };
+      const deleteItem = (id) => { saveData(data.filter(item => item.id !== id)); };
+
+      const InlineCard = ({ item }) => {
+        const [flipped, setFlipped] = useState(false);
+        return (
+          <div className="relative mb-6">
+            <div className={`inline-flip-container ${flipped ? 'flipped' : ''}`} onClick={() => setFlipped(!flipped)}>
+              <div className="inline-flip-inner">
+                <div className="inline-flip-front">
+                  <h3 className="text-2xl font-black text-slate-900 text-center tracking-tight">{item.front}</h3>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest text-center mt-6 font-bold">Tap to flip</p>
+                </div>
+                <div className="inline-flip-back">
+                  <h3 className="text-lg font-bold text-slate-900 text-center leading-relaxed">{item.back}</h3>
+                </div>
+              </div>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }} className="absolute -top-3 -right-3 w-10 h-10 bg-white border border-slate-200 rounded-full text-slate-400 shadow-md z-10 active:scale-90 transition-transform"><i className="fa-solid fa-trash-can text-xs"></i></button>
+          </div>
+        );
+      };
+
+      return (
+        <div className="h-full flex flex-col relative">
+          <div className="px-6 pt-6 pb-4 glass-header z-10 border-b border-slate-100">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tighter">My Cards</h2>
+            <p className="text-xs text-slate-500 mt-1 font-medium">自由に作成できる暗記カード</p>
+          </div>
+          <div className="p-6 flex-1 overflow-y-auto" id="print-area">
+            {flashcards.map(item => <InlineCard key={item.id} item={item} />)}
+            {flashcards.length === 0 && <div className="flex flex-col items-center justify-center mt-20 opacity-50 no-print"><i className="fa-solid fa-clone text-6xl text-slate-300 mb-4"></i><p className="text-slate-500 font-bold tracking-widest uppercase text-sm">No cards yet</p></div>}
+          </div>
+          <div className="no-print"><FAB onClick={() => setIsAddOpen(true)} /></div>
+          <FlashcardAddModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onAdd={handleAdd} />
+        </div>
+      );
+    };
+
+    const FlashcardAddModal = ({ isOpen, onClose, onAdd }) => {
+      const [front, setFront] = useState(''); const [back, setBack] = useState('');
+      if (!isOpen) return null;
+      const handleAdd = () => { if (!front || !back) return; onAdd([{ id: generateId(), type: 'flashcard', front, back, createdAt: Date.now() }]); setFront(''); setBack(''); };
+
+      return (
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#FAFAFA] modal-enter">
+          <div className="flex justify-between items-center p-6 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
+            <h2 className="font-black text-xl tracking-tight text-slate-900">Create Card</h2>
+            <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 active:scale-90 transition-transform"><i className="fa-solid fa-xmark"></i></button>
+          </div>
+          <div className="p-6">
+            <textarea placeholder="Front (Question)" value={front} onChange={e => setFront(e.target.value)} className="w-full pro-input p-5 mb-5 text-sm h-32 outline-none resize-none font-medium"></textarea>
+            <textarea placeholder="Back (Answer)" value={back} onChange={e => setBack(e.target.value)} className="w-full pro-input p-5 mb-8 text-sm h-32 outline-none resize-none font-medium"></textarea>
+            <button onClick={handleAdd} className="ripple-btn w-full bg-slate-900 text-white font-bold py-5 rounded-2xl mb-4 shadow-xl shadow-slate-900/20 active:scale-95 transition-transform text-sm">Save & Next</button>
+            <button onClick={onClose} className="ripple-btn-dark w-full bg-transparent text-slate-500 font-bold py-5 rounded-2xl text-sm active:scale-95 transition-transform">Done</button>
+          </div>
+        </div>
+      );
+    };
+
+    const DashboardSettingsScreen = ({ data, setData, saveData, appSettings, setAppSettings }) => {
+      const [apiKey, setApiKey] = useState(localStorage.getItem(API_KEY_STORAGE) || '');
+      const [models, setModels] = useState([]);
+      const [selectedModel, setSelectedModel] = useState(localStorage.getItem(MODEL_STORAGE) || '');
+      const [importText, setImportText] = useState('');
+      const fileInputRef = useRef(null);
+
+      const stats = useMemo(() => {
+        const words = data.filter(d => d.type === 'word'); const idioms = data.filter(d => d.type === 'idiom');
+        const totalItems = words.length + idioms.length;
+        const mastered = [...words, ...idioms].filter(c => c.interval > 21).length;
+        const learning = totalItems - mastered;
+        const progress = totalItems === 0 ? 0 : Math.round((mastered / totalItems) * 100);
+        return { words: words.length, idioms: idioms.length, totalItems, mastered, learning, progress };
+      }, [data]);
+
+      const loadModels = async () => {
+        if(!apiKey) return;
+        try { const m = await fetchGeminiModels(apiKey); setModels(m); if(m.length > 0 && !m.includes(selectedModel)) setSelectedModel(m[0]); localStorage.setItem(API_KEY_STORAGE, apiKey); } 
+        catch(e) { alert(e.message); }
+      };
+
+      const toggleSetting = (key) => { const newSettings = { ...appSettings, [key]: !appSettings[key] }; setAppSettings(newSettings); localStorage.setItem(SETTINGS_STORAGE, JSON.stringify(newSettings)); };
+      const handlePrintPDF = (layout) => { document.body.className = layout === 'flashcard' ? 'print-flashcard' : ''; window.print(); document.body.className = 'pb-24'; };
+      const handleAnkiExport = () => {
+        const csv = data.filter(d => d.type === 'word' || d.type === 'idiom').map(d => `"${d.word || d.idiom}","${d.meaning?.join(', ')}<br><br>${d.etymology || ''}","${d.tags?.join(' ') || ''}"`).join('\n');
+        navigator.clipboard.writeText(csv).then(() => alert('Anki用CSVをコピーしました。'));
+      };
+
+      const handleCSVImport = (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const lines = event.target.result.split('\n'); const newItems = [];
+          lines.forEach(line => {
+            const parts = line.split(',');
+            if (parts.length >= 2) {
+              const word = parts[0].trim(); const meaning = parts[1].trim(); const tags = parts[2] ? parts[2].split(';').map(t => t.trim()) : [];
+              if (word && meaning) newItems.push({ id: generateId(), type: 'word', word: word, meaning: meaning.split(';').map(m => m.trim()), tags: tags, createdAt: Date.now(), repetitions: 0, efactor: 2.5, interval: 0, nextReviewDate: null });
+            }
+          });
+          if (newItems.length > 0) { saveData([...newItems, ...data]); alert(`${newItems.length}件インポートしました！`); }
+        };
+        reader.readAsText(file);
+      };
+
+      const TagTreeItem = ({ name, node, depth = 0 }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        const hasChildren = Object.keys(node).length > 0;
+        return (
+          <div style={{ marginLeft: depth > 0 ? 20 : 0 }} className="mt-3">
+            <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => setIsOpen(!isOpen)}>
+              {hasChildren ? <i className={`fa-solid fa-chevron-${isOpen ? 'down' : 'right'} text-[10px] text-slate-400 w-3 transition-transform`}></i> : <span className="w-3"></span>}
+              <i className={`fa-solid ${hasChildren ? (isOpen ? 'fa-folder-open' : 'fa-folder') : 'fa-tag'} text-amber-400 text-lg`}></i>
+              <span className="text-sm font-bold text-slate-700">{name}</span>
+            </div>
+            {isOpen && hasChildren && <div className="border-l-2 border-slate-100 ml-1.5 pl-3 mt-2">{Object.keys(node).map(k => <TagTreeItem key={k} name={k} node={node[k]} depth={depth + 1} />)}</div>}
+          </div>
+        );
+      };
+
+      const TagTree = () => {
+        const tree = useMemo(() => {
+          const t = {}; data.forEach(d => d.tags?.forEach(tag => { const parts = tag.split('/'); let current = t; parts.forEach(p => { if (!current[p]) current[p] = {}; current = current[p]; }); })); return t;
+        }, [data]);
+        return <div className="bg-white/50 p-6 rounded-2xl border border-white mt-4 shadow-sm">{Object.keys(tree).map(k => <TagTreeItem key={k} name={k} node={tree[k]} />)}</div>;
+      };
+
+      return (
+        <div className="p-6 overflow-y-auto h-full">
+          <div className="glass-card p-8 mb-8">
+            <h3 className="font-black text-slate-900 mb-6 tracking-tight text-xl">Your Progress</h3>
+            <div className="flex justify-between mb-3">
+              <span className="text-sm font-bold text-slate-500">Mastery</span>
+              <span className="text-sm font-black text-slate-900">{stats.progress}%</span>
+            </div>
+            <div className="progress-bar mb-8"><div className="progress-fill" style={{ width: `${stats.progress}%` }}></div></div>
+            
+            <div className="grid grid-cols-2 gap-5">
+              <div className="bg-white/60 p-6 rounded-2xl border border-white shadow-sm"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Words</p><p className="text-4xl font-black text-slate-900">{stats.words}</p></div>
+              <div className="bg-white/60 p-6 rounded-2xl border border-white shadow-sm"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Idioms</p><p className="text-4xl font-black text-slate-900">{stats.idioms}</p></div>
+              <div className="bg-emerald-50/80 p-6 rounded-2xl border border-emerald-100 shadow-sm"><p className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-widest mb-2">Mastered</p><p className="text-4xl font-black text-emerald-600">{stats.mastered}</p></div>
+              <div className="bg-blue-50/80 p-6 rounded-2xl border border-blue-100 shadow-sm"><p className="text-[10px] font-bold text-blue-600/70 uppercase tracking-widest mb-2">Learning</p><p className="text-4xl font-black text-blue-600">{stats.learning}</p></div>
+            </div>
+          </div>
+
+          <div className="glass-card p-8 mb-8">
+            <h3 className="font-black text-slate-900 mb-6 tracking-tight text-xl">App Settings</h3>
+            <div className="flex items-center justify-between mb-8">
+              <div><p className="font-bold text-sm text-slate-900">Auto-play Audio</p><p className="text-xs text-slate-500 mt-1.5 font-medium">単語を開いた時に音声を自動再生</p></div>
+              <div className="relative inline-block w-14 mr-2 align-middle select-none"><input type="checkbox" id="toggle1" checked={appSettings.autoPlayAudio} onChange={() => toggleSetting('autoPlayAudio')} className="toggle-checkbox absolute block w-7 h-7 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 shadow-sm" style={{ right: appSettings.autoPlayAudio ? '0' : '1.75rem', borderColor: appSettings.autoPlayAudio ? '#0F172A' : '#E5E7EB' }}/><label htmlFor="toggle1" className="toggle-label block overflow-hidden h-7 rounded-full bg-slate-200 cursor-pointer transition-colors duration-300" style={{ backgroundColor: appSettings.autoPlayAudio ? '#0F172A' : '#E5E7EB' }}></label></div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div><p className="font-bold text-sm text-slate-900">Strict Mode (SM-2)</p><p className="text-xs text-slate-500 mt-1.5 font-medium">忘却曲線のペナルティを厳しくする</p></div>
+              <div className="relative inline-block w-14 mr-2 align-middle select-none"><input type="checkbox" id="toggle2" checked={appSettings.strictMode} onChange={() => toggleSetting('strictMode')} className="toggle-checkbox absolute block w-7 h-7 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 shadow-sm" style={{ right: appSettings.strictMode ? '0' : '1.75rem', borderColor: appSettings.strictMode ? '#0F172A' : '#E5E7EB' }}/><label htmlFor="toggle2" className="toggle-label block overflow-hidden h-7 rounded-full bg-slate-200 cursor-pointer transition-colors duration-300" style={{ backgroundColor: appSettings.strictMode ? '#0F172A' : '#E5E7EB' }}></label></div>
+            </div>
+          </div>
+
+          <div className="glass-card p-8 mb-8">
+            <h3 className="font-black text-slate-900 mb-6 tracking-tight text-xl">API Settings</h3>
+            <input type="password" placeholder="Gemini API Key" value={apiKey} onChange={e => setApiKey(e.target.value)} className="w-full pro-input p-5 mb-5 text-sm font-medium" />
+            <button onClick={loadModels} className="ripple-btn-dark w-full bg-slate-100 text-slate-900 font-bold py-4 rounded-2xl mb-5 text-sm active:scale-95 transition-transform">Fetch Models</button>
+            {models.length > 0 && <select value={selectedModel} onChange={e => setSelectedModel(e.target.value)} className="w-full pro-input p-5 mb-6 text-sm font-medium">{models.map(m => <option key={m} value={m}>{m}</option>)}</select>}
+            <button onClick={() => { localStorage.setItem(API_KEY_STORAGE, apiKey); localStorage.setItem(MODEL_STORAGE, selectedModel); alert('Saved.'); }} className="ripple-btn w-full bg-slate-900 text-white font-bold py-5 rounded-2xl text-sm shadow-xl shadow-slate-900/20 active:scale-95 transition-transform">Save Settings</button>
+          </div>
+
+          <div className="glass-card p-8 mb-8">
+            <h3 className="font-black text-slate-900 mb-6 tracking-tight text-xl">Data Management</h3>
+            <div className="flex gap-4 mb-6">
+              <button onClick={() => handlePrintPDF('list')} className="ripple-btn-dark flex-1 bg-orange-50 text-orange-600 font-bold py-4 rounded-2xl text-xs active:scale-95 transition-transform"><i className="fa-solid fa-list mr-2"></i>PDF (List)</button>
+              <button onClick={() => handlePrintPDF('flashcard')} className="ripple-btn-dark flex-1 bg-orange-50 text-orange-600 font-bold py-4 rounded-2xl text-xs active:scale-95 transition-transform"><i className="fa-solid fa-clone mr-2"></i>PDF (Cards)</button>
+            </div>
+            <button onClick={handleAnkiExport} className="ripple-btn-dark w-full bg-blue-50 text-blue-600 font-bold py-4 rounded-2xl mb-6 text-sm active:scale-95 transition-transform"><i className="fa-solid fa-file-export mr-2"></i>Export for Anki</button>
+            <button onClick={() => navigator.clipboard.writeText(JSON.stringify(data)).then(() => alert('Copied.'))} className="ripple-btn-dark w-full bg-slate-100 text-slate-900 font-bold py-4 rounded-2xl mb-6 text-sm active:scale-95 transition-transform"><i className="fa-solid fa-copy mr-2"></i>Copy JSON</button>
+            <textarea placeholder="Paste JSON data here..." value={importText} onChange={e => setImportText(e.target.value)} className="w-full pro-input p-5 mb-5 text-sm h-32 resize-none font-medium"></textarea>
+            <button onClick={() => { try { const d = JSON.parse(importText); saveData([...d, ...data]); alert('Imported.'); setImportText(''); } catch(e){ alert('Error'); } }} className="ripple-btn w-full bg-slate-900 text-white font-bold py-5 rounded-2xl mb-8 text-sm shadow-xl shadow-slate-900/20 active:scale-95 transition-transform"><i className="fa-solid fa-download mr-2"></i>Import JSON</button>
+            
+            <div className="border-t border-slate-200/50 pt-8">
+              <h4 className="font-black text-base text-slate-900 mb-3"><i className="fa-solid fa-file-csv mr-2 text-slate-400"></i>CSV Import</h4>
+              <p className="text-[10px] text-slate-500 mb-5 font-medium">Format: <code>word, meaning1;meaning2, tag1;tag2</code></p>
+              <input type="file" accept=".csv,.txt" ref={fileInputRef} onChange={handleCSVImport} className="hidden" />
+              <button onClick={() => fileInputRef.current.click()} className="ripple-btn-dark w-full bg-white border border-slate-200 text-slate-900 font-bold py-5 rounded-2xl text-sm shadow-sm active:scale-95 transition-transform"><i className="fa-solid fa-upload mr-2 text-slate-400"></i>Select CSV File</button>
+            </div>
+          </div>
+
+          <div className="glass-card p-8 mb-8">
+            <h3 className="font-black text-slate-900 mb-3 tracking-tight text-xl">Tag Tree</h3>
+            <p className="text-xs text-slate-500 mb-6 font-medium">階層化されたタグの構造</p>
+            <TagTree />
+          </div>
+        </div>
+      );
+    };
+
+    // --- Main App ---
+    const App = () => {
+      const [activeTab, setActiveTab] = useState('words');
+      const [data, setData] = useState([]);
+      const [toast, setToast] = useState(null);
+      const [appSettings, setAppSettings] = useState({ autoPlayAudio: false, strictMode: false, pinnedTags: [], smartFolders: [] });
+      const [pendingMerges, setPendingMerges] = useState([]);
+      const [resolvedData, setResolvedData] = useState([]);
+      
+      const apiKey = localStorage.getItem(API_KEY_STORAGE);
+      const selectedModel = localStorage.getItem(MODEL_STORAGE);
+
+      const saveData = useCallback((newData) => {
+        setData(newData);
+        try { localStorage.setItem(STORAGE_KEY, LZString.compressToUTF16(JSON.stringify(newData))); } 
+        catch (e) { alert('保存容量の限界に達しました。不要なデータを削除してください。'); }
+      }, []);
+
+      const handleAddWithMerge = (newItems) => {
+        const conflicts = []; const nonConflicts = [];
+        newItems.forEach(newItem => {
+          const existing = data.find(d => (d.word === newItem.word && d.word) || (d.idiom === newItem.idiom && d.idiom));
+          if (existing) conflicts.push({ existing, incoming: newItem }); else nonConflicts.push(newItem);
+        });
+        if (conflicts.length > 0) { setPendingMerges(conflicts); setResolvedData(nonConflicts); } 
+        else { saveData([...nonConflicts, ...data]); }
+      };
+
+      const handleResolveMerge = (resolvedItem, originalId, isDone) => {
+        if (resolvedItem) setResolvedData(prev => [...prev, resolvedItem]);
+        if (isDone) {
+          const resolvedIds = pendingMerges.map(m => m.existing.id);
+          const filteredData = data.filter(d => !resolvedIds.includes(d.id));
+          saveData([...resolvedData, (resolvedItem ? [resolvedItem] : []), ...filteredData].flat());
+          setPendingMerges([]); setResolvedData([]);
+        }
+      };
+
+      useEffect(() => {
+        const storedData = localStorage.getItem(STORAGE_KEY);
+        if (storedData) {
+          try {
+            const parsedData = storedData.startsWith('[') ? JSON.parse(storedData) : JSON.parse(LZString.decompressFromUTF16(storedData));
+            setData(parsedData);
+            const now = new Date(); now.setHours(0, 0, 0, 0);
+            const reviewCount = parsedData.filter(c => (c.type === 'word' || c.type === 'idiom') && c.nextReviewDate && c.nextReviewDate <= now.getTime()).length;
+            if (reviewCount > 0) setTimeout(() => setToast({ message: `今日復習すべき単語・熟語が ${reviewCount} 件あります！`, icon: 'fa-bell' }), 1000);
+          } catch(e) { console.error("Data load error"); }
+        }
+        const storedSettings = localStorage.getItem(SETTINGS_STORAGE);
+        if (storedSettings) setAppSettings(JSON.parse(storedSettings));
+      }, []);
+
+      const showToast = (message, icon, action) => setToast({ message, icon, action });
+
+      const NavButton = ({ id, icon, label }) => (
+        <button onClick={() => setActiveTab(id)} className={`flex flex-col items-center w-14 transition-all duration-300 ${activeTab === id ? 'text-slate-900 scale-110 -translate-y-1' : 'text-slate-400 hover:text-slate-600'}`}>
+          <i className={`fa-solid ${icon} text-xl mb-1.5 drop-shadow-sm`}></i><span className="text-[9px] font-bold tracking-wider">{label}</span>
+        </button>
+      );
+
+      return (
+        <div className="h-screen w-screen flex flex-col overflow-hidden">
+          <div className="bg-orbs"></div>
+          {toast && <Toast message={toast.message} icon={toast.icon} action={toast.action} onClose={() => setToast(null)} />}
+          <MergeModal conflicts={pendingMerges} onResolve={handleResolveMerge} />
+          
+          <main className="flex-1 overflow-hidden relative">
+            {activeTab === 'words' && <VocabScreen type="word" data={data} saveData={saveData} handleAdd={handleAddWithMerge} apiKey={apiKey} selectedModel={selectedModel} showToast={showToast} appSettings={appSettings} setAppSettings={setAppSettings} />}
+            {activeTab === 'idioms' && <VocabScreen type="idiom" data={data} saveData={saveData} handleAdd={handleAddWithMerge} apiKey={apiKey} selectedModel={selectedModel} showToast={showToast} appSettings={appSettings} setAppSettings={setAppSettings} />}
+            {activeTab === 'flashcards' && <FlashcardScreen data={data} saveData={saveData} />}
+            {activeTab === 'tutor' && <TutorScreen apiKey={apiKey} selectedModel={selectedModel} />}
+            {activeTab === 'settings' && <DashboardSettingsScreen data={data} setData={setData} saveData={saveData} appSettings={appSettings} setAppSettings={setAppSettings} />}
+          </main>
+
+          <nav className="glass-nav fixed bottom-0 w-full pb-safe z-20 no-print">
+            <div className="flex justify-around items-center h-24 px-4">
+              <NavButton id="words" icon="fa-book" label="WORDS" />
+              <NavButton id="idioms" icon="fa-layer-group" label="IDIOMS" />
+              <NavButton id="flashcards" icon="fa-clone" label="CARDS" />
+              <NavButton id="tutor" icon="fa-robot" label="TUTOR" />
+              <NavButton id="settings" icon="fa-chart-pie" label="STATS" />
+            </div>
+          </nav>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
